@@ -24,6 +24,6 @@ import org.apache.reef.tang.annotations.NamedParameter;
 /**
  * The size of the default container returned in MB.
  */
-@NamedParameter(doc = "The size of the default container returned in MB", default_value = "512")
+@NamedParameter(doc = "The size of the default container returned in MB", default_value = "8192")
 public class DefaultMemorySize implements Name<Integer> {
 }

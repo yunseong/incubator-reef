@@ -48,9 +48,11 @@ class VortexWorkerManager {
       void launchTasklet(final Tasklet<TInput, TOutput> tasklet) {
     assert(!runningTasklets.containsKey(tasklet.getId()));
     runningTasklets.put(tasklet.getId(), tasklet);
-    final TaskletExecutionRequest<TInput, TOutput> taskletExecutionRequest
-        = new TaskletExecutionRequest<>(tasklet.getId(), tasklet.getUserFunction(), tasklet.getInput());
-    vortexRequestor.send(reefTask, taskletExecutionRequest);
+    final TaskletExecutionRequest<TInput, TOutput> taskletExecutionRequest = new TaskletExecutionRequest<>(
+        tasklet.getId(),
+        tasklet.getUserFunction(),
+        tasklet.getInput());
+    vortexRequestor.send(reefTask, taskletExecutionRequest, tasklet.getTraceInfo());
   }
 
   <T extends Serializable> void sendCacheData(final CacheKey<T> key, final T data) {

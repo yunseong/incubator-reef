@@ -19,6 +19,8 @@
 package org.apache.reef.vortex.driver;
 
 import net.jcip.annotations.ThreadSafe;
+import org.apache.htrace.*;
+import org.apache.htrace.impl.ZipkinSpanReceiver;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
@@ -39,6 +41,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ThreadSafe
 @DriverSide
 final class DefaultVortexMaster implements VortexMaster {
+  private static final String JOB_SPAN = "JobSpan";
+  private final Span jobSpan;
+
   private final AtomicInteger taskletIdCounter = new AtomicInteger();
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
@@ -53,6 +58,15 @@ final class DefaultVortexMaster implements VortexMaster {
                       final PendingTasklets pendingTasklets) {
     this.runningWorkers = runningWorkers;
     this.pendingTasklets = pendingTasklets;
+
+    final Map<String, String> confMap = new HashMap<>(2);
+    confMap.put("process.id", "Vortex_Master_" + System.currentTimeMillis());
+    confMap.put("zipkin.collector-hostname", "srgsi-50");
+    confMap.put("zipkin.collector-port", Integer.toString(9410));
+    final ZipkinSpanReceiver receiver = new ZipkinSpanReceiver(HTraceConfiguration.fromMap(confMap));
+    Trace.addReceiver(receiver);
+    // Trace.addReceiver(new StandardOutSpanReceiver(HTraceConfiguration.EMPTY));
+    jobSpan = Trace.startSpan(JOB_SPAN, Sampler.ALWAYS).detach();
   }
 
   /**
@@ -63,7 +77,13 @@ final class DefaultVortexMaster implements VortexMaster {
       enqueueTasklet(final VortexFunction<TInput, TOutput> function, final TInput input) {
     // TODO[REEF-500]: Simple duplicate Vortex Tasklet launch.
     final VortexFuture<TOutput> vortexFuture = new VortexFuture<>();
-    this.pendingTasklets.addLast(new Tasklet<>(taskletIdCounter.getAndIncrement(), function, input, vortexFuture));
+    final Tasklet tasklet = new Tasklet<>(
+        taskletIdCounter.getAndIncrement(),
+        function,
+        input,
+        vortexFuture,
+        TraceInfo.fromSpan(jobSpan));
+    this.pendingTasklets.addLast(tasklet);
     return vortexFuture;
   }
 
@@ -136,7 +156,14 @@ final class DefaultVortexMaster implements VortexMaster {
    * Terminate the job.
    */
   @Override
-  public void terminate() {
+  public synchronized void terminate() {
+    Trace.continueSpan(jobSpan).close();
+    try {
+      Thread.sleep(1000);
+    } catch (Exception e) {
+      throw new RuntimeException("sleep interrupted");
+    }
+
     runningWorkers.terminate();
   }
 }

@@ -52,7 +52,7 @@ public class PreparedDriverFolderLauncher {
   /**
    * The (hard-coded) amount of memory to be used for the driver.
    */
-  public static final int DRIVER_MEMORY = 512;
+  public static final int DRIVER_MEMORY = 8192;
 
   private static final Logger LOG = Logger.getLogger(PreparedDriverFolderLauncher.class.getName());
 

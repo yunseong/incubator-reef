@@ -19,6 +19,11 @@
 package org.apache.reef.vortex.evaluator;
 
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.htrace.HTraceConfiguration;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceInfo;
+import org.apache.htrace.TraceScope;
+import org.apache.htrace.impl.ZipkinSpanReceiver;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.annotations.audience.TaskSide;
 import org.apache.reef.tang.annotations.Parameter;
@@ -36,6 +41,10 @@ import org.apache.reef.wake.EventHandler;
 
 import javax.inject.Inject;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.*;
 
 /**
@@ -46,6 +55,8 @@ import java.util.concurrent.*;
 @Unit
 @TaskSide
 public final class VortexWorker implements Task, TaskMessageSource {
+  private static final String TASKLET_EXECUTE_SPAN = "worker_execute";
+  private static final String RESULT_SERIALIZE_SPAN = "worker_serialize";
   private static final String MESSAGE_SOURCE_ID = ""; // empty string as there is no use for it
 
   private final BlockingDeque<byte[]> pendingRequests = new LinkedBlockingDeque<>();
@@ -66,6 +77,13 @@ public final class VortexWorker implements Task, TaskMessageSource {
     this.cache = cache;
     this.numOfThreads = numOfThreads;
     this.numOfSlackThreads = numOfSlackThreads;
+
+    final Map<String, String> confMap = new HashMap<>(2);
+    confMap.put("process.id", "Vortex_Worker_" + System.currentTimeMillis());
+    confMap.put("zipkin.collector-hostname", "srgsi-50");
+    confMap.put("zipkin.collector-port", Integer.toString(9410));
+    final ZipkinSpanReceiver receiver = new ZipkinSpanReceiver(HTraceConfiguration.fromMap(confMap));
+    Trace.addReceiver(receiver);
   }
 
   /**
@@ -89,23 +107,54 @@ public final class VortexWorker implements Task, TaskMessageSource {
             throw new RuntimeException(e);
           }
 
+          final long traceId = ByteBuffer.wrap(Arrays.copyOfRange(message, 0, Long.SIZE / Byte.SIZE)).getLong();
+          final long spanId =
+              ByteBuffer.wrap(Arrays.copyOfRange(message, Long.SIZE / Byte.SIZE, 2 * (Long.SIZE / Byte.SIZE)))
+                  .getLong();
+          final TraceInfo traceInfo = new TraceInfo(traceId, spanId);
+
+
           // Scheduler Thread: Pass the command to the worker thread pool to be executed
           commandExecutor.execute(new Runnable() {
             @Override
             public void run() {
               // Command Executor: Deserialize the command
-              final VortexRequest vortexRequest = (VortexRequest) SerializationUtils.deserialize(message);
+
+              final VortexRequest vortexRequest;
+
+              final byte[] request;
+              try (final TraceScope traceScope =
+                       Trace.startSpan("worker_arrayCopy", traceInfo)) {
+                request = Arrays.copyOfRange(message, 2 * (Long.SIZE / Byte.SIZE), message.length);
+              }
+
+
+              try (final TraceScope traceScope =
+                       Trace.startSpan("worker_deserialize " + request.length/1024/1024.0 + "mb", traceInfo)) {
+                vortexRequest = (VortexRequest) SerializationUtils.deserialize(request);
+              }
+
+
               switch (vortexRequest.getType()) {
                 case ExecuteTasklet:
                   final TaskletExecutionRequest taskletExecutionRequest = (TaskletExecutionRequest) vortexRequest;
                   try {
                     // Command Executor: Execute the command
-                    final Serializable result = taskletExecutionRequest.execute();
+                    final Serializable result;
+                    try (final TraceScope traceScope =
+                             Trace.startSpan(TASKLET_EXECUTE_SPAN, traceInfo)) {
+                      result = taskletExecutionRequest.execute();
+                    }
 
                     // Command Executor: Tasklet successfully returns result
                     final WorkerReport report =
                         new TaskletResultReport<>(taskletExecutionRequest.getTaskletId(), result);
-                    workerReports.addLast(SerializationUtils.serialize(report));
+                    final byte[] reportBytes;
+                    try (final TraceScope traceScope =
+                             Trace.startSpan(RESULT_SERIALIZE_SPAN, traceInfo)) {
+                      reportBytes = SerializationUtils.serialize(report);
+                    }
+                    workerReports.addLast(reportBytes);
                   } catch (Exception e) {
                     // Command Executor: Tasklet throws an exception
                     final WorkerReport report =
@@ -163,7 +212,14 @@ public final class VortexWorker implements Task, TaskMessageSource {
     @Override
     public void onNext(final DriverMessage message) {
       if (message.get().isPresent()) {
-        pendingRequests.addLast(message.get().get());
+        final byte[] bytes = message.get().get();
+        final long traceId = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 0, Long.SIZE / Byte.SIZE)).getLong();
+        final long spanId =
+            ByteBuffer.wrap(Arrays.copyOfRange(bytes, Long.SIZE / Byte.SIZE, 2 * (Long.SIZE / Byte.SIZE))).getLong();
+        try (final TraceScope traceScope =
+                 Trace.startSpan("Worker_Enqueued", new TraceInfo(traceId, spanId))) {
+          pendingRequests.addLast(message.get().get());
+        }
       }
     }
   }

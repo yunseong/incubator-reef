@@ -70,6 +70,8 @@ final class VortexDriver {
   private final VortexStart vortexStart;
   private final EStage<Integer> pendingTaskletSchedulerEStage;
 
+  private final AtomicInteger barrier;
+
   @Inject
   private VortexDriver(final EvaluatorRequestor evaluatorRequestor,
                        final VortexRequestor vortexRequestor,
@@ -90,6 +92,7 @@ final class VortexDriver {
     this.evalMem = workerMem;
     this.evalNum = workerNum;
     this.evalCores = workerCores;
+    this.barrier = new AtomicInteger(workerNum);
   }
 
   /**
@@ -104,12 +107,6 @@ final class VortexDriver {
           .setMemory(evalMem)
           .setNumberOfCores(evalCores)
           .build());
-
-      // Run Vortex Start
-      vortexStartEStage.onNext(vortexStart);
-
-      // Run Scheduler
-      pendingTaskletSchedulerEStage.onNext(SCHEDULER_EVENT);
     }
   }
 
@@ -146,6 +143,16 @@ final class VortexDriver {
     public void onNext(final RunningTask reefTask) {
       LOG.log(Level.INFO, "Worker up and running");
       vortexMaster.workerAllocated(new VortexWorkerManager(vortexRequestor, reefTask));
+
+      final int num = barrier.decrementAndGet();
+      if (num == 0) {
+        // Run Vortex Start
+        vortexStartEStage.onNext(vortexStart);
+
+        // Run Scheduler
+        pendingTaskletSchedulerEStage.onNext(SCHEDULER_EVENT);
+      }
+      LOG.log(Level.INFO, "NUM: " + num);
     }
   }
 

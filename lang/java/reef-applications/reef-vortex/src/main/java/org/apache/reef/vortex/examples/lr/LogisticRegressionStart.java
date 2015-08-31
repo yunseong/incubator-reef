@@ -24,6 +24,9 @@ import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.api.VortexThreadPool;
 
 import javax.inject.Inject;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Vector;
@@ -34,11 +37,12 @@ import java.util.logging.Logger;
  * Logistic Regression User Code Example.
  */
 final class LogisticRegressionStart implements VortexStart {
+  private final String path = "C:\\Users\\v-younya\\Documents\\GitHub\\incubator-reef\\input.txt";
   private static final Logger LOG = Logger.getLogger(LogisticRegressionStart.class.getName());
-  private static final int NUMBER_OF_TRAINING_DATA_INSTANCES = 1000 * 500 * 32;
+  private static final int NUMBER_OF_TRAINING_DATA_INSTANCES = 1000 * 32;
   private static final int NUMBER_OF_ITERATIONS = 3;
 
-  private static final int DIVIDE_FACTOR = 128;
+  private static final int DIVIDE_FACTOR = 4;
 
   @Inject
   private LogisticRegressionStart() {
@@ -53,22 +57,6 @@ final class LogisticRegressionStart implements VortexStart {
     final Double[] initialParameters = {0.0, 0.0, 0.0};
     final Vector<Double> parameterVector = new Vector<>(Arrays.asList(initialParameters));
 
-    // [X1(=tumorSize), X2(=age), Y(=isTumor?)]
-    final Double[] noTumor = {-0.5, 0.5, 0.0};
-    final Vector<Double> positiveVector = new Vector<>(Arrays.asList(noTumor));
-    final Double[] tumor = {0.5, -0.5, 1.0};
-    final Vector<Double> negativeVector = new Vector<>(Arrays.asList(tumor));
-
-    // Create one TrainingData partition (ASSUMING THAT ALL PARTITIONS ARE THE SAME)
-    final ArrayList<Vector<Double>> partition = new ArrayList<>();
-    for (int i = 0; i < NUMBER_OF_TRAINING_DATA_INSTANCES/DIVIDE_FACTOR; i++) {
-      if (i % 2 == 0) {
-        partition.add(positiveVector);
-      } else {
-        partition.add(negativeVector);
-      }
-    }
-
     // Measure job finish time from here
     final double start = System.currentTimeMillis();
 
@@ -76,36 +64,61 @@ final class LogisticRegressionStart implements VortexStart {
     for (int i = 0; i < NUMBER_OF_ITERATIONS; i++) {
       System.out.println(i + " Before Iteration: " + parameterVector);
 
-      // Launch tasklets, each operating on a partition
-      final ArrayList<VortexFuture<Vector<Double>>> futures = new ArrayList<>();
-      for (int j = 0; j < DIVIDE_FACTOR; j++) {
-        futures.add(vortexThreadPool.submit(new GradientFunction(),
-            new ImmutablePair<>(parameterVector, partition)));
-      }
+      try {
+        final FileInputStream inputStream = new FileInputStream(path);
+        final BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
 
-      // Get the sum of partial gradients
-      final Vector<Double> sumOfPartialGradients = new Vector<>();
-      for (int l = 0; l < parameterVector.size(); l++) {
-        sumOfPartialGradients.add(0.0);
-      }
-      for (final VortexFuture<Vector<Double>> future : futures) {
-        try {
-          final Vector<Double> gradient = future.get();
-          assert(gradient.size() == sumOfPartialGradients.size());
-          for (int k = 0; k < sumOfPartialGradients.size(); k++) {
-            sumOfPartialGradients.setElementAt(sumOfPartialGradients.get(k) + gradient.get(k), k);
+        // Launch tasklets, each operating on a partition
+        final ArrayList<VortexFuture<Vector<Double>>> futures = new ArrayList<>();
+        for (int j = 0; j < DIVIDE_FACTOR; j++) {
+
+          // Get the next partition
+          final ArrayList<Vector<Double>> partition = new ArrayList<>();
+          for (int k = 0; k < NUMBER_OF_TRAINING_DATA_INSTANCES / DIVIDE_FACTOR; k++) {
+            final String strLine = br.readLine();
+            final String[] numbers = strLine.split(" ");
+            final double x1 = Double.valueOf(numbers[0]);
+            final double x2 = Double.valueOf(numbers[1]);
+            final double y = Double.valueOf(numbers[2]);
+
+            final Vector<Double> vector = new Vector<>();
+            vector.add(x1);
+            vector.add(x2);
+            vector.add(y);
+            partition.add(vector);
           }
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
 
-      // Update the parameters
-      assert(parameterVector.size() == sumOfPartialGradients.size());
-      for (int k = 0; k < parameterVector.size(); k++) {
-        parameterVector.setElementAt(
-            parameterVector.get(k) - (sumOfPartialGradients.get(k)/NUMBER_OF_TRAINING_DATA_INSTANCES/100), k
-        );
+          futures.add(vortexThreadPool.submit(new GradientFunction(),
+              new ImmutablePair<>(parameterVector, partition)));
+        }
+
+
+        // Get the sum of partial gradients
+        final Vector<Double> sumOfPartialGradients = new Vector<>();
+        for (int l = 0; l < parameterVector.size(); l++) {
+          sumOfPartialGradients.add(0.0);
+        }
+        for (final VortexFuture<Vector<Double>> future : futures) {
+          try {
+            final Vector<Double> gradient = future.get();
+            assert (gradient.size() == sumOfPartialGradients.size());
+            for (int k = 0; k < sumOfPartialGradients.size(); k++) {
+              sumOfPartialGradients.setElementAt(sumOfPartialGradients.get(k) + gradient.get(k), k);
+            }
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }
+
+        // Update the parameters
+        assert (parameterVector.size() == sumOfPartialGradients.size());
+        for (int k = 0; k < parameterVector.size(); k++) {
+          parameterVector.setElementAt(
+              parameterVector.get(k) - (sumOfPartialGradients.get(k) / NUMBER_OF_TRAINING_DATA_INSTANCES / 100), k
+          );
+        }
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
     }
 

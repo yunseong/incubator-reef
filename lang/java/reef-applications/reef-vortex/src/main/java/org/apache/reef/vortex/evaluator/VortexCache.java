@@ -16,28 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.common;
+package org.apache.reef.vortex.evaluator;
 
-import org.apache.reef.annotations.Unstable;
+import org.apache.reef.annotations.audience.EvaluatorSide;
+import org.apache.reef.tang.annotations.DefaultImplementation;
+import org.apache.reef.vortex.common.CacheKey;
 
 import java.io.Serializable;
 
 /**
- * Worker -> Master protocol.
+ * Cache API used in Workers.
  */
-@Unstable
-public interface WorkerReport extends Serializable {
-  /**
-   * Type of WorkerReport.
-   */
-  enum WorkerReportType {
-    TaskletResult,
-    TaskletFailure,
-    CacheRequest
-  }
+@EvaluatorSide
+@DefaultImplementation(DefaultVortexCache.class)
+public interface VortexCache {
+  <T extends Serializable> T get(final CacheKey<T> key);
 
-  /**
-   * @return the type of this WorkerReport.
-   */
-  WorkerReportType getType();
+  <T extends Serializable> void onDataArrived(final CacheKey<T> key, final T data);
 }

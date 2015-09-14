@@ -16,28 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.common;
-
-import org.apache.reef.annotations.Unstable;
-
-import java.io.Serializable;
-
 /**
- * Worker -> Master protocol.
+ * Unit tests for testing Vortex APIs.
  */
-@Unstable
-public interface WorkerReport extends Serializable {
-  /**
-   * Type of WorkerReport.
-   */
-  enum WorkerReportType {
-    TaskletResult,
-    TaskletFailure,
-    CacheRequest
-  }
-
-  /**
-   * @return the type of this WorkerReport.
-   */
-  WorkerReportType getType();
-}
+package org.apache.reef.vortex.api;

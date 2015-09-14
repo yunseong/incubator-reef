@@ -52,13 +52,16 @@ public final class VortexWorker implements Task, TaskMessageSource {
   private final BlockingDeque<byte[]> workerReports = new LinkedBlockingDeque<>();
 
   private final HeartBeatTriggerManager heartBeatTriggerManager;
+  private final VortexCache vortexCache;
   private final int numOfThreads;
   private final CountDownLatch terminated = new CountDownLatch(1);
 
   @Inject
   private VortexWorker(final HeartBeatTriggerManager heartBeatTriggerManager,
+                       final VortexCache vortexCache,
                       @Parameter(VortexWorkerConf.NumOfThreads.class) final int numOfThreads) {
     this.heartBeatTriggerManager = heartBeatTriggerManager;
+    this.vortexCache = vortexCache;
     this.numOfThreads = numOfThreads;
   }
 
@@ -109,6 +112,11 @@ public final class VortexWorker implements Task, TaskMessageSource {
 
                   heartBeatTriggerManager.triggerHeartBeat();
                   break;
+                case CacheSent:
+                  final CacheSentRequest cacheSentRequest = (CacheSentRequest) vortexRequest;
+                    // TODO Is it okay to go without type information?
+                    vortexCache.onDataArrived(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
+                  break;
                 default:
                   throw new RuntimeException("Unknown Command");
               }
@@ -134,6 +142,18 @@ public final class VortexWorker implements Task, TaskMessageSource {
     } else {
       return Optional.empty();
     }
+  }
+
+  /**
+   * Send the request for cache data to Master.
+   * Called by the thread which accesses to Cache. (TODO: Clarify)
+   * @param key Key of the data.
+   * @param <T> Type of the data.
+   */
+  <T> void sendCacheDataRequest(final CacheKey<T> key) {
+    final WorkerReport report = new CacheDataRequest(key);
+    workerReports.addLast(SerializationUtils.serialize(report));
+    heartBeatTriggerManager.triggerHeartBeat();
   }
 
   /**

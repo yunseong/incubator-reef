@@ -23,6 +23,7 @@ import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
+import org.apache.reef.vortex.common.CacheKey;
 
 import javax.inject.Inject;
 import java.io.Serializable;
@@ -39,15 +40,18 @@ final class DefaultVortexMaster implements VortexMaster {
   private final AtomicInteger taskletIdCounter = new AtomicInteger();
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
+  private final VortexCache vortexCache;
 
   /**
    * @param runningWorkers for managing all running workers.
    */
   @Inject
   DefaultVortexMaster(final RunningWorkers runningWorkers,
-                      final PendingTasklets pendingTasklets) {
+                      final PendingTasklets pendingTasklets,
+                      final VortexCache vortexCache) {
     this.runningWorkers = runningWorkers;
     this.pendingTasklets = pendingTasklets;
+    this.vortexCache = vortexCache;
   }
 
   /**
@@ -99,6 +103,15 @@ final class DefaultVortexMaster implements VortexMaster {
   @Override
   public void taskletErrored(final String workerId, final int taskletId, final Exception exception) {
     runningWorkers.errorTasklet(workerId, taskletId, exception);
+  }
+
+  /**
+   * Delegate sending the requested data to runningWorkers.
+   */
+  @Override
+  public <T extends Serializable> void cacheDataRequested(final String workerId, final CacheKey<T> cacheKey) {
+    final T data = vortexCache.get(cacheKey);
+    runningWorkers.sendCacheData(workerId, cacheKey, data);
   }
 
   /**

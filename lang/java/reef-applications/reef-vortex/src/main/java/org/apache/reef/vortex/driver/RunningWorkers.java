@@ -22,6 +22,7 @@ import net.jcip.annotations.ThreadSafe;
 
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
+import org.apache.reef.vortex.common.CacheKey;
 
 import javax.inject.Inject;
 
@@ -188,6 +189,21 @@ final class RunningWorkers {
       }
     } finally {
       lock.unlock();
+    }
+  }
+
+  /**
+   * Send the cache data to Worker.
+   * @param workerId Worker who requested the cache data.
+   * @param cacheKey Key that is assigned to the data.
+   * @param <T> Type of the data.
+   */
+  <T extends Serializable> void sendCacheData(final String workerId, final CacheKey<T> cacheKey, final T data) {
+    if (isWorkerRunning(workerId)) {
+      this.runningWorkers.get(workerId).sendCacheData(cacheKey, data);
+      // TODO: schedulingPolicy#cached for bookkeeping cache location
+    } else {
+      throw new RuntimeException("Worker is not running");
     }
   }
 

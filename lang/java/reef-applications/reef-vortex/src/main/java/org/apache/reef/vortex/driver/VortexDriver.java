@@ -29,6 +29,7 @@ import org.apache.reef.tang.Configurations;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.tang.annotations.Unit;
 import org.apache.reef.vortex.api.VortexStart;
+import org.apache.reef.vortex.common.CacheDataRequest;
 import org.apache.reef.vortex.common.TaskletFailureReport;
 import org.apache.reef.vortex.common.TaskletResultReport;
 import org.apache.reef.vortex.common.WorkerReport;
@@ -164,6 +165,9 @@ final class VortexDriver {
         final TaskletFailureReport taskletFailureReport = (TaskletFailureReport)workerReport;
         vortexMaster.taskletErrored(workerId, taskletFailureReport.getTaskletId(), taskletFailureReport.getException());
         break;
+      case CacheRequest:
+        final CacheDataRequest cacheDataRequest = (CacheDataRequest)workerReport;
+        vortexMaster.cacheDataRequested(workerId, cacheDataRequest.getCacheKey());
       default:
         throw new RuntimeException("Unknown Report");
       }

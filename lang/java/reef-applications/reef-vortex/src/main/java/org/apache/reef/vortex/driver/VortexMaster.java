@@ -23,6 +23,7 @@ import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
+import org.apache.reef.vortex.common.CacheKey;
 
 import java.io.Serializable;
 
@@ -59,6 +60,11 @@ public interface VortexMaster {
    * Call this when a Tasklet errored.
    */
   void taskletErrored(final String workerId, final int taskletId, final Exception exception);
+
+  /**
+   * Call this when a worker requested cache data.
+   */
+ <T extends Serializable> void cacheDataRequested(final String workerId, final CacheKey<T> cacheKey);
 
   /**
    * Release all resources and shut down.

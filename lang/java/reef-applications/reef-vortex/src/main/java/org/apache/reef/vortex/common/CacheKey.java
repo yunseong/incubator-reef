@@ -18,26 +18,11 @@
  */
 package org.apache.reef.vortex.common;
 
-import org.apache.reef.annotations.Unstable;
-
 import java.io.Serializable;
 
 /**
- * Worker -> Master protocol.
+ * Key used in VortexCache to put/get the data.
+ * Each key has its type information.
  */
-@Unstable
-public interface WorkerReport extends Serializable {
-  /**
-   * Type of WorkerReport.
-   */
-  enum WorkerReportType {
-    TaskletResult,
-    TaskletFailure,
-    CacheRequest
-  }
-
-  /**
-   * @return the type of this WorkerReport.
-   */
-  WorkerReportType getType();
+public final class CacheKey<T> implements Serializable {
 }

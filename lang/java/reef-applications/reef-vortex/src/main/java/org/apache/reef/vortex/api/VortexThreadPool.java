@@ -19,8 +19,11 @@
 package org.apache.reef.vortex.api;
 
 import org.apache.reef.annotations.Unstable;
+import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.driver.VortexMaster;
 
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.Serializable;
 
@@ -34,6 +37,19 @@ public final class VortexThreadPool {
   @Inject
   private VortexThreadPool(final VortexMaster vortexMaster) {
     this.vortexMaster = vortexMaster;
+  }
+
+  /**
+   * Put the data in cache by calling {@link VortexMaster#cache(String, Serializable)}.
+   * @param name Name to distinguish the data, which should be unique.
+   * @param data Data to cache.
+   * @param <T> Type of the data.
+   * @return Key that is used to access the data in Workers {@link org.apache.reef.vortex.evaluator.VortexCache}.
+   * @throws VortexCacheException If the keyName is registered already in the cache.
+   */
+  public <T extends Serializable> CacheKey<T> cache(final String name, @Nonnull final T data)
+      throws VortexCacheException {
+    return vortexMaster.cache(name, data);
   }
 
   /**

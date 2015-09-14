@@ -31,7 +31,8 @@ public interface VortexRequest extends Serializable {
    * Type of Request.
    */
   enum RequestType {
-    ExecuteTasklet
+    ExecuteTasklet,
+    CacheSent
   }
 
   /**

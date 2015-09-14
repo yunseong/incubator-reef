@@ -16,28 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.common;
+package org.apache.reef.vortex.examples.echo;
 
-import org.apache.reef.annotations.Unstable;
-
-import java.io.Serializable;
+import org.apache.reef.vortex.driver.VortexLauncher;
 
 /**
- * Worker -> Master protocol.
+ * User's main function.
  */
-@Unstable
-public interface WorkerReport extends Serializable {
-  /**
-   * Type of WorkerReport.
-   */
-  enum WorkerReportType {
-    TaskletResult,
-    TaskletFailure,
-    CacheRequest
+public final  class Echo {
+  private Echo() {
   }
 
   /**
-   * @return the type of this WorkerReport.
+   * Launch the vortex job, passing appropriate arguments.
    */
-  WorkerReportType getType();
+  public static void main(final String[] args) {
+    VortexLauncher.launchLocal("Vortex_Example_Echo", EchoStart.class, 1, 1024, 8, 2000);
+  }
 }

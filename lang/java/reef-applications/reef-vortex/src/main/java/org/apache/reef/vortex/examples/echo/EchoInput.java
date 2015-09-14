@@ -16,28 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.common;
+package org.apache.reef.vortex.examples.echo;
 
-import org.apache.reef.annotations.Unstable;
+import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 import java.io.Serializable;
 
 /**
- * Worker -> Master protocol.
+ * Defines the input used in Echo.
  */
-@Unstable
-public interface WorkerReport extends Serializable {
-  /**
-   * Type of WorkerReport.
-   */
-  enum WorkerReportType {
-    TaskletResult,
-    TaskletFailure,
-    CacheRequest
+public final class EchoInput implements Serializable {
+  private final CacheKey<String> messageKey;
+
+  public EchoInput(final CacheKey<String> messageKey) {
+    this.messageKey = messageKey;
   }
 
-  /**
-   * @return the type of this WorkerReport.
-   */
-  WorkerReportType getType();
+  public CacheKey<String> getMessageKey() throws VortexCacheException {
+    return messageKey;
+  }
 }

@@ -23,7 +23,10 @@ import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
+import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.Serializable;
 import java.util.*;
@@ -39,6 +42,8 @@ final class DefaultVortexMaster implements VortexMaster {
   private final AtomicInteger taskletIdCounter = new AtomicInteger();
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
+  // TODO This should be replaced by Guava
+  private final Map<String, Serializable> cacheMap = new HashMap<>();
 
   /**
    * @param runningWorkers for managing all running workers.
@@ -99,6 +104,32 @@ final class DefaultVortexMaster implements VortexMaster {
   @Override
   public void taskletErrored(final String workerId, final int taskletId, final Exception exception) {
     runningWorkers.errorTasklet(workerId, taskletId, exception);
+  }
+
+  @Override
+  public <T extends Serializable> CacheKey cache(final String keyName, @Nonnull final T data)
+      throws VortexCacheException {
+    synchronized (cacheMap) {
+      if (cacheMap.containsKey(keyName)) {
+        throw new VortexCacheException("The keyName " + keyName + "is already used.");
+      }
+
+      final CacheKey key = new CacheKey(keyName);
+      cacheMap.put(keyName, data);
+      return key;
+    }
+  }
+
+  @Override
+  public void dataRequested(final String workerId, final CacheKey cacheKey) throws VortexCacheException {
+    synchronized (cacheMap) {
+      final String keyName = cacheKey.getName();
+      if (!cacheMap.containsKey(keyName)) {
+        throw new VortexCacheException("The entity does not exist for the key : " + cacheKey);
+      }
+      final Serializable data = cacheMap.get(keyName);
+      runningWorkers.sendCacheData(workerId, cacheKey, data);
+    }
   }
 
   /**

@@ -21,6 +21,8 @@ package org.apache.reef.vortex.driver;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.task.RunningTask;
+import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.CacheSentRequest;
 import org.apache.reef.vortex.common.TaskletExecutionRequest;
 
 import java.io.Serializable;
@@ -49,6 +51,11 @@ class VortexWorkerManager {
     final TaskletExecutionRequest<TInput, TOutput> taskletExecutionRequest
         = new TaskletExecutionRequest<>(tasklet.getId(), tasklet.getUserFunction(), tasklet.getInput());
     vortexRequestor.send(reefTask, taskletExecutionRequest);
+  }
+
+  <T extends Serializable> void sendCacheData(final CacheKey<T> key, final T data) {
+    final CacheSentRequest<T> cacheSentRequest = new CacheSentRequest<>(key, data);
+    vortexRequestor.send(reefTask, cacheSentRequest);
   }
 
   <TOutput extends Serializable> Tasklet taskletCompleted(final Integer taskletId, final TOutput result) {

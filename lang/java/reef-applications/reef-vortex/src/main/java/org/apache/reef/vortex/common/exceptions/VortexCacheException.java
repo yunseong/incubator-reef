@@ -16,28 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.common;
-
-import org.apache.reef.annotations.Unstable;
-
-import java.io.Serializable;
+package org.apache.reef.vortex.common.exceptions;
 
 /**
- * Worker -> Master protocol.
+ * Exception that is thrown while using the cache.
  */
-@Unstable
-public interface WorkerReport extends Serializable {
-  /**
-   * Type of WorkerReport.
-   */
-  enum WorkerReportType {
-    TaskletResult,
-    TaskletFailure,
-    CacheRequest
+public class VortexCacheException extends Exception {
+  public VortexCacheException(final String message) {
+    super(message);
   }
 
-  /**
-   * @return the type of this WorkerReport.
-   */
-  WorkerReportType getType();
+  public VortexCacheException(final String message, final Throwable cause) {
+    super(message, cause);
+  }
 }

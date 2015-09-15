@@ -20,6 +20,7 @@ package org.apache.reef.vortex.common;
 
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.vortex.api.VortexFunction;
+import org.apache.reef.vortex.api.VortexInput;
 
 import java.io.Serializable;
 
@@ -27,7 +28,7 @@ import java.io.Serializable;
  * Request to execute a tasklet.
  */
 @Unstable
-public final class TaskletExecutionRequest<TInput extends Serializable, TOutput extends Serializable>
+public final class TaskletExecutionRequest<TInput extends VortexInput, TOutput extends Serializable>
     implements VortexRequest {
   private final int taskletId;
   private final VortexFunction<TInput, TOutput> userFunction;

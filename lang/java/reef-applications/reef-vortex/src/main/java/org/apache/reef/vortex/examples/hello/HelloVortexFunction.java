@@ -25,12 +25,12 @@ import java.io.Serializable;
 /**
  * Prints to stdout.
  */
-final class HelloVortexFunction implements VortexFunction {
+final class HelloVortexFunction implements VortexFunction<HelloVortexInput, Serializable> {
   /**
    * Prints to stdout.
    */
   @Override
-  public Serializable call(final Serializable serializable) throws Exception {
+  public Serializable call(final HelloVortexInput helloVortexInput) throws Exception {
     System.out.println("Hello, Vortex!");
     return null;
   }

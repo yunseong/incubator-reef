@@ -19,6 +19,8 @@
 package org.apache.reef.vortex.evaluator;
 
 import org.apache.reef.util.cache.Cache;
+import org.apache.reef.util.cache.CacheImpl;
+import org.apache.reef.util.cache.SystemTime;
 import org.apache.reef.vortex.common.CacheKey;
 
 import javax.inject.Inject;
@@ -30,16 +32,17 @@ import java.util.concurrent.ExecutionException;
 /**
  * Implementation of VortexCache based on REEF's cache. {@link org.apache.reef.util.cache.Cache}
  */
-public class DefaultVortexCache implements VortexCache {
+final class DefaultVortexCache implements VortexCache {
   private final Cache<CacheKey<? extends Serializable>, Serializable> cache;
   private final VortexWorker vortexWorker;
   private final ConcurrentHashMap<CacheKey, Serializable> waitingData = new ConcurrentHashMap<>();
 
+  private static final long CACHE_TIMEOUT = 10000000;
+
   @Inject
-  private DefaultVortexCache(final VortexWorker vortexWorker,
-                             final Cache<CacheKey<? extends Serializable>, Serializable> cache) {
+  private DefaultVortexCache(final VortexWorker vortexWorker) {
     this.vortexWorker = vortexWorker;
-    this.cache = cache;
+    this.cache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT); // TODO Replace this with Guava
   }
 
   @Override
@@ -51,7 +54,7 @@ public class DefaultVortexCache implements VortexCache {
           vortexWorker.sendCacheDataRequest(key);
           synchronized (waitingData) {
             while(!waitingData.contains(key)) {
-              waitingData.wait(); // TODO: Timeout?
+              waitingData.wait(CACHE_TIMEOUT);
             }
           }
           return (T) waitingData.remove(key);
@@ -63,7 +66,7 @@ public class DefaultVortexCache implements VortexCache {
   }
 
   /**
-   * Called when the data arrives in the VortexWorker
+   * Called when the data arrives in the VortexWorker.
    * @param key Key of the data
    * @param data Data to put in the cache
    */

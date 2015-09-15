@@ -49,7 +49,7 @@ public final class AddOneTestStart implements VortexStart {
     final List<VortexFuture<Integer>> futures = new ArrayList<>();
     final AddOneFunction addOneFunction = new AddOneFunction();
     for (final int i : inputVector) {
-      futures.add(vortexThreadPool.submit(addOneFunction, i));
+      futures.add(vortexThreadPool.submit(addOneFunction, new AddOneInput(i)));
     }
 
     int j = 0;

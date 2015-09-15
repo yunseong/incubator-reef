@@ -16,33 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.examples.hello;
+package org.apache.reef.vortex.examples.addone;
 
-import org.apache.reef.vortex.api.VortexFuture;
-import org.apache.reef.vortex.api.VortexStart;
-import org.apache.reef.vortex.api.VortexThreadPool;
+import org.apache.reef.vortex.api.VortexInput;
+import org.apache.reef.vortex.common.CacheKey;
 
-import javax.inject.Inject;
-import java.util.concurrent.ExecutionException;
+import java.io.Serializable;
 
 /**
- * HelloVortex User Code Example.
+ * Input that takes an integer. The data is not cached in this example.
  */
-final class HelloVortexStart implements VortexStart {
-  @Inject
-  private HelloVortexStart() {
+final class AddOneInput implements VortexInput {
+  private final int input;
+
+  AddOneInput(final int input) {
+    this.input = input;
   }
 
-  /**
-   * Run the function.
-   */
   @Override
-  public void start(final VortexThreadPool vortexThreadPool) {
-    final VortexFuture future = vortexThreadPool.submit(new HelloVortexFunction(), new HelloVortexInput());
-    try {
-      future.get();
-    } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+  public <T extends Serializable> CacheKey<T> getCachedKey() {
+    return null;
+  }
+
+  @Override
+  public Integer getNotCachedData() {
+    return input;
   }
 }

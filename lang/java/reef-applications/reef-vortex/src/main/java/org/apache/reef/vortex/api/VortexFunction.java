@@ -31,7 +31,7 @@ import java.io.Serializable;
  * @param <TOutput> output type
  */
 @Unstable
-public interface VortexFunction<TInput extends Serializable, TOutput extends Serializable> extends Serializable {
+public interface VortexFunction<TInput extends VortexInput, TOutput extends Serializable> extends Serializable {
   /**
    * @param input of the function
    * @return output of the function

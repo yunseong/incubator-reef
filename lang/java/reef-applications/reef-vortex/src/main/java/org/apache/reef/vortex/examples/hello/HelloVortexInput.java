@@ -18,31 +18,25 @@
  */
 package org.apache.reef.vortex.examples.hello;
 
-import org.apache.reef.vortex.api.VortexFuture;
-import org.apache.reef.vortex.api.VortexStart;
-import org.apache.reef.vortex.api.VortexThreadPool;
+import org.apache.reef.vortex.api.VortexInput;
+import org.apache.reef.vortex.common.CacheKey;
 
-import javax.inject.Inject;
-import java.util.concurrent.ExecutionException;
+import javax.annotation.Nullable;
+import java.io.Serializable;
 
 /**
- * HelloVortex User Code Example.
+ * Input that does not contain any data.
  */
-final class HelloVortexStart implements VortexStart {
-  @Inject
-  private HelloVortexStart() {
+public class HelloVortexInput implements VortexInput {
+  @Nullable
+  @Override
+  public <T extends Serializable> CacheKey<T> getCachedKey() {
+    return null;
   }
 
-  /**
-   * Run the function.
-   */
+  @Nullable
   @Override
-  public void start(final VortexThreadPool vortexThreadPool) {
-    final VortexFuture future = vortexThreadPool.submit(new HelloVortexFunction(), new HelloVortexInput());
-    try {
-      future.get();
-    } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+  public <T extends Serializable> T getNotCachedData() {
+    return null;
   }
 }

@@ -23,6 +23,7 @@ import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
+import org.apache.reef.vortex.api.VortexInput;
 import org.apache.reef.vortex.common.CacheKey;
 
 import javax.inject.Inject;
@@ -58,7 +59,7 @@ final class DefaultVortexMaster implements VortexMaster {
    * Add a new tasklet to pendingTasklets.
    */
   @Override
-  public <TInput extends Serializable, TOutput extends Serializable> VortexFuture<TOutput>
+  public <TInput extends VortexInput, TOutput extends Serializable> VortexFuture<TOutput>
       enqueueTasklet(final VortexFunction<TInput, TOutput> function, final TInput input) {
     // TODO[REEF-500]: Simple duplicate Vortex Tasklet launch.
     final VortexFuture<TOutput> vortexFuture = new VortexFuture<>();

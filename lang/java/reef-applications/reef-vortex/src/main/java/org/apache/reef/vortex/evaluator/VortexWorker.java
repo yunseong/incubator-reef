@@ -21,6 +21,7 @@ package org.apache.reef.vortex.evaluator;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.annotations.audience.TaskSide;
+import org.apache.reef.tang.InjectionFuture;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.tang.annotations.Unit;
 import org.apache.reef.task.HeartBeatTriggerManager;
@@ -52,13 +53,13 @@ public final class VortexWorker implements Task, TaskMessageSource {
   private final BlockingDeque<byte[]> workerReports = new LinkedBlockingDeque<>();
 
   private final HeartBeatTriggerManager heartBeatTriggerManager;
-  private final VortexCache vortexCache;
+  private final InjectionFuture<VortexCache> vortexCache;
   private final int numOfThreads;
   private final CountDownLatch terminated = new CountDownLatch(1);
 
   @Inject
   private VortexWorker(final HeartBeatTriggerManager heartBeatTriggerManager,
-                       final VortexCache vortexCache,
+                       final InjectionFuture<VortexCache> vortexCache,
                       @Parameter(VortexWorkerConf.NumOfThreads.class) final int numOfThreads) {
     this.heartBeatTriggerManager = heartBeatTriggerManager;
     this.vortexCache = vortexCache;
@@ -115,7 +116,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
                 case CacheSent:
                   final CacheSentRequest cacheSentRequest = (CacheSentRequest) vortexRequest;
                     // TODO Is it okay to go without type information?
-                    vortexCache.onDataArrived(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
+                    vortexCache.get().onDataArrived(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
                   break;
                 default:
                   throw new RuntimeException("Unknown Command");

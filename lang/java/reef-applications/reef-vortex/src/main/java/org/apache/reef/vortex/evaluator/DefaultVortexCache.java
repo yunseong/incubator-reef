@@ -26,7 +26,6 @@ import org.apache.reef.vortex.common.CacheKey;
 import javax.inject.Inject;
 import java.io.Serializable;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -35,7 +34,7 @@ import java.util.concurrent.ExecutionException;
 final class DefaultVortexCache implements VortexCache {
   private final Cache<CacheKey<? extends Serializable>, Serializable> cache;
   private final VortexWorker vortexWorker;
-  private final ConcurrentHashMap<CacheKey, Serializable> waitingData = new ConcurrentHashMap<>();
+  private PendingData pendingData = new PendingData();
 
   private static final long CACHE_TIMEOUT = 10000000;
 
@@ -52,12 +51,10 @@ final class DefaultVortexCache implements VortexCache {
         @Override
         public T call() throws Exception {
           vortexWorker.sendCacheDataRequest(key);
-          synchronized (waitingData) {
-            while(!waitingData.contains(key)) {
-              waitingData.wait(CACHE_TIMEOUT);
-            }
+          synchronized (pendingData) {
+              pendingData.wait(CACHE_TIMEOUT);
           }
-          return (T) waitingData.remove(key);
+          return (T) pendingData.data;
         }
       });
     } catch (ExecutionException e) {
@@ -68,12 +65,22 @@ final class DefaultVortexCache implements VortexCache {
   /**
    * Called when the data arrives in the VortexWorker.
    * @param key Key of the data
-   * @param data Data to put in the cache
+   * @param data Data that has arrived from the Master
    */
   public <T extends Serializable> void onDataArrived(final CacheKey<T> key, final T data) {
-    synchronized (waitingData) {
-      waitingData.put(key, data);
-      waitingData.notify();
+    synchronized (pendingData) {
+      pendingData.data = data;
+      pendingData.notify();
+    }
+  }
+
+  /**
+   * Encapsulates the data which is being loaded to the cache.
+   */
+  final class PendingData {
+    private Serializable data;
+
+    private PendingData() {
     }
   }
 }

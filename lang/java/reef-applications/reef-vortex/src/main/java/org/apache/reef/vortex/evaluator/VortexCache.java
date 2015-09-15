@@ -29,7 +29,7 @@ import java.io.Serializable;
  */
 @EvaluatorSide
 @DefaultImplementation(DefaultVortexCache.class)
-interface VortexCache {
+public interface VortexCache {
   <T extends Serializable> T get(final CacheKey<T> key);
 
   <T extends Serializable> void onDataArrived(final CacheKey<T> key, final T data);

@@ -26,8 +26,8 @@ import java.io.Serializable;
  */
 // TODO Fix the naming: note that this is not a request actually.
 public final class CacheSentRequest<T extends Serializable> implements VortexRequest {
-  final CacheKey<T> cacheKey;
-  final T data;
+  private final CacheKey<T> cacheKey;
+  private final T data;
 
   /**
    * @param key Key of the data.

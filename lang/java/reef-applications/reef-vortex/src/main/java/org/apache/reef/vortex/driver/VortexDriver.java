@@ -168,6 +168,7 @@ final class VortexDriver {
       case CacheRequest:
         final CacheDataRequest cacheDataRequest = (CacheDataRequest)workerReport;
         vortexMaster.cacheDataRequested(workerId, cacheDataRequest.getCacheKey());
+        break;
       default:
         throw new RuntimeException("Unknown Report");
       }

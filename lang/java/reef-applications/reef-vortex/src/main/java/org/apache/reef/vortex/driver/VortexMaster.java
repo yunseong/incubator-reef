@@ -23,6 +23,7 @@ import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
+import org.apache.reef.vortex.api.VortexInput;
 import org.apache.reef.vortex.common.CacheKey;
 
 import java.io.Serializable;
@@ -38,7 +39,7 @@ public interface VortexMaster {
   /**
    * Submit a new Tasklet to be run sometime in the future.
    */
-  <TInput extends Serializable, TOutput extends Serializable> VortexFuture<TOutput>
+  <TInput extends VortexInput, TOutput extends Serializable> VortexFuture<TOutput>
       enqueueTasklet(final VortexFunction<TInput, TOutput> vortexFunction, final TInput input);
 
   /**
@@ -64,7 +65,7 @@ public interface VortexMaster {
   /**
    * Call this when a worker requested cache data.
    */
- <T extends Serializable> void cacheDataRequested(final String workerId, final CacheKey<T> cacheKey);
+  <T extends Serializable> void cacheDataRequested(final String workerId, final CacheKey<T> cacheKey);
 
   /**
    * Release all resources and shut down.

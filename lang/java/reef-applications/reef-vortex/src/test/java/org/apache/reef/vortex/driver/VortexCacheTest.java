@@ -21,7 +21,6 @@ package org.apache.reef.vortex.driver;
 import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.vortex.common.CacheKey;
-import org.apache.reef.vortex.driver.VortexCache;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -71,7 +70,7 @@ public final class VortexCacheTest {
   }
 
   /**
-   * Check whether the cached data is equal to the original data
+   * Checks whether the cached data is equal to the original data.
    * @param data The data to cache.
    * @param <T> The type of data.
    */

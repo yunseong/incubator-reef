@@ -25,7 +25,9 @@ import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexInput;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
+import javax.annotation.Nonnull;
 import java.io.Serializable;
 
 /**
@@ -63,9 +65,25 @@ public interface VortexMaster {
   void taskletErrored(final String workerId, final int taskletId, final Exception exception);
 
   /**
-   * Call this when a worker requested cache data.
+   * Call this when user caches the data.
+   * @param keyName Unique name which makes the data identifiable.
+   * @param data Data to cache.
+   * @param <T> Type of the data
+   * @return The key with which the data is accessible in the Worker.
+   * @throws VortexCacheException If the keyName is registered already in the cache.
    */
-  <T extends Serializable> void cacheDataRequested(final String workerId, final CacheKey<T> cacheKey);
+  <T extends Serializable> CacheKey<T> cache(final String keyName, @Nonnull final T data)
+      throws VortexCacheException;
+
+  /**
+   * Call this when a worker requests the cached data.
+   * Retrieve the data from the Cache, and send it to the Worker who requested.
+   * @param workerId Worker id to send the data.
+   * @param cacheKey Key to retrieve the data.
+   * @throws VortexCacheException If the data is not found in the cache.
+   */
+  <T extends Serializable> void dataRequested(final String workerId, final CacheKey<T> cacheKey)
+      throws VortexCacheException;
 
   /**
    * Release all resources and shut down.

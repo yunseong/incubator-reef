@@ -21,9 +21,10 @@ package org.apache.reef.vortex.evaluator;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.annotations.audience.TaskSide;
-import org.apache.reef.tang.InjectionFuture;
+import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.tang.annotations.Unit;
+import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.task.HeartBeatTriggerManager;
 import org.apache.reef.task.Task;
 import org.apache.reef.task.TaskMessage;
@@ -32,6 +33,7 @@ import org.apache.reef.task.events.CloseEvent;
 import org.apache.reef.task.events.DriverMessage;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.common.*;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.driver.VortexWorkerConf;
 import org.apache.reef.wake.EventHandler;
 
@@ -53,16 +55,16 @@ public final class VortexWorker implements Task, TaskMessageSource {
   private final BlockingDeque<byte[]> workerReports = new LinkedBlockingDeque<>();
 
   private final HeartBeatTriggerManager heartBeatTriggerManager;
-  private final InjectionFuture<VortexCache> vortexCache;
+  private final VortexCache vortexCache;
   private final int numOfThreads;
   private final CountDownLatch terminated = new CountDownLatch(1);
 
   @Inject
   private VortexWorker(final HeartBeatTriggerManager heartBeatTriggerManager,
-                       final InjectionFuture<VortexCache> vortexCache,
+                       final VortexCache cache,
                       @Parameter(VortexWorkerConf.NumOfThreads.class) final int numOfThreads) {
     this.heartBeatTriggerManager = heartBeatTriggerManager;
-    this.vortexCache = vortexCache;
+    this.vortexCache = cache;
     this.numOfThreads = numOfThreads;
   }
 
@@ -115,8 +117,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
                   break;
                 case CacheSent:
                   final CacheSentRequest cacheSentRequest = (CacheSentRequest) vortexRequest;
-                    // TODO Is it okay to go without type information?
-                    vortexCache.get().onDataArrived(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
+                  vortexCache.onDataArrived(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
                   break;
                 default:
                   throw new RuntimeException("Unknown Command");
@@ -146,15 +147,30 @@ public final class VortexWorker implements Task, TaskMessageSource {
   }
 
   /**
-   * Send the request for cache data to Master.
-   * Called by the thread which accesses to Cache. (TODO: Clarify)
+   * Send the request for the cached data to Master.
    * @param key Key of the data.
-   * @param <T> Type of the data.
    */
-  <T> void sendCacheDataRequest(final CacheKey<T> key) {
+  void sendDataRequest(final CacheKey key) {
     final WorkerReport report = new CacheDataRequest(key);
     workerReports.addLast(SerializationUtils.serialize(report));
     heartBeatTriggerManager.triggerHeartBeat();
+  }
+
+  /**
+   * Retrieve the data from the cache. If the data has not been loaded yet,
+   * the thread will be blocked until the data is fetched from the Master.
+   * @param key Key of the data.
+   * @param <T> Type of the data.
+   * @return Data loaded from the cache.
+   * @throws VortexCacheException If it failed to load the data.
+   */
+  public static <T extends Serializable> T getCachedData(final CacheKey<T> key) throws VortexCacheException {
+    try {
+      final VortexCache cache = Tang.Factory.getTang().newInjector().getInstance(VortexCache.class);
+      return cache.get(key);
+    } catch (InjectionException e) {
+      throw new VortexCacheException("Failed to retrieve the data from the cache");
+    }
   }
 
   /**

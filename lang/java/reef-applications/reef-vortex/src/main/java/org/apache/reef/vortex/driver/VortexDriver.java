@@ -33,6 +33,7 @@ import org.apache.reef.vortex.common.CacheDataRequest;
 import org.apache.reef.vortex.common.TaskletFailureReport;
 import org.apache.reef.vortex.common.TaskletResultReport;
 import org.apache.reef.vortex.common.WorkerReport;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexWorker;
 import org.apache.reef.wake.EStage;
 import org.apache.reef.wake.EventHandler;
@@ -167,7 +168,12 @@ final class VortexDriver {
         break;
       case CacheRequest:
         final CacheDataRequest cacheDataRequest = (CacheDataRequest)workerReport;
-        vortexMaster.cacheDataRequested(workerId, cacheDataRequest.getCacheKey());
+        try {
+          vortexMaster.dataRequested(workerId, cacheDataRequest.getCacheKey());
+        } catch (VortexCacheException e) {
+          LOG.log(Level.SEVERE, "Failed to load the data that worker {0} requested with key name {1}.",
+              new Object[] {workerId, cacheDataRequest.getCacheKey().getName()});
+        }
         break;
       default:
         throw new RuntimeException("Unknown Report");

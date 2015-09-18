@@ -16,30 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.common;
-
-import java.io.Serializable;
+package org.apache.reef.vortex.common.exceptions;
 
 /**
- * Key used to get the data from the Worker cache
- * Users should assign unique name to distinguish the keys.
+ * Exception that is thrown while using the cache.
  */
-public final class CacheKey<T extends Serializable> implements Serializable {
-  private final String name;
-
-  public CacheKey(final String name) {
-    this.name = name;
+public class VortexCacheException extends Exception {
+  public VortexCacheException(final String message) {
+    super(message);
   }
 
-  /**
-   * @return Name of the key.
-   */
-  public String getName() {
-    return name;
-  }
-
-  @Override
-  public String toString() {
-    return "CacheKey{name='" + name + "'}";
+  public VortexCacheException(final String message, final Throwable cause) {
+    super(message, cause);
   }
 }

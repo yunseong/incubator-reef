@@ -19,8 +19,6 @@
 package org.apache.reef.vortex.driver;
 
 import org.apache.reef.driver.task.RunningTask;
-import org.apache.reef.tang.Tang;
-import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexInput;
@@ -67,14 +65,4 @@ public class TestUtil {
     };
   }
 
-  /**
-   * @return a new Vortex Cache at the Master
-   */
-  public VortexCache newMasterCache() {
-    try {
-      return Tang.Factory.getTang().newInjector().getInstance(VortexCache.class);
-    } catch (InjectionException e) {
-      throw new RuntimeException("Failed to inject VortexCache", e);
-    }
-  }
 }

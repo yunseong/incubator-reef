@@ -25,7 +25,9 @@ import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexInput;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.Serializable;
 import java.util.*;
@@ -41,18 +43,17 @@ final class DefaultVortexMaster implements VortexMaster {
   private final AtomicInteger taskletIdCounter = new AtomicInteger();
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
-  private final VortexCache vortexCache;
+  // TODO This should be replaced by Guava
+  private final Map<String, Serializable> cacheMap = new HashMap<>();
 
   /**
    * @param runningWorkers for managing all running workers.
    */
   @Inject
   DefaultVortexMaster(final RunningWorkers runningWorkers,
-                      final PendingTasklets pendingTasklets,
-                      final VortexCache vortexCache) {
+                      final PendingTasklets pendingTasklets) {
     this.runningWorkers = runningWorkers;
     this.pendingTasklets = pendingTasklets;
-    this.vortexCache = vortexCache;
   }
 
   /**
@@ -106,13 +107,30 @@ final class DefaultVortexMaster implements VortexMaster {
     runningWorkers.errorTasklet(workerId, taskletId, exception);
   }
 
-  /**
-   * Delegate sending the requested data to runningWorkers.
-   */
   @Override
-  public <T extends Serializable> void cacheDataRequested(final String workerId, final CacheKey<T> cacheKey) {
-    final T data = vortexCache.get(cacheKey);
-    runningWorkers.sendCacheData(workerId, cacheKey, data);
+  public <T extends Serializable> CacheKey cache(final String keyName, @Nonnull final T data)
+      throws VortexCacheException {
+    synchronized (cacheMap) {
+      if (cacheMap.containsKey(keyName)) {
+        throw new VortexCacheException("The keyName " + keyName + "is already used.");
+      }
+
+      final CacheKey key = new CacheKey(keyName);
+      cacheMap.put(keyName, data);
+      return key;
+    }
+  }
+
+  @Override
+  public void dataRequested(final String workerId, final CacheKey cacheKey) throws VortexCacheException {
+    synchronized (cacheMap) {
+      final String keyName = cacheKey.getName();
+      if (!cacheMap.containsKey(keyName)) {
+        throw new VortexCacheException("The entity does not exist for the key : " + cacheKey);
+      }
+      final Serializable data = cacheMap.get(keyName);
+      runningWorkers.sendCacheData(workerId, cacheKey, data);
+    }
   }
 
   /**

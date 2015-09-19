@@ -21,7 +21,6 @@ package org.apache.reef.vortex.driver;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
-import org.apache.reef.vortex.api.VortexInput;
 
 import java.io.Serializable;
 
@@ -29,7 +28,7 @@ import java.io.Serializable;
  * Representation of user task in Driver.
  */
 @DriverSide
-class Tasklet<TInput extends VortexInput, TOutput extends Serializable> implements Serializable {
+class Tasklet<TInput extends Serializable, TOutput extends Serializable> implements Serializable {
   private final int taskletId;
   private final VortexFunction<TInput, TOutput> userTask;
   private final TInput input;

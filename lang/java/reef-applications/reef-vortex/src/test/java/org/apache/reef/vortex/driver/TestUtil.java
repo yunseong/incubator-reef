@@ -21,7 +21,6 @@ package org.apache.reef.vortex.driver;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
-import org.apache.reef.vortex.api.VortexInput;
 
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,7 +58,7 @@ public class TestUtil {
   public VortexFunction newFunction() {
     return new VortexFunction() {
       @Override
-      public Serializable call(final VortexInput vortexInput) throws Exception {
+      public Serializable call(final Serializable serializable) throws Exception {
         return null;
       }
     };

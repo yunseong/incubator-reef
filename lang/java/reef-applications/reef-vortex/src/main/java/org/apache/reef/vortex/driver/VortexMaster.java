@@ -23,7 +23,6 @@ import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
-import org.apache.reef.vortex.api.VortexInput;
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
@@ -41,7 +40,7 @@ public interface VortexMaster {
   /**
    * Submit a new Tasklet to be run sometime in the future.
    */
-  <TInput extends VortexInput, TOutput extends Serializable> VortexFuture<TOutput>
+  <TInput extends Serializable, TOutput extends Serializable> VortexFuture<TOutput>
       enqueueTasklet(final VortexFunction<TInput, TOutput> vortexFunction, final TInput input);
 
   /**

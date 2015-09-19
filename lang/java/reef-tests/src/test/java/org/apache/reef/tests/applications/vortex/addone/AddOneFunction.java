@@ -23,12 +23,12 @@ import org.apache.reef.vortex.api.VortexFunction;
 /**
  * Outputs Input+1.
  */
-public final class AddOneFunction implements VortexFunction<AddOneInput, Integer> {
+public final class AddOneFunction implements VortexFunction<Integer, Integer> {
   /**
    * Outputs Input+1.
    */
   @Override
-  public Integer call(final AddOneInput input) throws Exception {
-    return input.getNotCachedData() + 1;
+  public Integer call(final Integer input) throws Exception {
+    return input + 1;
   }
 }

@@ -38,7 +38,7 @@ final class HelloVortexStart implements VortexStart {
    */
   @Override
   public void start(final VortexThreadPool vortexThreadPool) {
-    final VortexFuture future = vortexThreadPool.submit(new HelloVortexFunction(), new HelloVortexInput());
+    final VortexFuture future = vortexThreadPool.submit(new HelloVortexFunction(), null);
     try {
       future.get();
     } catch (InterruptedException | ExecutionException e) {

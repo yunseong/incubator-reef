@@ -47,21 +47,25 @@ import java.util.concurrent.*;
 @TaskSide
 public final class VortexWorker implements Task, TaskMessageSource {
   private static final String MESSAGE_SOURCE_ID = ""; // empty string as there is no use for it
+
   private final BlockingDeque<byte[]> pendingRequests = new LinkedBlockingDeque<>();
   private final BlockingDeque<byte[]> workerReports = new LinkedBlockingDeque<>();
 
   private final HeartBeatTriggerManager heartBeatTriggerManager;
   private final VortexCache cache;
   private final int numOfThreads;
+  private final int numOfSlackThreads;
   private final CountDownLatch terminated = new CountDownLatch(1);
 
   @Inject
   private VortexWorker(final HeartBeatTriggerManager heartBeatTriggerManager,
                        final VortexCache cache,
-                      @Parameter(VortexWorkerConf.NumOfThreads.class) final int numOfThreads) {
+                       @Parameter(VortexWorkerConf.NumOfThreads.class) final int numOfThreads,
+                       @Parameter(VortexWorkerConf.NumOfSlackThreads.class) final int numOfSlackThreads) {
     this.heartBeatTriggerManager = heartBeatTriggerManager;
     this.cache = cache;
     this.numOfThreads = numOfThreads;
+    this.numOfSlackThreads = numOfSlackThreads;
   }
 
   /**
@@ -70,7 +74,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
   @Override
   public byte[] call(final byte[] memento) throws Exception {
     final ExecutorService schedulerThread = Executors.newSingleThreadExecutor();
-    final ExecutorService commandExecutor = Executors.newFixedThreadPool(numOfThreads);
+    final ExecutorService commandExecutor = Executors.newFixedThreadPool(numOfThreads + numOfSlackThreads);
 
     // Scheduling thread starts
     schedulerThread.execute(new Runnable() {

@@ -31,6 +31,6 @@ final class LogisticRegression {
    * Launch the vortex job, passing appropriate arguments.
    */
   public static void main(final String[] args) {
-    VortexLauncher.launchLocal("Vortex_Example_LR", LogisticRegressionStart.class, 4, 8192, 1, 5000);
+    VortexLauncher.launchLocal("Vortex_Example_LR", LogisticRegressionStart.class, 1, 8192, 4, 5000);
   }
 }

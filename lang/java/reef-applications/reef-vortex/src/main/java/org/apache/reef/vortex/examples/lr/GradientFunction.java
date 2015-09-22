@@ -18,7 +18,6 @@
  */
 package org.apache.reef.vortex.examples.lr;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.reef.vortex.api.VortexFunction;
 
 import java.util.ArrayList;
@@ -27,15 +26,14 @@ import java.util.Vector;
 /**
  * Outputs the gradient.
  */
-final class GradientFunction
-    implements VortexFunction<Pair<Vector<Double>, ArrayList<Vector<Double>>>, Vector<Double>> {
+final class GradientFunction implements VortexFunction<LogisticRegressionInput, Vector<Double>> {
   /**
    * Outputs the gradient.
    */
   @Override
-  public Vector<Double> call(final Pair<Vector<Double>, ArrayList<Vector<Double>>> pair) throws Exception {
-    final Vector<Double> parameterVector = pair.getLeft();
-    final ArrayList<Vector<Double>> trainingData = pair.getRight();
+  public Vector<Double> call(final LogisticRegressionInput lrInput) throws Exception {
+    final Vector<Double> parameterVector = lrInput.getParameterVector();
+    final ArrayList<Vector<Double>> trainingData = lrInput.getTrainingData();
 
     // Initial zero-valued
     final Vector<Double> gradientResult = new Vector<>();
@@ -45,7 +43,7 @@ final class GradientFunction
 
     // Get the gradient
     for (final Vector<Double> instance : trainingData) {
-      // System.out.println("gradient: " + gradientResult);
+      System.out.println("gradient: " + gradientResult);
 
       // Convert [x1, x2, ... , xn, y] --> [x0(=1), x1, x2, ... , xn]
       final Vector<Double> xVector = new Vector<>();

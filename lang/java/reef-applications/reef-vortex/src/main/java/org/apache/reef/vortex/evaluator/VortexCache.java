@@ -28,68 +28,93 @@ import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import javax.inject.Inject;
 import java.io.Serializable;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
 /**
- * VortexCache based on REEF's cache. {@link org.apache.reef.util.cache.Cache}
+ * Caches the data. Users can access the data by calling {@link #getData(CacheKey)} in the user code.
+ * If the data does not exist yet, then the cache fetches it from the Driver and returns the loaded data.
  */
-final class VortexCache {
-  private final Cache<CacheKey<? extends Serializable>, Serializable> cache;
-  private final InjectionFuture<VortexWorker> vortexWorker;
-  private PendingData pendingData = new PendingData();
+public final class VortexCache {
+  private static final int CACHE_TIMEOUT = 100000;
+  private static VortexCache cacheRef;
+  private final Cache<CacheKey, Serializable> cache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT);
+  private final ConcurrentHashMap<CacheKey, CustomCallable> waiters = new ConcurrentHashMap<>();
 
-  private static final long CACHE_TIMEOUT_MS = 1000 * 1000; // Timeout: 1000s
+  private final InjectionFuture<VortexWorker> worker;
 
   @Inject
-  private VortexCache(final InjectionFuture<VortexWorker> vortexWorker) {
-    this.vortexWorker = vortexWorker;
-    this.cache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT_MS); // TODO Replace this with Guava
+  private VortexCache(final InjectionFuture<VortexWorker> worker) {
+    this.worker = worker;
+    this.cacheRef = VortexCache.this;
   }
 
   /**
-   * Get the data from the cache.
-   * @param key Key of the data.
-   * @param <T> Type of the data.
-   * @return Data assigned to the given key.
-   * @throws VortexCacheException If a failure occurred while fetching the data.
+   * @param key Key of the Data.
+   * @param <T> Type of the Data.
+   * @return The data from the cache. If the data does not exist in cache, the thread is blocked until the data arrives.
+   * @throws VortexCacheException If it fails to fetch the data.
    */
-  public <T extends Serializable> T get(final CacheKey<T> key) throws VortexCacheException {
+  public static <T extends Serializable> T getData(final CacheKey<T> key) throws VortexCacheException {
+    return cacheRef.load(key);
+  }
+
+  private <T extends Serializable> T load(final CacheKey<T> key) throws VortexCacheException {
     try {
-      return (T) cache.get(key, new Callable<Serializable>() {
-        @Override
-        public T call() throws Exception {
-          vortexWorker.get().sendDataRequest(key);
-          synchronized (pendingData) {
-            pendingData.wait(CACHE_TIMEOUT_MS);
-          }
-          return (T) pendingData.data;
-        }
-      });
+      return (T) cache.get(key, new CustomCallable<T>(key));
     } catch (ExecutionException e) {
-      throw new VortexCacheException("Failed to fetch the data for key: " + key, e);
+      throw new VortexCacheException("Failed to fetch the data", e);
     }
   }
 
   /**
-   * Called when the data arrives in the VortexWorker.
-   * @param key Key of the data
-   * @param data Data that has arrived from the Master
-   * @param <T> Type of the data
+   * Called by VortexWorker to wakes the thread that waits for the data.
+   * @param key Key of the data.
+   * @param data Data itself.
    */
-  public <T extends Serializable> void onDataArrived(final CacheKey<T> key, final T data) {
-    synchronized (pendingData) {
-      pendingData.data = data;
-      pendingData.notify();
+  void notifyOnArrival(final CacheKey key, final Serializable data) {
+    if (!waiters.containsKey(key)) {
+      throw new RuntimeException("Not requested key: " + key + "waiters size : " + waiters.size());
+    }
+
+    final CustomCallable waiter = waiters.remove(key);
+    synchronized (waiter) {
+      waiter.onDataArrived(data);
+      waiter.notify();
     }
   }
 
-  /**
-   * Encapsulates the data which is being loaded to the cache.
-   */
-  final class PendingData {
-    private Serializable data;
+  final class CustomCallable<T extends Serializable> implements Callable<Serializable> {
+    private boolean dataArrived = false;
+    private T waitingData;
+    private final CacheKey<T> cacheKey;
 
-    private PendingData() {
+    CustomCallable(final CacheKey<T> cacheKey) {
+      this.cacheKey = cacheKey;
+    }
+
+    void onDataArrived(final T data) {
+      synchronized (this) {
+        this.waitingData = data;
+        this.dataArrived = true;
+        this.notify();
+      }
+    }
+
+    T getData() {
+      return waitingData;
+    }
+
+    @Override
+    public T call() throws Exception {
+      waiters.put(cacheKey, this);
+      worker.get().sendDataRequest(cacheKey);
+      synchronized (this) {
+        while (!dataArrived) {
+          this.wait();
+        }
+      }
+      return waitingData;
     }
   }
 }

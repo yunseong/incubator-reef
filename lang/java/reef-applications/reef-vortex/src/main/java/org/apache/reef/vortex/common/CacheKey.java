@@ -26,7 +26,6 @@ import java.io.Serializable;
  */
 public final class CacheKey<T extends Serializable> implements Serializable {
   private final String name;
-
   public CacheKey(final String name) {
     this.name = name;
   }
@@ -41,5 +40,24 @@ public final class CacheKey<T extends Serializable> implements Serializable {
   @Override
   public String toString() {
     return "CacheKey{name='" + name + "'}";
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    final CacheKey<?> cacheKey = (CacheKey<?>) o;
+
+    return name.equals(cacheKey.name);
+  }
+
+  @Override
+  public int hashCode() {
+    return name.hashCode();
   }
 }

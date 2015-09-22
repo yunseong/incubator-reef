@@ -56,4 +56,12 @@ public final class CacheSentRequest<T extends Serializable> implements VortexReq
   public T getData() {
     return data;
   }
+
+  @Override
+  public String toString() {
+    return "CacheSentRequest{" +
+        "cacheKey=" + cacheKey +
+        ", data=" + data +
+        '}';
+  }
 }

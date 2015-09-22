@@ -148,7 +148,7 @@ final class DefaultVortexMaster implements VortexMaster {
         throw new VortexCacheException("The entity does not exist for the key : " + cacheKey);
       }
       final Serializable data = cacheMap.get(keyName);
-      runningWorkers.sendCacheData(workerId, cacheKey, data);
+      runningWorkers.sendCacheData(workerId, cacheKey, data, TraceInfo.fromSpan(jobSpan));
     }
   }
 

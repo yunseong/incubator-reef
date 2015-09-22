@@ -18,19 +18,27 @@
  */
 package org.apache.reef.vortex.examples.lr;
 
-import org.apache.reef.vortex.driver.VortexLauncher;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Vector;
 
 /**
- * User's main function.
+ * Created by v-yunlee on 9/23/2015.
  */
-final class LogisticRegression {
-  private LogisticRegression() {
+public class LRInputNotCached implements Serializable {
+  private ArrayList<Vector<Double>> trainingData;
+  private Vector<Double> parameterVector;
+  public LRInputNotCached(final Vector<Double> parameterVector,
+                          final ArrayList<Vector<Double>> trainingData) {
+    this.parameterVector = parameterVector;
+    this.trainingData = trainingData;
   }
 
-  /**
-   * Launch the vortex job, passing appropriate arguments.
-   */
-  public static void main(final String[] args) {
-    VortexLauncher.launchLocal("Vortex_Example_LR", LogisticRegressionStart.class, 1, 8192, 4, 5000);
+  public Vector<Double> getParameterVector() {
+    return parameterVector;
+  }
+
+  public ArrayList<Vector<Double>> getTrainingData() {
+    return trainingData;
   }
 }

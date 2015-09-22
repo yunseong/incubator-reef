@@ -20,6 +20,7 @@ package org.apache.reef.vortex.driver;
 
 import net.jcip.annotations.ThreadSafe;
 
+import org.apache.htrace.TraceInfo;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.common.CacheKey;
@@ -198,9 +199,12 @@ final class RunningWorkers {
    * @param cacheKey Key that is assigned to the data.
    * @param <T> Type of the data.
    */
-  <T extends Serializable> void sendCacheData(final String workerId, final CacheKey<T> cacheKey, final T data) {
+  <T extends Serializable> void sendCacheData(final String workerId,
+                                              final CacheKey<T> cacheKey,
+                                              final T data,
+                                              final TraceInfo traceInfo) {
     if (isWorkerRunning(workerId)) {
-      this.runningWorkers.get(workerId).sendCacheData(cacheKey, data);
+      this.runningWorkers.get(workerId).sendCacheData(cacheKey, data, traceInfo);
       // TODO: schedulingPolicy#cached for bookkeeping cache location
     } else {
       throw new RuntimeException("Worker is not running");

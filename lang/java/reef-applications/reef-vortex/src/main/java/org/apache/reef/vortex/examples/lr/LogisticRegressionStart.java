@@ -18,7 +18,6 @@
  */
 package org.apache.reef.vortex.examples.lr;
 
-import org.apache.reef.util.OSUtils;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.api.VortexThreadPool;
@@ -37,7 +36,6 @@ import java.util.logging.Logger;
  * Logistic Regression User Code Example.
  */
 final class LogisticRegressionStart implements VortexStart {
-  private final String path = "/home/azureuser/data/lr-input.txt";
 
   private static final Logger LOG = Logger.getLogger(LogisticRegressionStart.class.getName());
   private static final int NUMBER_OF_TRAINING_DATA_INSTANCES = 1000 * 32 * 20;
@@ -54,6 +52,15 @@ final class LogisticRegressionStart implements VortexStart {
    */
   @Override
   public void start(final VortexThreadPool vortexThreadPool) {
+    String path;
+    if (System.getProperty("os.name").toLowerCase().contains("linux")) {
+      path = "/home/azureuser/data/lr-input.txt";
+    } else if (System.getProperty("os.name").toLowerCase().contains("windows")){
+      path = "C:\\Users\\v-yunlee\\lr-input.txt";
+    } else {
+      path = "";
+    }
+
     // [Theta0(corresponds to X0=1), Theta1(corresponds to X1), Theta2(corresponds to X2)]
     final Double[] initialParameters = {0.0, 0.0, 0.0};
     final Vector<Double> parameterVector = new Vector<>(Arrays.asList(initialParameters));
@@ -65,6 +72,7 @@ final class LogisticRegressionStart implements VortexStart {
     final ArrayList<ArrayList<Vector<Double>>> partitions = new ArrayList<>(DIVIDE_FACTOR);
 
     try {
+
       final FileInputStream inputStream = new FileInputStream(path);
       final BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
 

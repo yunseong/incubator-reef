@@ -21,9 +21,11 @@ package org.apache.reef.vortex.driver;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.evaluator.*;
+import org.apache.reef.driver.task.FailedTask;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.driver.task.TaskConfiguration;
 import org.apache.reef.driver.task.TaskMessage;
+import org.apache.reef.poison.PoisonedConfiguration;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Configurations;
 import org.apache.reef.tang.annotations.Parameter;
@@ -53,7 +55,7 @@ import java.util.logging.Logger;
 @DriverSide
 final class VortexDriver {
   private static final Logger LOG = Logger.getLogger(VortexDriver.class.getName());
-  private static final int MAX_NUM_OF_FAILURES = 5;
+  private static final int MAX_NUM_OF_FAILURES = 200;
   private static final int SCHEDULER_EVENT = 0; // Dummy number to comply with onNext() interface
 
   private final AtomicInteger numberOfFailures = new AtomicInteger(0);
@@ -131,7 +133,12 @@ final class VortexDriver {
           .set(TaskConfiguration.ON_CLOSE, VortexWorker.TaskCloseHandler.class)
           .build();
 
-      allocatedEvaluator.submitTask(Configurations.merge(workerConfiguration, taskConfiguration));
+      final Configuration poisonConfiguration = PoisonedConfiguration.TASK_CONF
+          // TODO Make it configurable
+          .set(PoisonedConfiguration.CRASH_PROBABILITY, 0.6)
+          .build();
+
+      allocatedEvaluator.submitTask(Configurations.merge(workerConfiguration, taskConfiguration, poisonConfiguration));
     }
   }
 
@@ -207,6 +214,34 @@ final class VortexDriver {
             .build());
 
         vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
+      }
+    }
+  }
+
+  /**
+   * This simulates the worker failure by resource preemption.
+   */
+  final class FailedTaskHandler implements EventHandler<FailedTask> {
+
+    @Override
+    public void onNext(final FailedTask failedTask) {
+      LOG.log(Level.INFO, "Task Failed. Same as Evaluator preempted");
+      if (numberOfFailures.incrementAndGet() >= MAX_NUM_OF_FAILURES) {
+        throw new RuntimeException("Exceeded max number of failures");
+      } else {
+        // We request a new evaluator to take the place of the preempted one
+        evaluatorRequestor.submit(EvaluatorRequest.newBuilder()
+            .setNumber(1)
+            .setMemory(evalMem)
+            .setNumberOfCores(evalCores)
+            .build());
+
+        vortexMaster.workerPreempted(failedTask.getId());
+
+        if (failedTask.getActiveContext().isPresent()) {
+          LOG.log(Level.WARNING, "Close the context to prevent the duplicate resource request.");
+          failedTask.getActiveContext().get().close();
+        }
       }
     }
   }

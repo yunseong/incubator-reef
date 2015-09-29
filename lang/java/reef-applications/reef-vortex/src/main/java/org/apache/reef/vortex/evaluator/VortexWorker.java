@@ -80,7 +80,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
 
     final Map<String, String> confMap = new HashMap<>(2);
     confMap.put("process.id", "Vortex_Worker_" + System.currentTimeMillis());
-    confMap.put("zipkin.collector-hostname", "srgsi-50");
+    confMap.put("zipkin.collector-hostname", "master");
     confMap.put("zipkin.collector-port", Integer.toString(9410));
     final ZipkinSpanReceiver receiver = new ZipkinSpanReceiver(HTraceConfiguration.fromMap(confMap));
     Trace.addReceiver(receiver);

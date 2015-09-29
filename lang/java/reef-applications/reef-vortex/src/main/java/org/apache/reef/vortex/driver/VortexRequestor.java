@@ -55,7 +55,7 @@ class VortexRequestor {
         }
 
         try (final TraceScope traceScope =
-                 Trace.startSpan("master_append_traceinfo_to_"+(requestBytes.length/1024/1024.0)+"mb", traceInfo)) {
+                 Trace.startSpan("master_append_traceinfo_to_" + (requestBytes.length / 1024.0) + "kb", traceInfo)) {
           sendingBytes = ByteBuffer.allocate(2 * (Long.SIZE / Byte.SIZE) + requestBytes.length)
               .putLong(traceInfo.traceId)
               .putLong(traceInfo.spanId)

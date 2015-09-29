@@ -51,6 +51,7 @@ public final class VortexConfHelper {
         .set(DriverConfiguration.ON_TASK_RUNNING, VortexDriver.RunningTaskHandler.class)
         .set(DriverConfiguration.ON_TASK_MESSAGE, VortexDriver.TaskMessageHandler.class)
         .set(DriverConfiguration.ON_EVALUATOR_FAILED, VortexDriver.FailedEvaluatorHandler.class)
+        .set(DriverConfiguration.ON_TASK_FAILED, VortexDriver.FailedTaskHandler.class)
         .set(DriverConfiguration.DRIVER_IDENTIFIER, jobName)
         .set(DriverConfiguration.DRIVER_MEMORY, 8192)
         .build();

@@ -19,7 +19,7 @@
 package org.apache.reef.vortex.examples.lr;
 
 import org.apache.reef.vortex.api.VortexFunction;
-import org.apache.reef.vortex.examples.lr.input.LRInputNotCached;
+import org.apache.reef.vortex.examples.lr.input.LRInputCached;
 import org.apache.reef.vortex.examples.lr.input.Row;
 import org.apache.reef.vortex.examples.lr.input.SparseVector;
 import org.apache.reef.vortex.examples.lr.input.TrainingData;
@@ -27,13 +27,12 @@ import org.apache.reef.vortex.examples.lr.input.TrainingData;
 /**
  * Outputs the gradient.
  */
-final class GradientFunction implements VortexFunction<LRInputNotCached, PartialResult> {
+final class FullyCachedGradientFunction implements VortexFunction<LRInputCached, PartialResult> {
   /**
    * Outputs the gradient.
    */
   @Override
-  public PartialResult call(final LRInputNotCached lrInput) throws Exception {
-
+  public PartialResult call(final LRInputCached lrInput) throws Exception {
     final SparseVector parameterVector = lrInput.getParameterVector();
     final TrainingData trainingData = lrInput.getTrainingData();
 
@@ -57,12 +56,10 @@ final class GradientFunction implements VortexFunction<LRInputNotCached, Partial
       final double multiplier =  hypothesis - y;
       gradientResult.addVector(instance.getFeature().nTimes(multiplier));
     }
-
     return new PartialResult(gradientResult, numPositive, numNegative);
   }
 
   /**
-   *
    * @param predict inner product of the gradient and instance.
    * @return
    */

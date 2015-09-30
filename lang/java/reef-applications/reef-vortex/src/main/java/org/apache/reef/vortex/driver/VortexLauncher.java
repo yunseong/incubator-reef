@@ -24,6 +24,7 @@ import org.apache.reef.client.LauncherStatus;
 import org.apache.reef.runtime.local.client.LocalRuntimeConfiguration;
 import org.apache.reef.runtime.yarn.client.YarnClientConfiguration;
 import org.apache.reef.tang.Configuration;
+import org.apache.reef.tang.Configurations;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.vortex.api.VortexStart;
 
@@ -45,7 +46,8 @@ public final class VortexLauncher {
                                            final int numOfWorkers,
                                            final int workerMemory,
                                            final int workerCores,
-                                           final int workerCapacity) {
+                                           final int workerCapacity,
+                                           final Configuration clientConf) {
     final Configuration runtimeConf = LocalRuntimeConfiguration.CONF
         .set(LocalRuntimeConfiguration.MAX_NUMBER_OF_EVALUATORS, MAX_NUMBER_OF_EVALUATORS)
         .build();
@@ -56,7 +58,7 @@ public final class VortexLauncher {
         workerMemory,
         workerCores,
         workerCapacity);
-    return launch(runtimeConf, vortexConf);
+    return launch(runtimeConf, Configurations.merge(vortexConf, clientConf));
   }
 
   /**
@@ -67,7 +69,8 @@ public final class VortexLauncher {
                                            final int numOfWorkers,
                                            final int workerMemory,
                                            final int workerCores,
-                                           final int workerCapacity) {
+                                           final int workerCapacity,
+                                           final Configuration clientConf) {
     final Configuration runtimeConf = YarnClientConfiguration.CONF
         .build();
     final Configuration vortexConf = VortexConfHelper.getVortexConf(
@@ -77,7 +80,7 @@ public final class VortexLauncher {
         workerMemory,
         workerCores,
         workerCapacity);
-    return launch(runtimeConf, vortexConf);
+    return launch(runtimeConf, Configurations.merge(vortexConf, clientConf));
   }
 
 

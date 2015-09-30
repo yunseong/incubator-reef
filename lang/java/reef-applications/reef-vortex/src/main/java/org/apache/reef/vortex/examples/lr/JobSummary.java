@@ -16,23 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.examples.matmul;
-
-import org.apache.reef.tang.Tang;
-import org.apache.reef.vortex.driver.VortexLauncher;
+package org.apache.reef.vortex.examples.lr;
 
 /**
- * User's main function.
+ * Summary of the job which consists of the metrics.
  */
-final class MatMul {
-  private MatMul() {
+public class JobSummary {
+  private final long duration;
+  private final long parseOverhead;
+  private final long cacheOverhead;
+
+  public JobSummary(final long duration, final long parseOverhead, final long cacheOverhead) {
+    this.duration = duration;
+    this.parseOverhead = parseOverhead;
+    this.cacheOverhead = cacheOverhead;
   }
 
-  /**
-   * Launch the vortex job, passing appropriate arguments.
-   */
-  public static void main(final String[] args) {
-    VortexLauncher.launchLocal("Vortex_Example_MatMul", MatMulStart.class, 1, 2048, 2, 5000,
-        Tang.Factory.getTang().newConfigurationBuilder().build());
+  @Override
+  public String toString() {
+    return "&&JobSummary{" +
+        "duration=" + duration +
+        ", parseOverhead=" + parseOverhead +
+        ", cacheOverhead=" + cacheOverhead +
+        '}';
   }
 }

@@ -55,6 +55,14 @@ public final class LogisticRegression {
           .registerShortNameOfClass(WorkerCores.class)
           .registerShortNameOfClass(WorkerCapacity.class)
           .registerShortNameOfClass(WorkerMemMb.class)
+          .registerShortNameOfClass(DivideFactor.class)
+          .registerShortNameOfClass(NumIter.class)
+          .registerShortNameOfClass(NumFile.class)
+          .registerShortNameOfClass(Dir.class)
+          .registerShortNameOfClass(ModelDim.class)
+          .registerShortNameOfClass(Cached.class)
+          .registerShortNameOfClass(CrashProb.class)
+          .registerShortNameOfClass(CrashTimeout.class)
           .processCommandLine(args);
 
       final Injector injector = tang.newInjector(cb.build());
@@ -70,11 +78,11 @@ public final class LogisticRegression {
           new Object[]{numOfWorkers, workerMemory, workerCores, workerCapacity});
 
       if (isLocal) {
-        VortexLauncher.launchLocal("Vortex_LR", LogisticRegressionStart.class,
-            numOfWorkers, workerMemory, workerCores, workerCapacity);
+        VortexLauncher.launchLocal("Vortex_LR", LRUrlReputationStart.class,
+            numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());
       } else {
-        VortexLauncher.launchYarn("Vortex_LR", LogisticRegressionStart.class,
-            numOfWorkers, workerMemory, workerCores, workerCapacity);
+        VortexLauncher.launchYarn("Vortex_LR", LRUrlReputationStart.class,
+            numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());
       }
 
     } catch (final IOException | InjectionException e) {
@@ -113,4 +121,37 @@ public final class LogisticRegression {
   @NamedParameter(short_name = "zipkin_collector")
   public static final class ZipkinCollector implements Name<String> {
   }
+
+  @NamedParameter(short_name = "divide_factor", default_value = "8")
+  public static final class DivideFactor implements Name<Integer> {
+  }
+
+  @NamedParameter(short_name = "num_iter", default_value = "10")
+  public static final class NumIter implements Name<Integer> {
+  }
+
+  @NamedParameter(short_name = "num_file", default_value = "30")
+  public static final class NumFile implements Name<Integer> {
+  }
+
+  @NamedParameter(short_name = "file_path", default_value = "/home/azureuser/data/lr-input.txt")
+  public static final class Dir implements Name<String> {
+  }
+
+  @NamedParameter(short_name = "model_dim", default_value = "8")
+  public static final class ModelDim implements Name<Integer> {
+  }
+
+  @NamedParameter(short_name = "cached", default_value = "false")
+  public static final class Cached implements Name<Boolean> {
+  }
+
+  @NamedParameter(short_name = "crash_prob")
+  public static final class CrashProb implements Name<Double> {
+  }
+
+  @NamedParameter(short_name = "crash_timeout")
+  public static final class CrashTimeout implements Name<Integer> {
+  }
+
 }

@@ -70,7 +70,6 @@ under the License.
             <artifactId>htrace-zipkin</artifactId>
             <version>${htrace.version}</version>
         </dependency>
-
     </dependencies>
 
     <build>

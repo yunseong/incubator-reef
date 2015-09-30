@@ -16,35 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.examples.lr;
+package org.apache.reef.vortex.examples.lr.input;
 
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexCache;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Vector;
 
 /**
- * Encapsulates the input used in the LogisticRegression.
+ * Input used in Logistic Regression which caches the training data only.
  */
-public class LogisticRegressionInput implements Serializable {
-  private CacheKey<Vector<Double>> parameterVectorKey;
-  private CacheKey<ArrayList<Vector<Double>>> trainingDataKey;
-
-  public LogisticRegressionInput(final CacheKey<Vector<Double>> parameterVectorKey,
-                                 final CacheKey<ArrayList<Vector<Double>>> trainingDataKey) {
-    this.parameterVectorKey = parameterVectorKey;
+public class LRInputHalfCached implements Serializable {
+  private CacheKey<TrainingData> trainingDataKey;
+  private SparseVector parameterVector;
+  public LRInputHalfCached(final SparseVector parameterVector,
+                           final CacheKey<TrainingData> trainingDataKey) {
+    this.parameterVector = parameterVector;
     this.trainingDataKey = trainingDataKey;
   }
 
-  public Vector<Double> getParameterVector() throws VortexCacheException {
-    System.out.println("getParameterVector: " + parameterVectorKey);
-    return VortexCache.getData(parameterVectorKey);
+  public SparseVector getParameterVector() {
+    return parameterVector;
   }
 
-  public ArrayList<Vector<Double>> getTrainingData() throws VortexCacheException {
+  public TrainingData getTrainingData() throws VortexCacheException {
     System.out.println("getTrainingData: " + trainingDataKey);
     return VortexCache.getData(trainingDataKey);
   }

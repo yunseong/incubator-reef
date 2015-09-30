@@ -16,29 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.examples.lr;
+package org.apache.reef.vortex.examples.lr.input;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Vector;
+import java.io.IOException;
 
 /**
- * Created by v-yunlee on 9/23/2015.
+ * Exception that is thrown while parsing the data.
  */
-public class LRInputNotCached implements Serializable {
-  private ArrayList<Vector<Double>> trainingData;
-  private Vector<Double> parameterVector;
-  public LRInputNotCached(final Vector<Double> parameterVector,
-                          final ArrayList<Vector<Double>> trainingData) {
-    this.parameterVector = parameterVector;
-    this.trainingData = trainingData;
-  }
-
-  public Vector<Double> getParameterVector() {
-    return parameterVector;
-  }
-
-  public ArrayList<Vector<Double>> getTrainingData() {
-    return trainingData;
+public class ParseException extends IOException {
+  public ParseException(final String msg) {
+    super(msg);
   }
 }

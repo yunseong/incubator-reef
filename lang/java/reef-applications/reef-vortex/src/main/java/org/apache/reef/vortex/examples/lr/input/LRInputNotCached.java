@@ -16,23 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.examples.matmul;
+package org.apache.reef.vortex.examples.lr.input;
 
-import org.apache.reef.tang.Tang;
-import org.apache.reef.vortex.driver.VortexLauncher;
+import java.io.Serializable;
 
 /**
- * User's main function.
+ * Input used in Logistic Regression which does not cache the data.
  */
-final class MatMul {
-  private MatMul() {
+public class LRInputNotCached implements Serializable {
+  private TrainingData trainingData;
+  private SparseVector parameterVector;
+  public LRInputNotCached(final SparseVector parameterVector,
+                          final TrainingData trainingData) {
+    this.parameterVector = parameterVector;
+    this.trainingData = trainingData;
   }
 
-  /**
-   * Launch the vortex job, passing appropriate arguments.
-   */
-  public static void main(final String[] args) {
-    VortexLauncher.launchLocal("Vortex_Example_MatMul", MatMulStart.class, 1, 2048, 2, 5000,
-        Tang.Factory.getTang().newConfigurationBuilder().build());
+  public SparseVector getParameterVector() {
+    return parameterVector;
+  }
+
+  public TrainingData getTrainingData() {
+    return trainingData;
   }
 }

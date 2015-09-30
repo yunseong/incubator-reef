@@ -23,7 +23,7 @@ import org.apache.htrace.HTraceConfiguration;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceInfo;
 import org.apache.htrace.TraceScope;
-import org.apache.htrace.impl.ZipkinSpanReceiver;
+import org.apache.htrace.impl.StandardOutSpanReceiver;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.annotations.audience.TaskSide;
 import org.apache.reef.tang.annotations.Parameter;
@@ -43,8 +43,6 @@ import javax.inject.Inject;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.*;
 
 /**
@@ -78,12 +76,12 @@ public final class VortexWorker implements Task, TaskMessageSource {
     this.numOfThreads = numOfThreads;
     this.numOfSlackThreads = numOfSlackThreads;
 
-    final Map<String, String> confMap = new HashMap<>(2);
-    confMap.put("process.id", "Vortex_Worker_" + System.currentTimeMillis());
-    confMap.put("zipkin.collector-hostname", "master");
-    confMap.put("zipkin.collector-port", Integer.toString(9410));
-    final ZipkinSpanReceiver receiver = new ZipkinSpanReceiver(HTraceConfiguration.fromMap(confMap));
-    Trace.addReceiver(receiver);
+//    final Map<String, String> confMap = new HashMap<>(2);
+//    confMap.put("process.id", "Vortex_Worker_" + System.currentTimeMillis());
+//    confMap.put("zipkin.collector-hostname", "master");
+//    confMap.put("zipkin.collector-port", Integer.toString(9410));
+//    final ZipkinSpanReceiver receiver = new ZipkinSpanReceiver(HTraceConfiguration.fromMap(confMap));
+    Trace.addReceiver(new StandardOutSpanReceiver(HTraceConfiguration.EMPTY));
   }
 
   /**

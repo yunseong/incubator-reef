@@ -16,23 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.examples.matmul;
+package org.apache.reef.vortex.examples.lr.input;
 
-import org.apache.reef.tang.Tang;
-import org.apache.reef.vortex.driver.VortexLauncher;
+import java.io.Serializable;
+import java.util.ArrayList;
 
 /**
- * User's main function.
+ * Encapsulates the training data used in LogisticRegression.
  */
-final class MatMul {
-  private MatMul() {
+public final class TrainingData implements Serializable {
+  private final ArrayList<Row> data;
+
+  public TrainingData() {
+    this.data = new ArrayList<>();
   }
 
-  /**
-   * Launch the vortex job, passing appropriate arguments.
-   */
-  public static void main(final String[] args) {
-    VortexLauncher.launchLocal("Vortex_Example_MatMul", MatMulStart.class, 1, 2048, 2, 5000,
-        Tang.Factory.getTang().newConfigurationBuilder().build());
+  public ArrayList<Row> get() {
+    return data;
+  }
+
+  public void addRow(final Row row) {
+    data.add(row);
+  }
+
+  public int getDimension() {
+    if (data.size() <= 0) {
+      return -1;
+    } else {
+      return data.get(0).getDimension();
+    }
   }
 }

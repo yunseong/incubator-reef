@@ -20,6 +20,7 @@ package org.apache.reef.vortex.driver;
 
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.reef.annotations.audience.DriverSide;
+import org.apache.reef.driver.context.ContextConfiguration;
 import org.apache.reef.driver.evaluator.*;
 import org.apache.reef.driver.task.FailedTask;
 import org.apache.reef.driver.task.RunningTask;
@@ -28,6 +29,7 @@ import org.apache.reef.driver.task.TaskMessage;
 import org.apache.reef.poison.PoisonedConfiguration;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Configurations;
+import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.tang.annotations.Unit;
 import org.apache.reef.vortex.api.VortexStart;
@@ -37,6 +39,7 @@ import org.apache.reef.vortex.common.TaskletResultReport;
 import org.apache.reef.vortex.common.WorkerReport;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexWorker;
+import org.apache.reef.vortex.examples.lr.LogisticRegression;
 import org.apache.reef.wake.EStage;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.impl.SingleThreadStage;
@@ -73,6 +76,8 @@ final class VortexDriver {
   private final EStage<Integer> pendingTaskletSchedulerEStage;
 
   private final AtomicInteger barrier;
+  private final double crashProb;
+  private final int crashTimeout;
 
   @Inject
   private VortexDriver(final EvaluatorRequestor evaluatorRequestor,
@@ -84,7 +89,9 @@ final class VortexDriver {
                        @Parameter(VortexMasterConf.WorkerMem.class) final int workerMem,
                        @Parameter(VortexMasterConf.WorkerNum.class) final int workerNum,
                        @Parameter(VortexMasterConf.WorkerCores.class) final int workerCores,
-                       @Parameter(VortexMasterConf.NumberOfVortexStartThreads.class) final int numOfStartThreads) {
+                       @Parameter(VortexMasterConf.NumberOfVortexStartThreads.class) final int numOfStartThreads,
+                       @Parameter(LogisticRegression.CrashProb.class) final double crashProb,
+                       @Parameter(LogisticRegression.CrashTimeout.class) final int crashTimeout) {
     this.vortexStartEStage = new ThreadPoolStage<>(vortexStartExecutor, numOfStartThreads);
     this.vortexStart = vortexStart;
     this.pendingTaskletSchedulerEStage = new SingleThreadStage<>(pendingTaskletLauncher, 1);
@@ -95,6 +102,8 @@ final class VortexDriver {
     this.evalNum = workerNum;
     this.evalCores = workerCores;
     this.barrier = new AtomicInteger(workerNum);
+    this.crashProb = crashProb;
+    this.crashTimeout = crashTimeout;
   }
 
   /**
@@ -125,6 +134,17 @@ final class VortexDriver {
           .set(VortexWorkerConf.NUM_OF_THREADS, evalCores) // NUM_OF_THREADS = evalCores
           .build();
 
+      final Configuration contextConfiguration =
+          Tang.Factory.getTang().newConfigurationBuilder(
+              ContextConfiguration.CONF
+                  .set(ContextConfiguration.IDENTIFIER, "vortex_worker")
+                  .build(),
+              PoisonedConfiguration.CONTEXT_CONF
+                  .set(PoisonedConfiguration.CRASH_PROBABILITY, crashProb)
+                  .set(PoisonedConfiguration.CRASH_TIMEOUT, crashTimeout)
+                  .build())
+              .build();
+
       final Configuration taskConfiguration = TaskConfiguration.CONF
           .set(TaskConfiguration.IDENTIFIER, workerId)
           .set(TaskConfiguration.TASK, VortexWorker.class)
@@ -133,12 +153,8 @@ final class VortexDriver {
           .set(TaskConfiguration.ON_CLOSE, VortexWorker.TaskCloseHandler.class)
           .build();
 
-      final Configuration poisonConfiguration = PoisonedConfiguration.TASK_CONF
-          // TODO Make it configurable
-          .set(PoisonedConfiguration.CRASH_PROBABILITY, 0.6)
-          .build();
-
-      allocatedEvaluator.submitTask(Configurations.merge(workerConfiguration, taskConfiguration, poisonConfiguration));
+      allocatedEvaluator.submitContextAndTask(contextConfiguration,
+          Configurations.merge(workerConfiguration, taskConfiguration));
     }
   }
 
@@ -213,7 +229,11 @@ final class VortexDriver {
             .setNumberOfCores(evalCores)
             .build());
 
-        vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
+        if (failedEvaluator.getFailedTask().isPresent()) {
+          vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
+        } else {
+          LOG.log(Level.SEVERE, "!Preempted, but task id is not present");
+        }
       }
     }
   }

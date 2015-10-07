@@ -26,6 +26,7 @@ import org.apache.reef.tang.annotations.NamedParameter;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.tang.formats.CommandLine;
 import org.apache.reef.vortex.driver.VortexLauncher;
+import org.apache.reef.vortex.trace.HTraceParameters;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -48,9 +49,9 @@ public final class LogisticRegression {
     final JavaConfigurationBuilder cb = tang.newConfigurationBuilder();
 
     try {
-      new CommandLine(cb)
-          .registerShortNameOfClass(Local.class)
-          .registerShortNameOfClass(ZipkinCollector.class)
+      final CommandLine cl = new CommandLine(cb);
+      HTraceParameters.registerShortNames(cl);
+      cl.registerShortNameOfClass(Local.class)
           .registerShortNameOfClass(NumWorkers.class)
           .registerShortNameOfClass(WorkerCores.class)
           .registerShortNameOfClass(WorkerCapacity.class)

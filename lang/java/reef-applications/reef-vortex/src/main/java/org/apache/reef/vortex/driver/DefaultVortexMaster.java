@@ -20,13 +20,13 @@ package org.apache.reef.vortex.driver;
 
 import net.jcip.annotations.ThreadSafe;
 import org.apache.htrace.*;
-import org.apache.htrace.impl.StandardOutSpanReceiver;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
+import org.apache.reef.vortex.trace.HTrace;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
@@ -55,17 +55,11 @@ final class DefaultVortexMaster implements VortexMaster {
    */
   @Inject
   DefaultVortexMaster(final RunningWorkers runningWorkers,
-                      final PendingTasklets pendingTasklets) {
+                      final PendingTasklets pendingTasklets,
+                      final HTrace hTrace) {
+    hTrace.initialize();
     this.runningWorkers = runningWorkers;
     this.pendingTasklets = pendingTasklets;
-
-//    final Map<String, String> confMap = new HashMap<>(2);
-//    confMap.put("process.id", "Vortex_Master_" + System.currentTimeMillis());
-//    confMap.put("zipkin.collector-hostname", "master");
-//    confMap.put("zipkin.collector-port", Integer.toString(9410));
-//    final ZipkinSpanReceiver receiver = new ZipkinSpanReceiver(HTraceConfiguration.fromMap(confMap));
-//    Trace.addReceiver(receiver);
-    Trace.addReceiver(new StandardOutSpanReceiver(HTraceConfiguration.EMPTY));
     jobSpan = Trace.startSpan(JOB_SPAN, Sampler.ALWAYS).detach();
   }
 
@@ -148,7 +142,7 @@ final class DefaultVortexMaster implements VortexMaster {
         throw new VortexCacheException("The entity does not exist for the key : " + cacheKey);
       }
       final Serializable data = cacheMap.get(keyName);
-      runningWorkers.sendCacheData(workerId, cacheKey, data, TraceInfo.fromSpan(jobSpan));
+      runningWorkers.sendCacheData(workerId, cacheKey, data, TraceInfo.fromSpan(parentTraceInfo.getSpan()));
     }
   }
 

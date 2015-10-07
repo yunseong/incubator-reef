@@ -40,6 +40,9 @@ import org.apache.reef.vortex.common.WorkerReport;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexWorker;
 import org.apache.reef.vortex.examples.lr.LogisticRegression;
+import org.apache.reef.vortex.trace.parameters.ReceiverHost;
+import org.apache.reef.vortex.trace.parameters.ReceiverPort;
+import org.apache.reef.vortex.trace.parameters.ReceiverType;
 import org.apache.reef.wake.EStage;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.impl.SingleThreadStage;
@@ -70,6 +73,10 @@ final class VortexDriver {
   private final int evalMem;
   private final int evalNum;
   private final int evalCores;
+  private final String receiverType;
+  private final String receiverHost;
+  private final int receiverPort;
+
 
   private final EStage<VortexStart> vortexStartEStage;
   private final VortexStart vortexStart;
@@ -90,6 +97,9 @@ final class VortexDriver {
                        @Parameter(VortexMasterConf.WorkerNum.class) final int workerNum,
                        @Parameter(VortexMasterConf.WorkerCores.class) final int workerCores,
                        @Parameter(VortexMasterConf.NumberOfVortexStartThreads.class) final int numOfStartThreads,
+                       @Parameter(ReceiverType.class) final String receiverType,
+                       @Parameter(ReceiverHost.class) final String receiverHost,
+                       @Parameter(ReceiverPort.class) final int receiverPort,
                        @Parameter(LogisticRegression.CrashProb.class) final double crashProb,
                        @Parameter(LogisticRegression.CrashTimeout.class) final int crashTimeout) {
     this.vortexStartEStage = new ThreadPoolStage<>(vortexStartExecutor, numOfStartThreads);
@@ -102,6 +112,9 @@ final class VortexDriver {
     this.evalNum = workerNum;
     this.evalCores = workerCores;
     this.barrier = new AtomicInteger(workerNum);
+    this.receiverType = receiverType;
+    this.receiverHost = receiverHost;
+    this.receiverPort = receiverPort;
     this.crashProb = crashProb;
     this.crashTimeout = crashTimeout;
   }
@@ -131,6 +144,9 @@ final class VortexDriver {
       final String workerId = allocatedEvaluator.getId() + "_vortex_worker";
 
       final Configuration workerConfiguration = VortexWorkerConf.CONF
+          .set(VortexWorkerConf.RECEIVER_TYPE, receiverType)
+          .set(VortexWorkerConf.RECEIVER_HOST, receiverHost)
+          .set(VortexWorkerConf.RECEIVER_PORT, receiverPort)
           .set(VortexWorkerConf.NUM_OF_THREADS, evalCores) // NUM_OF_THREADS = evalCores
           .build();
 

@@ -19,11 +19,9 @@
 package org.apache.reef.vortex.evaluator;
 
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.htrace.HTraceConfiguration;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceInfo;
 import org.apache.htrace.TraceScope;
-import org.apache.htrace.impl.StandardOutSpanReceiver;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.annotations.audience.TaskSide;
 import org.apache.reef.tang.annotations.Parameter;
@@ -37,6 +35,7 @@ import org.apache.reef.task.events.DriverMessage;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.common.*;
 import org.apache.reef.vortex.driver.VortexWorkerConf;
+import org.apache.reef.vortex.trace.HTrace;
 import org.apache.reef.wake.EventHandler;
 
 import javax.inject.Inject;
@@ -55,6 +54,7 @@ import java.util.concurrent.*;
 public final class VortexWorker implements Task, TaskMessageSource {
   private static final String TASKLET_EXECUTE_SPAN = "worker_execute";
   private static final String RESULT_SERIALIZE_SPAN = "worker_serialize";
+  private static final String RECEIVE_CACHE_SPAN = "worker_receive_cache";
   private static final String MESSAGE_SOURCE_ID = ""; // empty string as there is no use for it
 
   private final BlockingDeque<byte[]> pendingRequests = new LinkedBlockingDeque<>();
@@ -70,18 +70,13 @@ public final class VortexWorker implements Task, TaskMessageSource {
   private VortexWorker(final HeartBeatTriggerManager heartBeatTriggerManager,
                        final VortexCache cache,
                        @Parameter(VortexWorkerConf.NumOfThreads.class) final int numOfThreads,
-                       @Parameter(VortexWorkerConf.NumOfSlackThreads.class) final int numOfSlackThreads) {
+                       @Parameter(VortexWorkerConf.NumOfSlackThreads.class) final int numOfSlackThreads,
+                       final HTrace hTrace) {
+    hTrace.initialize();
     this.heartBeatTriggerManager = heartBeatTriggerManager;
     this.cache = cache;
     this.numOfThreads = numOfThreads;
     this.numOfSlackThreads = numOfSlackThreads;
-
-//    final Map<String, String> confMap = new HashMap<>(2);
-//    confMap.put("process.id", "Vortex_Worker_" + System.currentTimeMillis());
-//    confMap.put("zipkin.collector-hostname", "master");
-//    confMap.put("zipkin.collector-port", Integer.toString(9410));
-//    final ZipkinSpanReceiver receiver = new ZipkinSpanReceiver(HTraceConfiguration.fromMap(confMap));
-    Trace.addReceiver(new StandardOutSpanReceiver(HTraceConfiguration.EMPTY));
   }
 
   /**
@@ -164,7 +159,10 @@ public final class VortexWorker implements Task, TaskMessageSource {
                   break;
                 case CacheSent:
                   final CacheSentRequest cacheSentRequest = (CacheSentRequest) vortexRequest;
-                  cache.notifyOnArrival(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
+                  try (final TraceScope traceScope =
+                             Trace.startSpan(RECEIVE_CACHE_SPAN, traceInfo)) {
+                    cache.notifyOnArrival(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
+                  }
                   break;
                 default:
                   throw new RuntimeException("Unknown Command");

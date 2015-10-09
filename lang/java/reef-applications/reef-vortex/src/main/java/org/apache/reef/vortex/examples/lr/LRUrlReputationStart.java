@@ -87,10 +87,10 @@ final class LRUrlReputationStart implements VortexStart {
     final long start = System.currentTimeMillis();
 
     try {
-      final ArrayList<TrainingData> partitions = parse();
+      final ArrayList<StringBuilder> partitions = parse();
       final long parseOverhead = System.currentTimeMillis() - start;
 
-      final ArrayList<CacheKey<TrainingData>> partitionKeys =
+      final ArrayList<CacheKey<StringBuilder>> partitionKeys =
           cachePartitions(vortexThreadPool, partitions);
       final long cacheOverhead = cached ? System.currentTimeMillis() - start - parseOverhead : 0;
 
@@ -106,11 +106,11 @@ final class LRUrlReputationStart implements VortexStart {
           if (cached) {
             futures.add(vortexThreadPool.submit(
                 new FullyCachedGradientFunction(),
-                new LRInputCached(parameterKey, partitionKeys.get(pIndex))));
+                new LRInputCached(parameterKey, partitionKeys.get(pIndex), modelDim)));
           } else {
             futures.add(vortexThreadPool.submit(
                 new GradientFunction(),
-                new LRInputNotCached(parameterVector, partitions.get(pIndex))));
+                new LRInputNotCached(parameterVector, partitions.get(pIndex), modelDim)));
           }
         }
 
@@ -149,11 +149,11 @@ final class LRUrlReputationStart implements VortexStart {
    * Cache the partitions into Vortex Cache.
    * @return The cached keys
    */
-  private ArrayList<CacheKey<TrainingData>> cachePartitions(final VortexThreadPool vortexThreadPool,
-                                                            final ArrayList<TrainingData> partitions)
+  private ArrayList<CacheKey<StringBuilder>> cachePartitions(final VortexThreadPool vortexThreadPool,
+                                                            final ArrayList<StringBuilder> partitions)
       throws VortexCacheException {
 
-    final ArrayList<CacheKey<TrainingData>> keys = new ArrayList<>(divideFactor);
+    final ArrayList<CacheKey<StringBuilder>> keys = new ArrayList<>(divideFactor);
     for (int i = 0; i < partitions.size(); i++) {
       keys.add(vortexThreadPool.cache(i + "", partitions.get(i)));
     }
@@ -165,12 +165,11 @@ final class LRUrlReputationStart implements VortexStart {
    * @return the partitions that consist of the records.
    * @throws IOException If it fails while parsing the input.
    */
-  private ArrayList<TrainingData> parse() throws IOException {
-    final ArrayList<TrainingData> partitions = new ArrayList<>(divideFactor);
+  private ArrayList<StringBuilder> parse() throws IOException {
+    final ArrayList<StringBuilder> strPartitions = new ArrayList<>(divideFactor);
     for (int i = 0; i < divideFactor; i++) {
-      partitions.add(new TrainingData());
+      strPartitions.add(new StringBuilder(128));
     }
-
 
     long recordCount = 0;
     for (int fileIndex = 0; fileIndex < numFile; fileIndex++) {
@@ -181,41 +180,12 @@ final class LRUrlReputationStart implements VortexStart {
         String line;
         while ((line = reader.readLine()) != null){
           final int index = (int) (recordCount % divideFactor);
-          partitions.get(index).addRow(parseLine(line));
+          strPartitions.get(index).append(line);
+          strPartitions.get(index).append("#V#");
           recordCount++;
         }
       }
     }
-    return partitions;
-  }
-
-  /**
-   * Parse a line and create a training data.
-   */
-  private Row parseLine(final String line) throws ParseException {
-    final SparseVector feature = new SparseVector(modelDim);
-
-    final String[] split = line.split(" ");
-
-    try {
-      final int output = Integer.valueOf(split[0]);
-
-      for (int i = 1; i < split.length; i++) {
-        final String[] column = split[i].split(":");
-
-        final int index = Integer.valueOf(column[0]);
-        final double value = Double.valueOf(column[1]);
-
-        if (index >= modelDim) {
-          // Restrict the dimension of model to save our time.
-          break;
-        }
-        feature.putValue(index, value);
-      }
-      return Row.getInstance(feature, output);
-
-    } catch (final NumberFormatException e) {
-      throw new ParseException(e.getMessage());
-    }
+    return strPartitions;
   }
 }

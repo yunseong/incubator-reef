@@ -24,19 +24,23 @@ import java.io.Serializable;
  * Input used in Logistic Regression which does not cache the data.
  */
 public class LRInputNotCached implements Serializable {
-  private TrainingData trainingData;
+  private StringBuilder trainingData;
   private SparseVector parameterVector;
+  private final int modelDim;
+
   public LRInputNotCached(final SparseVector parameterVector,
-                          final TrainingData trainingData) {
+                          final StringBuilder trainingData,
+                          final int modelDim) {
     this.parameterVector = parameterVector;
     this.trainingData = trainingData;
+    this.modelDim = modelDim;
   }
 
   public SparseVector getParameterVector() {
     return parameterVector;
   }
 
-  public TrainingData getTrainingData() {
-    return trainingData;
+  public TrainingData getTrainingData() throws ParseException {
+    return DataParser.parseTrainingData(trainingData.toString(), modelDim);
   }
 }

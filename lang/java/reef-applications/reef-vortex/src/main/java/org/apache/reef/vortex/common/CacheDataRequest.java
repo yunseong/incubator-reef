@@ -18,6 +18,8 @@
  */
 package org.apache.reef.vortex.common;
 
+import org.apache.htrace.TraceInfo;
+
 import java.io.Serializable;
 
 /**
@@ -26,9 +28,13 @@ import java.io.Serializable;
 // TODO: The naming needs to be fixed.
 public class CacheDataRequest<T extends Serializable> implements WorkerReport {
   private CacheKey<T> cacheKey;
+  private long traceId;
+  private long spanId;
 
-  public CacheDataRequest(final CacheKey<T> cacheKey) {
+  public CacheDataRequest(final CacheKey<T> cacheKey, final TraceInfo traceInfo) {
     this.cacheKey = cacheKey;
+    this.traceId = traceInfo.traceId;
+    this.spanId = traceInfo.spanId;
   }
 
   @Override
@@ -41,5 +47,12 @@ public class CacheDataRequest<T extends Serializable> implements WorkerReport {
    */
   public CacheKey<T> getCacheKey() {
     return cacheKey;
+  }
+
+  /**
+   * @return TraceInfo that this request contains.
+   */
+  public TraceInfo getTraceInfo() {
+    return new TraceInfo(traceId, spanId);
   }
 }

@@ -18,6 +18,10 @@
  */
 package org.apache.reef.vortex.evaluator;
 
+import org.apache.htrace.Span;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceInfo;
+import org.apache.htrace.TraceScope;
 import org.apache.reef.tang.InjectionFuture;
 import org.apache.reef.util.cache.Cache;
 import org.apache.reef.util.cache.CacheImpl;
@@ -56,12 +60,18 @@ public final class VortexCache {
    * @throws VortexCacheException If it fails to fetch the data.
    */
   public static <T extends Serializable> T getData(final CacheKey<T> key) throws VortexCacheException {
-    return cacheRef.load(key);
+    final Span currentSpan = Trace.currentSpan();
+    try (final TraceScope getDataScope = Trace.startSpan("cache_get_"+key.getName(), currentSpan)) {
+      return cacheRef.load(key, getDataScope);
+    } finally {
+      Trace.continueSpan(currentSpan);
+    }
   }
 
-  private <T extends Serializable> T load(final CacheKey<T> key) throws VortexCacheException {
+  private <T extends Serializable> T load(final CacheKey<T> key, final TraceScope parentScope)
+      throws VortexCacheException {
     try {
-      return (T) cache.get(key, new CustomCallable<T>(key));
+      return (T) cache.get(key, new CustomCallable<T>(key, parentScope));
     } catch (ExecutionException e) {
       throw new VortexCacheException("Failed to fetch the data", e);
     }
@@ -88,9 +98,11 @@ public final class VortexCache {
     private boolean dataArrived = false;
     private T waitingData;
     private final CacheKey<T> cacheKey;
+    private final Span callableSpan;
 
-    CustomCallable(final CacheKey<T> cacheKey) {
+    CustomCallable(final CacheKey<T> cacheKey, final TraceScope parentScope) {
       this.cacheKey = cacheKey;
+      this.callableSpan = parentScope.detach();
     }
 
     void onDataArrived(final T data) {
@@ -107,13 +119,18 @@ public final class VortexCache {
 
     @Override
     public T call() throws Exception {
-      waiters.put(cacheKey, this);
-      worker.get().sendDataRequest(cacheKey);
+      final TraceInfo traceInfo = TraceInfo.fromSpan(callableSpan);
+      try (final TraceScope scope = Trace.startSpan("send_data_request", traceInfo)) {
+        waiters.put(cacheKey, this);
+        worker.get().sendDataRequest(cacheKey, traceInfo);
+      }
+
       synchronized (this) {
         while (!dataArrived) {
           this.wait();
         }
       }
+      Trace.continueSpan(callableSpan).close();
       return waitingData;
     }
   }

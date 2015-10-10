@@ -123,7 +123,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
 
 
               try (final TraceScope traceScope =
-                       Trace.startSpan("worker_deserialize " + request.length/1024/1024.0 + "mb", traceInfo)) {
+                       Trace.startSpan("worker_deserialize " + request.length/1024.0 + "kb", traceInfo)) {
                 vortexRequest = (VortexRequest) SerializationUtils.deserialize(request);
               }
 
@@ -195,8 +195,8 @@ public final class VortexWorker implements Task, TaskMessageSource {
    * Send the request for the cached data to Master.
    * @param key Key of the data.
    */
-  void sendDataRequest(final CacheKey key) throws InterruptedException {
-    final WorkerReport report = new CacheDataRequest(key);
+  void sendDataRequest(final CacheKey key, final TraceInfo parentInfo) throws InterruptedException {
+    final WorkerReport report = new CacheDataRequest(key, parentInfo);
     workerReports.addLast(SerializationUtils.serialize(report));
     heartBeatTriggerManager.triggerHeartBeat();
   }
@@ -213,7 +213,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
         final long spanId =
             ByteBuffer.wrap(Arrays.copyOfRange(bytes, Long.SIZE / Byte.SIZE, 2 * (Long.SIZE / Byte.SIZE))).getLong();
         try (final TraceScope traceScope =
-                 Trace.startSpan("Worker_Enqueued", new TraceInfo(traceId, spanId))) {
+                 Trace.startSpan("worker_enqueued", new TraceInfo(traceId, spanId))) {
           pendingRequests.addLast(message.get().get());
         }
       }

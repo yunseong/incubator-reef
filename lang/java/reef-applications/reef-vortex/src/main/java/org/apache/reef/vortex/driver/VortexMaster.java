@@ -18,6 +18,7 @@
  */
 package org.apache.reef.vortex.driver;
 
+import org.apache.htrace.Span;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.tang.annotations.DefaultImplementation;
@@ -79,9 +80,11 @@ public interface VortexMaster {
    * Retrieve the data from the Cache, and send it to the Worker who requested.
    * @param workerId Worker id to send the data.
    * @param cacheKey Key to retrieve the data.
+   * @param parentSpan Span that is owned by its parent.
    * @throws VortexCacheException If the data is not found in the cache.
    */
-  <T extends Serializable> void dataRequested(final String workerId, final CacheKey<T> cacheKey)
+  <T extends Serializable> void dataRequested(final String workerId, final CacheKey<T> cacheKey,
+                                              final Span parentSpan)
       throws VortexCacheException;
 
   /**

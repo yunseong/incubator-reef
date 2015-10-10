@@ -135,14 +135,15 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
-  public void dataRequested(final String workerId, final CacheKey cacheKey) throws VortexCacheException {
+  public void dataRequested(final String workerId, final CacheKey cacheKey, final Span parentSpan)
+      throws VortexCacheException {
     synchronized (cacheMap) {
       final String keyName = cacheKey.getName();
       if (!cacheMap.containsKey(keyName)) {
         throw new VortexCacheException("The entity does not exist for the key : " + cacheKey);
       }
       final Serializable data = cacheMap.get(keyName);
-      runningWorkers.sendCacheData(workerId, cacheKey, data, TraceInfo.fromSpan(parentTraceInfo.getSpan()));
+      runningWorkers.sendCacheData(workerId, cacheKey, data, TraceInfo.fromSpan(parentSpan));
     }
   }
 

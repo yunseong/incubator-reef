@@ -19,6 +19,8 @@
 package org.apache.reef.vortex.driver;
 
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.context.ContextConfiguration;
 import org.apache.reef.driver.evaluator.*;
@@ -214,8 +216,9 @@ final class VortexDriver {
         break;
       case CacheRequest:
         final CacheDataRequest cacheDataRequest = (CacheDataRequest)workerReport;
-        try {
-          vortexMaster.dataRequested(workerId, cacheDataRequest.getCacheKey());
+        try (final TraceScope dataRequestScope =
+                 Trace.startSpan("master_data_requested", cacheDataRequest.getTraceInfo())){
+          vortexMaster.dataRequested(workerId, cacheDataRequest.getCacheKey(), dataRequestScope.getSpan());
         } catch (VortexCacheException e) {
           LOG.log(Level.SEVERE, "Failed to load the data that worker {0} requested with key name {1}.",
               new Object[] {workerId, cacheDataRequest.getCacheKey().getName()});

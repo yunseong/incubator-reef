@@ -20,10 +20,14 @@ package org.apache.reef.vortex.driver;
 
 import org.apache.htrace.*;
 import org.apache.reef.annotations.audience.DriverSide;
+import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
+import org.apache.reef.vortex.common.CacheKey;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Representation of user task in Driver.
@@ -108,5 +112,16 @@ class Tasklet<TInput extends Serializable, TOutput extends Serializable> impleme
    */
   public TraceInfo getTraceInfo() {
     return TraceInfo.fromSpan(taskletSpan);
+  }
+
+  /**
+   * @return keys that the tasklet caches sorted by the priority.
+   */
+  public List<CacheKey> getCachedKeys() {
+    if (input instanceof VortexCacheable) {
+      return ((VortexCacheable) input).getCachedKeys();
+    } else {
+      return new ArrayList<>();
+    }
   }
 }

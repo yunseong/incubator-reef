@@ -85,12 +85,12 @@ class LocalityAwareSchedulingPolicy implements SchedulingPolicy {
       if (keyWorkersMap.containsKey(key)) {
         // If already cached
         for (final String workerId : keyWorkersMap.get(key)) {
-
-          if (idLoadMap.get(workerId) < workerCapacity) {
+          if (idLoadMap.containsKey(workerId) && idLoadMap.get(workerId) < workerCapacity) {
+            // There could be a race condition that worker remains right after the preemption.
             // Only if the worker has enough capacity
-            if (workerId.equals(idList.get(nextIndex))) {
+            if (workerId.equals(idList.get(nextIndex % idList.size()))) {
               // To prevent workload skew, move the cursor to the next
-              nextIndex++;
+              nextIndex = (nextIndex + 1) % idList.size();
             }
             return Optional.of(workerId);
           }

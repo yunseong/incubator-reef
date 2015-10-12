@@ -41,6 +41,9 @@ import java.util.logging.Logger;
  */
 final class LRUrlReputationStart implements VortexStart {
   private static final Logger LOG = Logger.getLogger(LRUrlReputationStart.class.getName());
+  private static final String CACHE_FULL = "full";
+  private static final String CACHE_HALF = "half";
+  private static final String CACHE_NO = "no";
 
   private final String dir;
   private final int numIter;
@@ -49,7 +52,7 @@ final class LRUrlReputationStart implements VortexStart {
   private final int divideFactor;
 
   private final int modelDim;
-  private final boolean cached;
+  private final String cached;
   private final double crashProb;
   private final int crashTimeout;
 
@@ -61,7 +64,7 @@ final class LRUrlReputationStart implements VortexStart {
                                @Parameter(LogisticRegression.ModelDim.class) final int modelDim,
                                @Parameter(LogisticRegression.CrashProb.class) final double crashProb,
                                @Parameter(LogisticRegression.CrashTimeout.class) final int crashTimeout,
-                               @Parameter(LogisticRegression.Cached.class) final boolean cached) {
+                               @Parameter(LogisticRegression.Cache.class) final String cached) {
     this.divideFactor = divideFactor;
     this.numIter = numIter;
     this.numFile = numFile;
@@ -92,7 +95,6 @@ final class LRUrlReputationStart implements VortexStart {
 
       final ArrayList<CacheKey<StringBuilder>> partitionKeys =
           cachePartitions(vortexThreadPool, partitions);
-      final long cacheOverhead = cached ? System.currentTimeMillis() - start - parseOverhead : 0;
 
       // For each iteration...
       for (int iter = 0; iter < numIter; iter++) {
@@ -103,14 +105,20 @@ final class LRUrlReputationStart implements VortexStart {
         // Launch tasklets, each operating on a partition
         final ArrayList<VortexFuture<PartialResult>> futures = new ArrayList<>();
         for (int pIndex = 0; pIndex < divideFactor; pIndex++) {
-          if (cached) {
+          if (CACHE_FULL.equals(cached)) {
             futures.add(vortexThreadPool.submit(
-                new FullyCachedGradientFunction(),
+                new CachedGradientFunction(),
                 new LRInputCached(parameterKey, partitionKeys.get(pIndex), modelDim)));
-          } else {
+          } else if (CACHE_HALF.equals(cached)) {
+            futures.add(vortexThreadPool.submit(
+                new HalfCachedGradientFunction(),
+                new LRInputHalfCached(parameterVector, partitionKeys.get(pIndex), modelDim)));
+          } else if (CACHE_NO.equals(cached)) {
             futures.add(vortexThreadPool.submit(
                 new GradientFunction(),
-                new LRInputNotCached(parameterVector, partitions.get(pIndex), modelDim)));
+                new LRInput(parameterVector, partitions.get(pIndex), modelDim)));
+          } else {
+            throw new RuntimeException("Unknown type");
           }
         }
 
@@ -136,11 +144,11 @@ final class LRUrlReputationStart implements VortexStart {
       }
 
       final long duration = System.currentTimeMillis() - start;
-      final JobSummary summary = new JobSummary(duration, parseOverhead, cacheOverhead);
+      final JobSummary summary = new JobSummary(duration, parseOverhead);
       LOG.log(Level.INFO, "#V# Job finished. {0}", summary);
     } catch (final Exception e) {
       final long duration = System.currentTimeMillis() - start;
-      final JobSummary summary = new JobSummary(duration, -1, -1);
+      final JobSummary summary = new JobSummary(duration, -1);
       LOG.log(Level.SEVERE, "#V# Job failed. " + summary, e);
     }
   }
@@ -185,6 +193,10 @@ final class LRUrlReputationStart implements VortexStart {
           recordCount++;
         }
       }
+    }
+
+    for (final StringBuilder strPartition : strPartitions) {
+      strPartition.trimToSize();
     }
     return strPartitions;
   }

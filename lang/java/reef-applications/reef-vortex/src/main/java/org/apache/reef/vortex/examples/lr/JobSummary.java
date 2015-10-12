@@ -24,12 +24,10 @@ package org.apache.reef.vortex.examples.lr;
 public class JobSummary {
   private final long duration;
   private final long parseOverhead;
-  private final long cacheOverhead;
 
-  public JobSummary(final long duration, final long parseOverhead, final long cacheOverhead) {
+  public JobSummary(final long duration, final long parseOverhead) {
     this.duration = duration;
     this.parseOverhead = parseOverhead;
-    this.cacheOverhead = cacheOverhead;
   }
 
   @Override
@@ -37,7 +35,6 @@ public class JobSummary {
     return "&&JobSummary{" +
         "duration=" + duration +
         ", parseOverhead=" + parseOverhead +
-        ", cacheOverhead=" + cacheOverhead +
         '}';
   }
 }

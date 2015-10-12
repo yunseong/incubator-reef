@@ -18,30 +18,46 @@
  */
 package org.apache.reef.vortex.examples.lr.input;
 
+import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexCache;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Input used in Logistic Regression which caches the training data only.
  */
-public class LRInputHalfCached implements Serializable {
-  private CacheKey<TrainingData> trainingDataKey;
+public class LRInputHalfCached implements Serializable, VortexCacheable {
+  private CacheKey<StringBuilder> trainingDataKey;
   private SparseVector parameterVector;
+  private final int modelDim;
+  private AtomicReference<TrainingData> parsed = new AtomicReference<>();
+
   public LRInputHalfCached(final SparseVector parameterVector,
-                           final CacheKey<TrainingData> trainingDataKey) {
+                           final CacheKey<StringBuilder> trainingDataKey,
+                           final int modelDim) {
     this.parameterVector = parameterVector;
     this.trainingDataKey = trainingDataKey;
+    this.modelDim = modelDim;
   }
 
   public SparseVector getParameterVector() {
     return parameterVector;
   }
 
-  public TrainingData getTrainingData() throws VortexCacheException {
-    System.out.println("getTrainingData: " + trainingDataKey);
-    return VortexCache.getData(trainingDataKey);
+  public TrainingData getTrainingData() throws VortexCacheException, ParseException {
+    parsed.compareAndSet(null, DataParser.parseTrainingData(VortexCache.getData(trainingDataKey).toString(), modelDim));
+    return parsed.get();
+  }
+
+  @Override
+  public List<CacheKey> getCachedKeys() {
+    final List<CacheKey> keys = new ArrayList<>(1);
+    keys.add(trainingDataKey);
+    return keys;
   }
 }

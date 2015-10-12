@@ -61,7 +61,7 @@ public final class LogisticRegression {
           .registerShortNameOfClass(NumFile.class)
           .registerShortNameOfClass(Dir.class)
           .registerShortNameOfClass(ModelDim.class)
-          .registerShortNameOfClass(Cached.class)
+          .registerShortNameOfClass(Cache.class)
           .registerShortNameOfClass(CrashProb.class)
           .registerShortNameOfClass(CrashTimeout.class)
           .processCommandLine(args);
@@ -143,8 +143,8 @@ public final class LogisticRegression {
   public static final class ModelDim implements Name<Integer> {
   }
 
-  @NamedParameter(short_name = "cached", default_value = "false")
-  public static final class Cached implements Name<Boolean> {
+  @NamedParameter(short_name = "cache", default_value = "half")
+  public static final class Cache implements Name<String> {
   }
 
   @NamedParameter(short_name = "crash_prob")

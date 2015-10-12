@@ -19,7 +19,7 @@
 package org.apache.reef.vortex.examples.lr;
 
 import org.apache.reef.vortex.api.VortexFunction;
-import org.apache.reef.vortex.examples.lr.input.LRInputHalfCached;
+import org.apache.reef.vortex.examples.lr.input.LRInputCached;
 import org.apache.reef.vortex.examples.lr.input.Row;
 import org.apache.reef.vortex.examples.lr.input.SparseVector;
 import org.apache.reef.vortex.examples.lr.input.TrainingData;
@@ -27,12 +27,12 @@ import org.apache.reef.vortex.examples.lr.input.TrainingData;
 /**
  * Outputs the gradient.
  */
-final class CachedGradientFunction implements VortexFunction<LRInputHalfCached, PartialResult> {
+final class CachedGradientFunction implements VortexFunction<LRInputCached, PartialResult> {
   /**
    * Outputs the gradient.
    */
   @Override
-  public PartialResult call(final LRInputHalfCached lrInput) throws Exception {
+  public PartialResult call(final LRInputCached lrInput) throws Exception {
     final SparseVector parameterVector = lrInput.getParameterVector();
     final TrainingData trainingData = lrInput.getTrainingData();
 

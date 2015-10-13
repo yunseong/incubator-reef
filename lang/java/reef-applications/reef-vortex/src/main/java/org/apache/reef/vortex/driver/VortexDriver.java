@@ -75,6 +75,7 @@ final class VortexDriver {
   private final int evalMem;
   private final int evalNum;
   private final int evalCores;
+  private final int workerCapacity;
   private final String receiverType;
   private final String receiverHost;
   private final int receiverPort;
@@ -98,6 +99,7 @@ final class VortexDriver {
                        @Parameter(VortexMasterConf.WorkerMem.class) final int workerMem,
                        @Parameter(VortexMasterConf.WorkerNum.class) final int workerNum,
                        @Parameter(VortexMasterConf.WorkerCores.class) final int workerCores,
+                       @Parameter(VortexMasterConf.WorkerCapacity.class) final int workerCapacity,
                        @Parameter(VortexMasterConf.NumberOfVortexStartThreads.class) final int numOfStartThreads,
                        @Parameter(ReceiverType.class) final String receiverType,
                        @Parameter(ReceiverHost.class) final String receiverHost,
@@ -113,6 +115,7 @@ final class VortexDriver {
     this.evalMem = workerMem;
     this.evalNum = workerNum;
     this.evalCores = workerCores;
+    this.workerCapacity = workerCapacity;
     this.barrier = new AtomicInteger(workerNum);
     this.receiverType = receiverType;
     this.receiverHost = receiverHost;
@@ -149,7 +152,7 @@ final class VortexDriver {
           .set(VortexWorkerConf.RECEIVER_TYPE, receiverType)
           .set(VortexWorkerConf.RECEIVER_HOST, receiverHost)
           .set(VortexWorkerConf.RECEIVER_PORT, receiverPort)
-          .set(VortexWorkerConf.NUM_OF_THREADS, evalCores) // NUM_OF_THREADS = evalCores
+          .set(VortexWorkerConf.NUM_OF_THREADS, workerCapacity) // NUM_OF_THREADS = evalCores
           .build();
 
       final Configuration contextConfiguration =

@@ -34,8 +34,11 @@ import java.util.concurrent.atomic.AtomicReference;
 public class LRInputHalfCached implements Serializable, VortexCacheable {
   private CacheKey<StringBuilder> trainingDataKey;
   private SparseVector parameterVector;
-  private final int modelDim;
+  private int modelDim;
   private AtomicReference<TrainingData> parsed = new AtomicReference<>();
+
+  public LRInputHalfCached() {
+  }
 
   public LRInputHalfCached(final SparseVector parameterVector,
                            final CacheKey<StringBuilder> trainingDataKey,

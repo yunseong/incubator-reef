@@ -26,7 +26,10 @@ import java.io.Serializable;
 public class LRInput implements Serializable {
   private StringBuilder trainingData;
   private SparseVector parameterVector;
-  private final int modelDim;
+  private int modelDim;
+
+  public LRInput() {
+  }
 
   public LRInput(final SparseVector parameterVector,
                  final StringBuilder trainingData,

@@ -74,7 +74,7 @@ public class TestUtil {
   public VortexFunction newFunction() {
     return new VortexFunction() {
       @Override
-      public Serializable call(final Serializable serializable) throws Exception {
+      public Serializable call(final Object serializable) throws Exception {
         return null;
       }
     };

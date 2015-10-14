@@ -27,19 +27,12 @@ import java.io.Serializable;
  * Request to execute a tasklet.
  */
 @Unstable
-public final class TaskletExecutionRequest<TInput extends Serializable, TOutput extends Serializable>
-    implements VortexRequest {
-  private final int taskletId;
-  private final VortexFunction<TInput, TOutput> userFunction;
-  private final TInput input;
+public final class TaskletExecutionRequest<TInput extends Serializable, TOutput extends Serializable> {
+  private int taskletId;
+  private VortexFunction<TInput, TOutput> userFunction;
+  private TInput input;
 
-  /**
-   * @return the type of this VortexRequest.
-   */
-  @Override
-  public RequestType getType() {
-    return RequestType.ExecuteTasklet;
-  }
+  public TaskletExecutionRequest() {}
 
   /**
    * Vortex Master -> Vortex Worker request to execute a tasklet.

@@ -59,7 +59,7 @@ public final class VortexThreadPool {
    * @param <TOutput> output type
    * @return VortexFuture for tracking execution progress
    */
-  public <TInput extends Serializable, TOutput extends Serializable> VortexFuture<TOutput>
+  public <TInput, TOutput extends Serializable> VortexFuture<TOutput>
       submit(final VortexFunction<TInput, TOutput> function, final TInput input) {
     return vortexMaster.enqueueTasklet(function, input);
   }

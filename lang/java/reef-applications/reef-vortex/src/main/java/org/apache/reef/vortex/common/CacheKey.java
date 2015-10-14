@@ -25,7 +25,11 @@ import java.io.Serializable;
  * Users should assign unique name to distinguish the keys.
  */
 public final class CacheKey<T extends Serializable> implements Serializable {
-  private final String name;
+  private String name;
+
+  public CacheKey(){
+  }
+
   public CacheKey(final String name) {
     this.name = name;
   }

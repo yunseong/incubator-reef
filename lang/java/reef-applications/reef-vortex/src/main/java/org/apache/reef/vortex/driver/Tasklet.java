@@ -33,7 +33,7 @@ import java.util.List;
  * Representation of user task in Driver.
  */
 @DriverSide
-class Tasklet<TInput extends Serializable, TOutput extends Serializable> implements Serializable {
+class Tasklet<TInput, TOutput extends Serializable> implements Serializable {
   private static final String TASKLET_SPAN = "tasklet";
 
   private final int taskletId;

@@ -28,8 +28,11 @@ import java.util.Map;
 public final class SparseVector implements Serializable {
 
   // Use Tree map for the sorted order.
-  private final HashMap<Integer, Double> map;
-  private final int dimension;
+  private HashMap<Integer, Double> map;
+  private int dimension;
+
+  public SparseVector() {
+  }
 
   /**
    * Constructor of the Sparse Vector.

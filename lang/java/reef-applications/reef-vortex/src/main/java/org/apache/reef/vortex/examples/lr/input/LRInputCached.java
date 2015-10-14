@@ -32,10 +32,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * Input used in Logistic Regression which caches the training data only.
  */
 public final class LRInputCached implements Serializable, VortexCacheable {
-  private final CacheKey<StringBuilder> trainingDataKey;
-  private final CacheKey<SparseVector> parameterVectorKey;
-  private final int modelDim;
+  private CacheKey<StringBuilder> trainingDataKey;
+  private CacheKey<SparseVector> parameterVectorKey;
+  private int modelDim;
   private AtomicReference<TrainingData> parsed = new AtomicReference<>();
+
+  public LRInputCached() {
+  }
 
   public LRInputCached(final CacheKey<SparseVector> parameterVectorKey,
                        final CacheKey<StringBuilder> trainingDataKey,

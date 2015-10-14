@@ -18,6 +18,8 @@
  */
 package org.apache.reef.vortex.evaluator;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceInfo;
@@ -35,6 +37,9 @@ import org.apache.reef.task.events.DriverMessage;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.common.*;
 import org.apache.reef.vortex.driver.VortexWorkerConf;
+import org.apache.reef.vortex.examples.lr.input.LRInput;
+import org.apache.reef.vortex.examples.lr.input.LRInputCached;
+import org.apache.reef.vortex.examples.lr.input.LRInputHalfCached;
 import org.apache.reef.vortex.trace.HTrace;
 import org.apache.reef.wake.EventHandler;
 
@@ -123,49 +128,52 @@ public final class VortexWorker implements Task, TaskMessageSource {
 
 
               try (final TraceScope traceScope =
-                       Trace.startSpan("worker_deserialize " + request.length/1024.0 + "kb", traceInfo)) {
-                vortexRequest = (VortexRequest) SerializationUtils.deserialize(request);
+                       Trace.startSpan("worker_deserialize " + request.length / 1024 / 1024.0 + "mb", traceInfo)) {
+                final Kryo kryo = new Kryo();
+                kryo.register(LRInputCached.class);
+                kryo.register(LRInputHalfCached.class);
+                kryo.register(LRInput.class);
+                final Input input = new Input(request);
+                vortexRequest = kryo.readObject(input, VortexRequest.class);
+                input.close();
               }
 
 
-              switch (vortexRequest.getType()) {
-                case ExecuteTasklet:
-                  final TaskletExecutionRequest taskletExecutionRequest = (TaskletExecutionRequest) vortexRequest;
-                  try {
-                    // Command Executor: Execute the command
-                    final Serializable result;
-                    try (final TraceScope traceScope =
-                             Trace.startSpan(TASKLET_EXECUTE_SPAN, traceInfo)) {
-                      result = taskletExecutionRequest.execute();
-                    }
-
-                    // Command Executor: Tasklet successfully returns result
-                    final WorkerReport report =
-                        new TaskletResultReport<>(taskletExecutionRequest.getTaskletId(), result);
-                    final byte[] reportBytes;
-                    try (final TraceScope traceScope =
-                             Trace.startSpan(RESULT_SERIALIZE_SPAN, traceInfo)) {
-                      reportBytes = SerializationUtils.serialize(report);
-                    }
-                    workerReports.addLast(reportBytes);
-                  } catch (Exception e) {
-                    // Command Executor: Tasklet throws an exception
-                    final WorkerReport report =
-                        new TaskletFailureReport(taskletExecutionRequest.getTaskletId(), e);
-                    workerReports.addLast(SerializationUtils.serialize(report));
-                  }
-
-                  heartBeatTriggerManager.triggerHeartBeat();
-                  break;
-                case CacheSent:
-                  final CacheSentRequest cacheSentRequest = (CacheSentRequest) vortexRequest;
+              if (vortexRequest.getRequest() instanceof TaskletExecutionRequest) {
+                final TaskletExecutionRequest taskletExecutionRequest =
+                    (TaskletExecutionRequest) vortexRequest.getRequest();
+                try {
+                  // Command Executor: Execute the command
+                  final Serializable result;
                   try (final TraceScope traceScope =
-                             Trace.startSpan(RECEIVE_CACHE_SPAN, traceInfo)) {
-                    cache.notifyOnArrival(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
+                           Trace.startSpan(TASKLET_EXECUTE_SPAN, traceInfo)) {
+                    result = taskletExecutionRequest.execute();
                   }
-                  break;
-                default:
-                  throw new RuntimeException("Unknown Command");
+
+                  // Command Executor: Tasklet successfully returns result
+                  final WorkerReport report =
+                      new TaskletResultReport<>(taskletExecutionRequest.getTaskletId(), result);
+                  final byte[] reportBytes;
+                  try (final TraceScope traceScope =
+                           Trace.startSpan(RESULT_SERIALIZE_SPAN, traceInfo)) {
+                    reportBytes = SerializationUtils.serialize(report);
+                  }
+                  workerReports.addLast(reportBytes);
+                } catch (Exception e) {
+                  // Command Executor: Tasklet throws an exception
+                  final WorkerReport report =
+                      new TaskletFailureReport(taskletExecutionRequest.getTaskletId(), e);
+                  workerReports.addLast(SerializationUtils.serialize(report));
+                }
+                heartBeatTriggerManager.triggerHeartBeat();
+              } else if (vortexRequest.getRequest() instanceof CacheSentRequest) {
+                final CacheSentRequest cacheSentRequest = (CacheSentRequest) vortexRequest.getRequest();
+                try (final TraceScope traceScope =
+                         Trace.startSpan(RECEIVE_CACHE_SPAN, traceInfo)) {
+                  cache.notifyOnArrival(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
+                }
+              } else {
+                throw new RuntimeException("Unknown Command");
               }
             }
           });

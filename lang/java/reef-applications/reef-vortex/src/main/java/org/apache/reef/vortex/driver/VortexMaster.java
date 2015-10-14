@@ -41,7 +41,7 @@ public interface VortexMaster {
   /**
    * Submit a new Tasklet to be run sometime in the future.
    */
-  <TInput extends Serializable, TOutput extends Serializable> VortexFuture<TOutput>
+  <TInput, TOutput extends Serializable> VortexFuture<TOutput>
       enqueueTasklet(final VortexFunction<TInput, TOutput> vortexFunction, final TInput input);
 
   /**

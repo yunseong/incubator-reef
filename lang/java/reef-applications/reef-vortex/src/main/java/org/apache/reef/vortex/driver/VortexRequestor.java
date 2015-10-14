@@ -18,15 +18,19 @@
  */
 package org.apache.reef.vortex.driver;
 
-import org.apache.commons.lang.SerializationUtils;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceInfo;
 import org.apache.htrace.TraceScope;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.vortex.common.VortexRequest;
+import org.apache.reef.vortex.examples.lr.input.LRInputCached;
+import org.apache.reef.vortex.examples.lr.input.LRInputHalfCached;
 
 import javax.inject.Inject;
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -51,11 +55,21 @@ class VortexRequestor {
 
         try (final TraceScope traceScope = Trace.startSpan("master_serialize", traceInfo)) {
           //  Possible race condition with VortexWorkerManager#terminate is addressed by the global lock in VortexMaster
-          requestBytes = SerializationUtils.serialize(vortexRequest);
+          final Kryo kryo = new Kryo();
+          final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+          final Output output = new Output(byteArrayOutputStream);
+          kryo.register(LRInputCached.class);
+          kryo.register(LRInputHalfCached.class);
+          kryo.register(LRInputHalfCached.class);
+          kryo.writeObject(output, vortexRequest);
+          output.close();
+          requestBytes = byteArrayOutputStream.toByteArray();
+
+          // requestBytes = SerializationUtils.serialize(vortexRequest);
         }
 
         try (final TraceScope traceScope =
-                 Trace.startSpan("master_append_" + (requestBytes.length / 1024.0) + "kb", traceInfo)) {
+                 Trace.startSpan("master_append_" + (requestBytes.length / 1024 / 1024.0) + "mb", traceInfo)) {
           sendingBytes = ByteBuffer.allocate(2 * (Long.SIZE / Byte.SIZE) + requestBytes.length)
               .putLong(traceInfo.traceId)
               .putLong(traceInfo.spanId)
@@ -63,10 +77,7 @@ class VortexRequestor {
               .array();
         }
 
-        try (final TraceScope traceScope =
-                 Trace.startSpan("master_send_msg", traceInfo)) {
-          reefTask.send(sendingBytes);
-        }
+        reefTask.send(sendingBytes);
       }
     });
   }

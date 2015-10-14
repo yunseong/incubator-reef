@@ -32,11 +32,10 @@ final class GradientFunction implements VortexFunction<LRInput, PartialResult> {
    * Outputs the gradient.
    */
   @Override
-  public PartialResult call(final LRInput lrInput) throws Exception {
 
+  public PartialResult call(final LRInput lrInput) throws Exception {
     final SparseVector parameterVector = lrInput.getParameterVector();
     final TrainingData trainingData = lrInput.getTrainingData();
-
     final SparseVector gradientResult = new SparseVector(trainingData.getDimension());
 
     // For estimating the accuracy.

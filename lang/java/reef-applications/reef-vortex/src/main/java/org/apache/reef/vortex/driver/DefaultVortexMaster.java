@@ -67,7 +67,7 @@ final class DefaultVortexMaster implements VortexMaster {
    * Add a new tasklet to pendingTasklets.
    */
   @Override
-  public <TInput extends Serializable, TOutput extends Serializable> VortexFuture<TOutput>
+  public <TInput, TOutput extends Serializable> VortexFuture<TOutput>
       enqueueTasklet(final VortexFunction<TInput, TOutput> function, final TInput input) {
     // TODO[REEF-500]: Simple duplicate Vortex Tasklet launch.
     final VortexFuture<TOutput> vortexFuture = new VortexFuture<>();

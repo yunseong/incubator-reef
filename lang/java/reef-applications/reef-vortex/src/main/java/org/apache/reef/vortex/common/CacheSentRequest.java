@@ -25,9 +25,12 @@ import java.io.Serializable;
  * @param <T> Type of the data.
  */
 // TODO Fix the naming: note that this is not a request actually.
-public final class CacheSentRequest<T extends Serializable> implements VortexRequest {
-  private final CacheKey<T> cacheKey;
-  private final T data;
+public final class CacheSentRequest<T extends Serializable> {
+  private CacheKey<T> cacheKey;
+  private T data;
+
+  public CacheSentRequest() {
+  }
 
   /**
    * @param key Key of the data.
@@ -36,11 +39,6 @@ public final class CacheSentRequest<T extends Serializable> implements VortexReq
   public CacheSentRequest(final CacheKey<T> key, final T data) {
     this.cacheKey = key;
     this.data = data;
-  }
-
-  @Override
-  public RequestType getType() {
-    return RequestType.CacheSent;
   }
 
   /**

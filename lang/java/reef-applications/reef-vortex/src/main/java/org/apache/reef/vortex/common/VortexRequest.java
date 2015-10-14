@@ -20,23 +20,22 @@ package org.apache.reef.vortex.common;
 
 import org.apache.reef.annotations.Unstable;
 
-import java.io.Serializable;
-
 /**
  * Master -> Worker protocol.
  */
 @Unstable
-public interface VortexRequest extends Serializable {
-  /**
-   * Type of Request.
-   */
-  enum RequestType {
-    ExecuteTasklet,
-    CacheSent
+
+public class VortexRequest<TRequest> {
+  private TRequest request;
+
+  public VortexRequest() {
   }
 
-  /**
-   * @return the type of this VortexRequest.
-   */
-  RequestType getType();
+  public VortexRequest(final TRequest request) {
+    this.request = request;
+  }
+
+  public TRequest getRequest() {
+    return this.request;
+  }
 }

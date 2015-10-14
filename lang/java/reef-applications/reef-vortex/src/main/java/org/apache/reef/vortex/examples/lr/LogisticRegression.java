@@ -26,6 +26,7 @@ import org.apache.reef.tang.annotations.NamedParameter;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.tang.formats.CommandLine;
 import org.apache.reef.vortex.driver.VortexLauncher;
+import org.apache.reef.vortex.failure.FailureParameters;
 import org.apache.reef.vortex.trace.HTraceParameters;
 
 import java.io.IOException;
@@ -51,6 +52,7 @@ public final class LogisticRegression {
     try {
       final CommandLine cl = new CommandLine(cb);
       HTraceParameters.registerShortNames(cl);
+      FailureParameters.registerShortNames(cl);
       cl.registerShortNameOfClass(Local.class)
           .registerShortNameOfClass(NumWorkers.class)
           .registerShortNameOfClass(WorkerCores.class)
@@ -62,8 +64,6 @@ public final class LogisticRegression {
           .registerShortNameOfClass(Dir.class)
           .registerShortNameOfClass(ModelDim.class)
           .registerShortNameOfClass(Cache.class)
-          .registerShortNameOfClass(CrashProb.class)
-          .registerShortNameOfClass(CrashTimeout.class)
           .processCommandLine(args);
 
       final Injector injector = tang.newInjector(cb.build());
@@ -119,10 +119,6 @@ public final class LogisticRegression {
   public static final class WorkerCapacity implements Name<Integer> {
   }
 
-  @NamedParameter(short_name = "zipkin_collector")
-  public static final class ZipkinCollector implements Name<String> {
-  }
-
   @NamedParameter(short_name = "divide_factor", default_value = "8")
   public static final class DivideFactor implements Name<Integer> {
   }
@@ -135,7 +131,7 @@ public final class LogisticRegression {
   public static final class NumFile implements Name<Integer> {
   }
 
-  @NamedParameter(short_name = "file_path", default_value = "/home/azureuser/data/lr-input.txt")
+  @NamedParameter(short_name = "dir")
   public static final class Dir implements Name<String> {
   }
 
@@ -146,13 +142,4 @@ public final class LogisticRegression {
   @NamedParameter(short_name = "cache", default_value = "half")
   public static final class Cache implements Name<String> {
   }
-
-  @NamedParameter(short_name = "crash_prob")
-  public static final class CrashProb implements Name<Double> {
-  }
-
-  @NamedParameter(short_name = "crash_timeout")
-  public static final class CrashTimeout implements Name<Integer> {
-  }
-
 }

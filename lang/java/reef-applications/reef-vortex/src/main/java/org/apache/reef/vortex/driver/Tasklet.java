@@ -51,7 +51,8 @@ class Tasklet<TInput extends Serializable, TOutput extends Serializable> impleme
     this.userTask = userTask;
     this.input = input;
     this.vortexFuture = vortexFuture;
-    this.taskletSpan = Trace.startSpan(TASKLET_SPAN + "_" + taskletId, jobTraceInfo).detach();
+    this.taskletSpan = Trace.startSpan(TASKLET_SPAN + "_" + taskletId + "_"+ System.currentTimeMillis(),
+        jobTraceInfo).detach();
   }
 
   /**
@@ -79,7 +80,8 @@ class Tasklet<TInput extends Serializable, TOutput extends Serializable> impleme
    * Called by VortexMaster to let the user know that the task completed.
    */
   void completed(final TOutput result) {
-    try (final TraceScope traceScope = Trace.startSpan("master_tasklet_completed", TraceInfo.fromSpan(taskletSpan))) {
+    try (final TraceScope traceScope = Trace.startSpan("master_tasklet_completed_" + taskletId +
+            "_" + System.currentTimeMillis(), TraceInfo.fromSpan(taskletSpan))) {
       vortexFuture.completed(result);
     }
     Trace.continueSpan(taskletSpan).close();

@@ -25,6 +25,8 @@ import org.apache.reef.vortex.api.VortexThreadPool;
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.examples.lr.input.*;
+import org.apache.reef.vortex.failure.parameters.Interval;
+import org.apache.reef.vortex.failure.parameters.Probability;
 
 import javax.inject.Inject;
 import java.io.BufferedReader;
@@ -53,8 +55,8 @@ final class LRUrlReputationStart implements VortexStart {
 
   private final int modelDim;
   private final String cached;
-  private final double crashProb;
-  private final int crashTimeout;
+  private final double probability;
+  private final int interval;
 
   @Inject
   private LRUrlReputationStart(@Parameter(LogisticRegression.DivideFactor.class) final int divideFactor,
@@ -62,17 +64,17 @@ final class LRUrlReputationStart implements VortexStart {
                                @Parameter(LogisticRegression.NumFile.class) final int numFile,
                                @Parameter(LogisticRegression.Dir.class) final String dir,
                                @Parameter(LogisticRegression.ModelDim.class) final int modelDim,
-                               @Parameter(LogisticRegression.CrashProb.class) final double crashProb,
-                               @Parameter(LogisticRegression.CrashTimeout.class) final int crashTimeout,
-                               @Parameter(LogisticRegression.Cache.class) final String cached) {
+                               @Parameter(LogisticRegression.Cache.class) final String cached,
+                               @Parameter(Probability.class) final double probability,
+                               @Parameter(Interval.class) final int interval) {
     this.divideFactor = divideFactor;
     this.numIter = numIter;
     this.numFile = numFile;
     this.dir = dir;
     this.modelDim = modelDim;
-    this.crashProb = crashProb;
-    this.crashTimeout = crashTimeout;
     this.cached = cached;
+    this.probability = probability;
+    this.interval = interval;
   }
 
   /**
@@ -81,8 +83,8 @@ final class LRUrlReputationStart implements VortexStart {
   @Override
   public void start(final VortexThreadPool vortexThreadPool) {
     LOG.log(Level.INFO,
-        "#V# DIVIDE_FACTOR {0} / NUM_ITER {1} / NUM_FILE {2} / CRASH_PROB {3} / CRASH_TIMEOUT {4} / CACHE {5}",
-        new Object[]{divideFactor, numIter, numFile, crashProb, crashTimeout, cached});
+        "#V#DIVIDE_FACTOR\t{0}\tCRASH_PROB\t{1}\tCRASH_INTERVAL\t{2}\tNUM_ITER\t{3}\tNUM_FILE\t{4}\tCACHE\t{5}",
+        new Object[]{divideFactor, probability, interval, numIter, numFile, cached});
 
     SparseVector parameterVector = new SparseVector(modelDim);
 

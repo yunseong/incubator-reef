@@ -28,7 +28,6 @@ import org.apache.reef.driver.task.FailedTask;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.driver.task.TaskConfiguration;
 import org.apache.reef.driver.task.TaskMessage;
-import org.apache.reef.poison.PoisonedConfiguration;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Configurations;
 import org.apache.reef.tang.Tang;
@@ -41,7 +40,9 @@ import org.apache.reef.vortex.common.TaskletResultReport;
 import org.apache.reef.vortex.common.WorkerReport;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexWorker;
-import org.apache.reef.vortex.examples.lr.LogisticRegression;
+import org.apache.reef.vortex.failure.VortexPoisonedContextStartHandler;
+import org.apache.reef.vortex.failure.parameters.Interval;
+import org.apache.reef.vortex.failure.parameters.Probability;
 import org.apache.reef.vortex.trace.parameters.ReceiverHost;
 import org.apache.reef.vortex.trace.parameters.ReceiverPort;
 import org.apache.reef.vortex.trace.parameters.ReceiverType;
@@ -63,7 +64,7 @@ import java.util.logging.Logger;
 @DriverSide
 final class VortexDriver {
   private static final Logger LOG = Logger.getLogger(VortexDriver.class.getName());
-  private static final int MAX_NUM_OF_FAILURES = 200;
+  private static final int MAX_NUM_OF_FAILURES = 10000;
   private static final int SCHEDULER_EVENT = 0; // Dummy number to comply with onNext() interface
 
   private final AtomicInteger numberOfFailures = new AtomicInteger(0);
@@ -86,8 +87,8 @@ final class VortexDriver {
   private final EStage<Integer> pendingTaskletSchedulerEStage;
 
   private final AtomicInteger barrier;
-  private final double crashProb;
-  private final int crashTimeout;
+  private final double failureProbability;
+  private final int failureInterval;
 
   @Inject
   private VortexDriver(final EvaluatorRequestor evaluatorRequestor,
@@ -104,8 +105,8 @@ final class VortexDriver {
                        @Parameter(ReceiverType.class) final String receiverType,
                        @Parameter(ReceiverHost.class) final String receiverHost,
                        @Parameter(ReceiverPort.class) final int receiverPort,
-                       @Parameter(LogisticRegression.CrashProb.class) final double crashProb,
-                       @Parameter(LogisticRegression.CrashTimeout.class) final int crashTimeout) {
+                       @Parameter(Probability.class) final double failureProbability,
+                       @Parameter(Interval.class) final int failureInterval) {
     this.vortexStartEStage = new ThreadPoolStage<>(vortexStartExecutor, numOfStartThreads);
     this.vortexStart = vortexStart;
     this.pendingTaskletSchedulerEStage = new SingleThreadStage<>(pendingTaskletLauncher, 1);
@@ -120,8 +121,8 @@ final class VortexDriver {
     this.receiverType = receiverType;
     this.receiverHost = receiverHost;
     this.receiverPort = receiverPort;
-    this.crashProb = crashProb;
-    this.crashTimeout = crashTimeout;
+    this.failureProbability = failureProbability;
+    this.failureInterval = failureInterval;
   }
 
   /**
@@ -156,15 +157,15 @@ final class VortexDriver {
           .build();
 
       final Configuration contextConfiguration =
-          Tang.Factory.getTang().newConfigurationBuilder(
+          Configurations.merge(
+              Tang.Factory.getTang().newConfigurationBuilder()
+                  .bindNamedParameter(Probability.class, Double.toString(failureProbability))
+                  .bindNamedParameter(Interval.class, Integer.toString(failureInterval))
+                  .build(),
               ContextConfiguration.CONF
                   .set(ContextConfiguration.IDENTIFIER, "vortex_worker")
-                  .build(),
-              PoisonedConfiguration.CONTEXT_CONF
-                  .set(PoisonedConfiguration.CRASH_PROBABILITY, crashProb)
-                  .set(PoisonedConfiguration.CRASH_TIMEOUT, crashTimeout)
-                  .build())
-              .build();
+                  .set(ContextConfiguration.ON_CONTEXT_STARTED, VortexPoisonedContextStartHandler.class)
+                  .build());
 
       final Configuration taskConfiguration = TaskConfiguration.CONF
           .set(TaskConfiguration.IDENTIFIER, workerId)

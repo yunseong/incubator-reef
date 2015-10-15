@@ -56,7 +56,6 @@ final class CachedGradientFunction implements VortexFunction<LRInputCached, Part
       final double multiplier =  hypothesis - y;
       gradientResult.addVector(instance.getFeature().nTimes(multiplier));
     }
-    Thread.sleep(trainingData.get().size() * 8);
     return new PartialResult(gradientResult, numPositive, numNegative);
   }
 

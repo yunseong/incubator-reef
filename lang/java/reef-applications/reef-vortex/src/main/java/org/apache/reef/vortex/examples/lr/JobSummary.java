@@ -32,9 +32,7 @@ public class JobSummary {
 
   @Override
   public String toString() {
-    return "&&JobSummary{" +
-        "duration=" + duration +
-        ", parseOverhead=" + parseOverhead +
-        '}';
+    return "DURATION\t" + duration +
+        "\tPARSE_OVERHEAD\t" + parseOverhead;
   }
 }

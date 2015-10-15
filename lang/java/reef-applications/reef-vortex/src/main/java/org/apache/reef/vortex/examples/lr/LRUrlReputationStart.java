@@ -83,8 +83,8 @@ final class LRUrlReputationStart implements VortexStart {
   @Override
   public void start(final VortexThreadPool vortexThreadPool) {
     LOG.log(Level.INFO,
-        "#V#DIVIDE_FACTOR\t{0}\tCRASH_PROB\t{1}\tCRASH_INTERVAL\t{2}\tNUM_ITER\t{3}\tNUM_FILE\t{4}\tCACHE\t{5}",
-        new Object[]{divideFactor, probability, interval, numIter, numFile, cached});
+        "#V#start\tDIVIDE_FACTOR\t{0}\tCRASH_PROB\t{1}\tCACHE\t{2}\tCRASH_INTERVAL\t{3}\tNUM_ITER\t{4}\tNUM_FILE\t{5}",
+        new Object[]{divideFactor, probability, cached, interval, numIter, numFile});
 
     SparseVector parameterVector = new SparseVector(modelDim);
 
@@ -147,11 +147,11 @@ final class LRUrlReputationStart implements VortexStart {
 
       final long duration = System.currentTimeMillis() - start;
       final JobSummary summary = new JobSummary(duration, parseOverhead);
-      LOG.log(Level.INFO, "#V# Job finished. {0}", summary);
+      LOG.log(Level.INFO, "#V#finish\t{0}", summary);
     } catch (final Exception e) {
       final long duration = System.currentTimeMillis() - start;
       final JobSummary summary = new JobSummary(duration, -1);
-      LOG.log(Level.SEVERE, "#V# Job failed. " + summary, e);
+      LOG.log(Level.SEVERE, "#V#failed\t" + summary, e);
     }
   }
 

@@ -63,6 +63,10 @@ class VortexWorkerManager {
     vortexRequestor.send(reefTask, new VortexRequest(cacheSentRequest), traceInfo);
   }
 
+  <T extends Serializable> void sendCacheData(final byte[] serializedData, final TraceInfo traceInfo) {
+    vortexRequestor.send(reefTask, serializedData, traceInfo);
+  }
+
   <TOutput extends Serializable> Tasklet taskletCompleted(final Integer taskletId, final TOutput result) {
     final Tasklet<?, TOutput> tasklet = runningTasklets.remove(taskletId);
     assert(tasklet != null); // Tasklet should complete/error only once

@@ -37,9 +37,6 @@ import org.apache.reef.task.events.DriverMessage;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.common.*;
 import org.apache.reef.vortex.driver.VortexWorkerConf;
-import org.apache.reef.vortex.examples.lr.input.LRInput;
-import org.apache.reef.vortex.examples.lr.input.LRInputCached;
-import org.apache.reef.vortex.examples.lr.input.LRInputHalfCached;
 import org.apache.reef.vortex.trace.HTrace;
 import org.apache.reef.wake.EventHandler;
 
@@ -130,9 +127,8 @@ public final class VortexWorker implements Task, TaskMessageSource {
               try (final TraceScope traceScope =
                        Trace.startSpan("worker_deserialize " + request.length / 1024 / 1024.0 + "mb", traceInfo)) {
                 final Kryo kryo = new Kryo();
-                kryo.register(LRInputCached.class);
-                kryo.register(LRInputHalfCached.class);
-                kryo.register(LRInput.class);
+                kryo.register(TaskletExecutionRequest.class);
+                kryo.register(CacheSentRequest.class);
                 final Input input = new Input(request);
                 vortexRequest = kryo.readObject(input, VortexRequest.class);
                 input.close();

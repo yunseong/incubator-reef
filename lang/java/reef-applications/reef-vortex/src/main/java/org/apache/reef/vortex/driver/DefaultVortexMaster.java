@@ -18,6 +18,8 @@
  */
 package org.apache.reef.vortex.driver;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
 import net.jcip.annotations.ThreadSafe;
 import org.apache.htrace.*;
 import org.apache.reef.annotations.audience.DriverSide;
@@ -25,11 +27,16 @@ import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.CacheSentRequest;
+import org.apache.reef.vortex.common.VortexRequest;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
+import org.apache.reef.vortex.examples.lr.input.LRInputCached;
+import org.apache.reef.vortex.examples.lr.input.LRInputHalfCached;
 import org.apache.reef.vortex.trace.HTrace;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
+import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,7 +55,7 @@ final class DefaultVortexMaster implements VortexMaster {
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
   // TODO This should be replaced by Guava
-  private final Map<String, Serializable> cacheMap = new HashMap<>();
+  private final Map<String, byte[]> cacheMap = new HashMap<>();
 
   /**
    * @param runningWorkers for managing all running workers.
@@ -128,8 +135,21 @@ final class DefaultVortexMaster implements VortexMaster {
         throw new VortexCacheException("The keyName " + keyName + "is already used.");
       }
 
+      final Kryo kryo = new Kryo();
+      kryo.register(LRInputCached.class);
+      kryo.register(LRInputHalfCached.class);
+
+      final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      final Output output = new Output(byteArrayOutputStream);
+
       final CacheKey key = new CacheKey(keyName);
-      cacheMap.put(keyName, data);
+      final CacheSentRequest cacheSentRequest = new CacheSentRequest(key, data);
+
+      kryo.writeObject(output, new VortexRequest(cacheSentRequest));
+      output.close();
+      final byte[] requestBytes = byteArrayOutputStream.toByteArray();
+
+      cacheMap.put(keyName, requestBytes);
       return key;
     }
   }
@@ -142,8 +162,8 @@ final class DefaultVortexMaster implements VortexMaster {
       if (!cacheMap.containsKey(keyName)) {
         throw new VortexCacheException("The entity does not exist for the key : " + cacheKey);
       }
-      final Serializable data = cacheMap.get(keyName);
-      runningWorkers.sendCacheData(workerId, cacheKey, data, TraceInfo.fromSpan(parentSpan));
+      final byte[] serializedData = cacheMap.get(keyName);
+      runningWorkers.sendCacheData(workerId, serializedData, TraceInfo.fromSpan(parentSpan));
     }
   }
 

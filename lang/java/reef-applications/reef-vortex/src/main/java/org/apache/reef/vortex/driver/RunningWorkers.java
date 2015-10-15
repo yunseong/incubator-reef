@@ -229,6 +229,20 @@ final class RunningWorkers {
     }
   }
 
+  /**
+   * Send the serialized request to Worker.
+   */
+  <T extends Serializable> void sendCacheData(final String workerId,
+                                              final byte[] serializedRequest,
+                                              final TraceInfo traceInfo) {
+    if (isWorkerRunning(workerId)) {
+      this.runningWorkers.get(workerId).sendCacheData(serializedRequest, traceInfo);
+      // TODO: schedulingPolicy#cached for bookkeeping cache location
+    } else {
+      throw new RuntimeException("Worker is not running");
+    }
+  }
+
   boolean isTerminated() {
     return terminated;
   }

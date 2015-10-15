@@ -27,7 +27,7 @@ public final class DataParser {
 
   static TrainingData parseTrainingData(final String str, final int modelDim) throws ParseException {
     final TrainingData result = new TrainingData();
-    final String[] split = str.split("#V#");
+    final String[] split = str.split("#");
     for (final String parsed : split) {
       if (null != parsed && parsed.length() != 0) {
         result.addRow(parseLine(parsed, modelDim));

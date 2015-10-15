@@ -52,9 +52,14 @@ final class CachedGradientFunction implements VortexFunction<LRInputCached, Part
       }
 
       // Update the gradient vector.
-      final double hypothesis = getHypothesis(predict);
-      final double multiplier =  hypothesis - y;
-      gradientResult.addVector(instance.getFeature().nTimes(multiplier));
+      final double exponent = -predict * y;
+      final double maxExponent = Math.max(exponent, 0);
+      final double lambda = 1.0; // regularization
+      final double logSumExp = maxExponent + Math.log(Math.exp(-maxExponent) + Math.exp(exponent - maxExponent));
+      final SparseVector gradient = instance.getFeature().nTimes(y * (Math.exp(-logSumExp) - 1) + lambda);
+
+      final double stepSize = 1e-2;
+      gradientResult.addVector(gradient.nTimes(-stepSize));
     }
     return new PartialResult(gradientResult, numPositive, numNegative);
   }

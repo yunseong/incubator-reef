@@ -40,6 +40,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Default implementation of VortexMaster.
@@ -104,6 +106,7 @@ final class DefaultVortexMaster implements VortexMaster {
     final Optional<Collection<Tasklet>> preemptedTasklets = runningWorkers.removeWorker(id);
     if (preemptedTasklets.isPresent()) {
       for (final Tasklet tasklet : preemptedTasklets.get()) {
+        Logger.getLogger(DefaultVortexMaster.class.getName()).log(Level.INFO, "restore {0}", tasklet.getId());
         pendingTasklets.addFirst(tasklet);
       }
     }

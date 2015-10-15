@@ -137,11 +137,8 @@ final class LRUrlReputationStart implements VortexStart {
           LOG.log(Level.WARNING, "The partial result has not been not reduced correctly in iteration {0}", iter);
         } else {
           final double accuracy = ((double) reducedResult.getNumPositive()) / reducedResult.getCount();
-          parameterVector = reducedResult.getPartialGradient().nTimes(0.0 - 1.0 / reducedResult.getCount());
-//            final int numRecord = partitions.size();
-//            final double learningRate = 1.0 / numRecord;
-//            parameterVector.addVector(sumOfPartialGradients.nTimes(0.0 - learningRate));
-//          LOG.log(Level.INFO, "#V# Iteration {0} / Accuracy: {1}", new Object[]{iter, accuracy});
+          parameterVector = reducedResult.getPartialGradient().nTimes(1.0 / reducedResult.getCount());
+          LOG.log(Level.INFO, "@V@iter\t{0}\taccuracy\t{1}", new Object[]{iter, accuracy});
         }
       }
 
@@ -191,7 +188,7 @@ final class LRUrlReputationStart implements VortexStart {
         while ((line = reader.readLine()) != null){
           final int index = (int) (recordCount % divideFactor);
           strPartitions.get(index).append(line);
-          strPartitions.get(index).append("#V#");
+          strPartitions.get(index).append("#");
           recordCount++;
         }
       }

@@ -64,7 +64,7 @@ import java.util.logging.Logger;
 @DriverSide
 final class VortexDriver {
   private static final Logger LOG = Logger.getLogger(VortexDriver.class.getName());
-  private static final int MAX_NUM_OF_FAILURES = 10000;
+  private static final int MAX_NUM_OF_FAILURES = 1600;
   private static final int SCHEDULER_EVENT = 0; // Dummy number to comply with onNext() interface
 
   private final AtomicInteger numberOfFailures = new AtomicInteger(0);

@@ -50,7 +50,8 @@ final class LRUrlReputationStart implements VortexStart {
   private static final String CACHE_FULL = "full";
   private static final String CACHE_HALF = "half";
   private static final String CACHE_NO = "no";
-  private static final int THREAD_POOL_SIZE = 8;
+  private static final int NUM_PARSING_THREADS = 8;
+  private static final int NUM_CACHING_THREADS = 8;
   private static final int BATCH_ADD_SIZE = 2000;
 
 
@@ -113,7 +114,7 @@ final class LRUrlReputationStart implements VortexStart {
 
         // Launch tasklets, each operating on a partition
         final ArrayList<VortexFuture<PartialResult>> futures = new ArrayList<>();
-        for (int pIndex = 0; pIndex < divideFactor; pIndex++) {
+        for (int pIndex = 0; pIndex < partitions.size(); pIndex++) {
           if (CACHE_FULL.equals(cached)) {
             futures.add(vortexThreadPool.submit(
                 new CachedGradientFunction(),
@@ -169,11 +170,10 @@ final class LRUrlReputationStart implements VortexStart {
       throws VortexCacheException, InterruptedException {
     final long startTime = System.currentTimeMillis();
 
-    final ArrayList<CacheKey<ArrayList<ArrayBasedVector>>> keys = new ArrayList<>(divideFactor);
+    final ArrayList<CacheKey<ArrayList<ArrayBasedVector>>> keys = new ArrayList<>(partitions.size());
 
-    final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+    final ExecutorService executorService = Executors.newFixedThreadPool(NUM_CACHING_THREADS);
     final CountDownLatch latch = new CountDownLatch(partitions.size());
-
     for (int i = 0; i < partitions.size(); i++) {
       final int index = i;
       executorService.submit(new Runnable() {
@@ -212,7 +212,7 @@ final class LRUrlReputationStart implements VortexStart {
 
     final AtomicLong bucketCount = new AtomicLong(0);
 
-    final ExecutorService executorService = Executors.newFixedThreadPool(2);
+    final ExecutorService executorService = Executors.newFixedThreadPool(NUM_PARSING_THREADS);
     final CountDownLatch latch = new CountDownLatch(numFile);
     for (int fileIndex = 0; fileIndex < numFile; fileIndex++) {
       final int index = fileIndex;
@@ -223,20 +223,18 @@ final class LRUrlReputationStart implements VortexStart {
           final ArrayList<ArrayBasedVector> vectors;
           try {
             vectors = parseFile(path);
-            int numPut = 0;
-            for (int vectorIndex = 0; vectorIndex < vectors.size(); vectorIndex += BATCH_ADD_SIZE) {
-              final int bucketIndex = (int) (bucketCount.getAndIncrement() % divideFactor);
-              synchronized (this) {
+            synchronized (this) {
+              for (int vectorIndex = 0; vectorIndex < vectors.size(); vectorIndex += BATCH_ADD_SIZE) {
+                final int bucketIndex = (int) (bucketCount.getAndIncrement() % divideFactor);
+                LOG.log(Level.INFO, "Adding {0}", bucketIndex);
                 for (int j = 0; j < BATCH_ADD_SIZE; j++) {
                   if (vectors.size() <= vectorIndex + j) {
                     break;
                   }
                   partitions.get(bucketIndex).add(vectors.get(vectorIndex + j));
-                  numPut++;
                 }
               }
             }
-            LOG.log(Level.INFO, "Put {0} vectors out of {1}", new Object[]{numPut, vectors.size()});
           } catch (final IOException e) {
             LOG.warning("Exception occurred while parsing " + path);
           }

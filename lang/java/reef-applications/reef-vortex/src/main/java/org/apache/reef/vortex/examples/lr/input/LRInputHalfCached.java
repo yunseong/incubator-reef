@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Input used in Logistic Regression which caches the training data only.
  */
 public class LRInputHalfCached implements Serializable, VortexCacheable {
-  private CacheKey<StringBuilder> trainingDataKey;
+  private CacheKey<ArrayList<ArrayBasedVector>> trainingDataKey;
   private SparseVector parameterVector;
   private int modelDim;
   private AtomicReference<TrainingData> parsed = new AtomicReference<>();
@@ -41,7 +41,7 @@ public class LRInputHalfCached implements Serializable, VortexCacheable {
   }
 
   public LRInputHalfCached(final SparseVector parameterVector,
-                           final CacheKey<StringBuilder> trainingDataKey,
+                           final CacheKey<ArrayList<ArrayBasedVector>> trainingDataKey,
                            final int modelDim) {
     this.parameterVector = parameterVector;
     this.trainingDataKey = trainingDataKey;
@@ -53,7 +53,7 @@ public class LRInputHalfCached implements Serializable, VortexCacheable {
   }
 
   public TrainingData getTrainingData() throws VortexCacheException, ParseException {
-    parsed.compareAndSet(null, DataParser.parseTrainingData(VortexCache.getData(trainingDataKey).toString(), modelDim));
+    parsed.compareAndSet(null, DataParser.parseTrainingData(VortexCache.getData(trainingDataKey), modelDim));
     return parsed.get();
   }
 

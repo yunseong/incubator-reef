@@ -92,10 +92,10 @@ final class LRUrlReputationStart implements VortexStart {
     final long start = System.currentTimeMillis();
 
     try {
-      final ArrayList<StringBuilder> partitions = parse();
+      final ArrayList<ArrayList<ArrayBasedVector>> partitions = parse();
       final long parseOverhead = System.currentTimeMillis() - start;
 
-      final ArrayList<CacheKey<StringBuilder>> partitionKeys =
+      final ArrayList<CacheKey<ArrayList<ArrayBasedVector>>> partitionKeys =
           cachePartitions(vortexThreadPool, partitions);
 
       // For each iteration...
@@ -137,7 +137,7 @@ final class LRUrlReputationStart implements VortexStart {
           LOG.log(Level.WARNING, "The partial result has not been not reduced correctly in iteration {0}", iter);
         } else {
           final double accuracy = ((double) reducedResult.getNumPositive()) / reducedResult.getCount();
-          parameterVector = reducedResult.getPartialGradient().nTimes(1.0 / reducedResult.getCount());
+          parameterVector = reducedResult.getPartialGradient().nTimes(1.0f / reducedResult.getCount());
           LOG.log(Level.INFO, "@V@iter\t{0}\taccuracy\t{1}", new Object[]{iter, accuracy});
         }
       }
@@ -156,13 +156,13 @@ final class LRUrlReputationStart implements VortexStart {
    * Cache the partitions into Vortex Cache.
    * @return The cached keys
    */
-  private ArrayList<CacheKey<StringBuilder>> cachePartitions(final VortexThreadPool vortexThreadPool,
-                                                            final ArrayList<StringBuilder> partitions)
-      throws VortexCacheException {
+  private ArrayList<CacheKey<ArrayList<ArrayBasedVector>>>
+      cachePartitions(final VortexThreadPool vortexThreadPool,
+                      final ArrayList<ArrayList<ArrayBasedVector>> partitions) throws VortexCacheException {
 
-    final ArrayList<CacheKey<StringBuilder>> keys = new ArrayList<>(divideFactor);
+    final ArrayList<CacheKey<ArrayList<ArrayBasedVector>>> keys = new ArrayList<>(divideFactor);
     for (int i = 0; i < partitions.size(); i++) {
-      keys.add(vortexThreadPool.cache(i + "", partitions.get(i)));
+      keys.add(vortexThreadPool.cache(String.valueOf(i), partitions.get(i)));
     }
     return keys;
   }
@@ -172,10 +172,10 @@ final class LRUrlReputationStart implements VortexStart {
    * @return the partitions that consist of the records.
    * @throws IOException If it fails while parsing the input.
    */
-  private ArrayList<StringBuilder> parse() throws IOException {
-    final ArrayList<StringBuilder> strPartitions = new ArrayList<>(divideFactor);
+  private ArrayList<ArrayList<ArrayBasedVector>> parse() throws IOException {
+    final ArrayList<ArrayList<ArrayBasedVector>> partitions = new ArrayList<>(divideFactor);
     for (int i = 0; i < divideFactor; i++) {
-      strPartitions.add(new StringBuilder(128));
+      partitions.add(new ArrayList<ArrayBasedVector>());
     }
 
     long recordCount = 0;
@@ -185,18 +185,41 @@ final class LRUrlReputationStart implements VortexStart {
 
       try (final BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path)))) {
         String line;
-        while ((line = reader.readLine()) != null){
+        while ((line = reader.readLine()) != null) {
           final int index = (int) (recordCount % divideFactor);
-          strPartitions.get(index).append(line);
-          strPartitions.get(index).append("#");
+          final ArrayBasedVector vector = parseLine(line, modelDim);
+          partitions.get(index).add(vector);
           recordCount++;
         }
       }
     }
+    return partitions;
+  }
 
-    for (final StringBuilder strPartition : strPartitions) {
-      strPartition.trimToSize();
+  /**
+   * Parse a line and create a training data.
+   */
+  private static ArrayBasedVector parseLine(final String line, final int modelDim) throws ParseException {
+    final String[] split = line.split(" ");
+
+    try {
+      final int output = Integer.valueOf(split[0]);
+      final int[] indices = new int[split.length - 1];
+      final float[] values = new float[split.length - 1];
+
+      for (int i = 1; i < split.length; i++) {
+        final String[] column = split[i].split(":");
+
+        final int index = Integer.valueOf(column[0]);
+        final float value = Float.valueOf(column[1]);
+
+        indices[i-1] = index;
+        values[i-1] = value;
+      }
+      return new ArrayBasedVector(values, indices, output);
+
+    } catch (final NumberFormatException e) {
+      throw new ParseException(e.getMessage());
     }
-    return strPartitions;
   }
 }

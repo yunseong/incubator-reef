@@ -28,7 +28,7 @@ import java.util.Map;
 public final class SparseVector implements Serializable {
 
   // Use Tree map for the sorted order.
-  private HashMap<Integer, Double> map;
+  private HashMap<Integer, Float> map;
   private int dimension;
 
   public SparseVector() {
@@ -38,16 +38,23 @@ public final class SparseVector implements Serializable {
    * Constructor of the Sparse Vector.
    **/
   public SparseVector(final int dimension) {
-    this.map = new HashMap<>();
+    this(new HashMap<Integer, Float>(), dimension);
+  }
+
+  /**
+   * Constructor of the Sparse Vector.
+   **/
+  public SparseVector(final HashMap<Integer, Float> map, final int dimension) {
+    this.map = map;
     this.dimension = dimension;
   }
 
   /**
    * Insert a value to the index.
    **/
-  public void putValue(final int index, final double value) {
+  public void putValue(final int index, final float value) {
     if (index < 0 || index >= dimension) {
-      throw new RuntimeException("Index out of bounds");
+      throw new RuntimeException("Index out of bounds:" + index + "/" + dimension);
     }
 
     // If the value is 0.0, then delete the value if exists.
@@ -62,15 +69,15 @@ public final class SparseVector implements Serializable {
    * @param index Index of the element.
    * @return Get the value at the index.
    */
-  public double getValue(final int index) {
+  public float getValue(final int index) {
     if (index < 0 || index >= dimension) {
-      throw new RuntimeException("Index out of bounds");
+      throw new RuntimeException("Index out of bounds:" + index + "/" + dimension);
     }
 
     if (map.containsKey(index)) {
       return map.get(index);
     } else {
-      return 0.0;
+      return 0.0f;
     }
   }
 
@@ -87,17 +94,17 @@ public final class SparseVector implements Serializable {
    * @param vector The other vector.
    * @return The value of inner product.
    */
-  public double dot(final SparseVector vector) {
+  public float dot(final SparseVector vector) {
     if (dimension != vector.dimension) {
       throw new RuntimeException("Error : Vector lengths are not equal");
     }
 
-    double sum = 0.0;
+    float sum = 0.0f;
 
     final SparseVector smallVector = map.size() < vector.map.size() ? this : vector;
     final SparseVector largeVector = map.size() >= vector.map.size() ? this : vector;
 
-    for (final Map.Entry<Integer, Double> entry : smallVector.map.entrySet()) {
+    for (final Map.Entry<Integer, Float> entry : smallVector.map.entrySet()) {
       if (largeVector.map.containsKey(entry.getKey())) {
         final int index = entry.getKey();
         sum += entry.getValue() * largeVector.getValue(index);
@@ -118,13 +125,13 @@ public final class SparseVector implements Serializable {
 
     final SparseVector result = new SparseVector(dimension);
 
-    for (final Map.Entry<Integer, Double> entry : this.map.entrySet()) {
+    for (final Map.Entry<Integer, Float> entry : this.map.entrySet()) {
       result.putValue(entry.getKey(), entry.getValue());
     }
 
-    for (final Map.Entry<Integer, Double> entry : vector.map.entrySet()) {
+    for (final Map.Entry<Integer, Float> entry : vector.map.entrySet()) {
       final int index = entry.getKey();
-      final double originalValue = result.getValue(index);
+      final float originalValue = result.getValue(index);
       result.putValue(entry.getKey(), originalValue + entry.getValue());
     }
     return result;
@@ -135,9 +142,9 @@ public final class SparseVector implements Serializable {
    * @param vector
    */
   public void addVector(final SparseVector vector) {
-    for (final Map.Entry<Integer, Double> entry : vector.map.entrySet()) {
+    for (final Map.Entry<Integer, Float> entry : vector.map.entrySet()) {
       final int index = entry.getKey();
-      final double value = getValue(index) + entry.getValue();
+      final float value = getValue(index) + entry.getValue();
       putValue(index, value);
     }
   }
@@ -147,11 +154,11 @@ public final class SparseVector implements Serializable {
    * @param n
    * @return
    */
-  public SparseVector nTimes(final double n) {
+  public SparseVector nTimes(final float n) {
     final SparseVector result = new SparseVector(dimension);
-    for (final Map.Entry<Integer, Double> entry : map.entrySet()) {
+    for (final Map.Entry<Integer, Float> entry : map.entrySet()) {
       final int index = entry.getKey();
-      final double value = n * entry.getValue();
+      final float value = n * entry.getValue();
       result.putValue(index, value);
     }
     return result;
@@ -162,7 +169,7 @@ public final class SparseVector implements Serializable {
     builder.append('{');
 
     int count = 0;
-    for (final Map.Entry<Integer, Double> entry : map.entrySet())  {
+    for (final Map.Entry<Integer, Float> entry : map.entrySet())  {
       builder.append(entry.getKey()).append(':').append(entry.getValue());
       if (++count < map.size()) {
         builder.append(", ");
@@ -182,36 +189,36 @@ public final class SparseVector implements Serializable {
     SparseVector v1 = new SparseVector(70000);
     SparseVector v2 = new SparseVector(70000);
 
-    v1.putValue(3, 1.0);
-    v1.putValue(2500, 6.3);
-    v1.putValue(5000, 10.0);
-    v1.putValue(60000, -6.3);
+    v1.putValue(3, 1.0f);
+    v1.putValue(2500, 6.3f);
+    v1.putValue(5000, 10.0f);
+    v1.putValue(60000, -6.3f);
 
-    v2.putValue(1, 7.5);
-    v2.putValue(3, 5.7);
-    v2.putValue(2500, -6.3);
+    v2.putValue(1, 7.5f);
+    v2.putValue(3, 5.7f);
+    v2.putValue(2500, -6.3f);
 
     System.out.println("\n");
     System.out.println("Vector v1 = " + v1);
     System.out.println("Vector v2 = " + v2);
     System.out.println("\nv1 dot v2 = " + v1.dot(v2));
     System.out.println("v1  +  v2   = " + v1.plus(v2));
-    System.out.println("2 * v2   = " + v2.nTimes(2.0));
+    System.out.println("2 * v2   = " + v2.nTimes(2.0f));
 
     v1.addVector(v2);
     System.out.println("v1 = v1 + v2 = " + v1);
 
     SparseVector v3 = new SparseVector(10);
     SparseVector v4 = new SparseVector(10);
-    v3.putValue(0, 10.0);
-    v3.putValue(1, 1.0);
-    v3.putValue(2, 3.0);
-    v3.putValue(9, 10.0);
+    v3.putValue(0, 10.0f);
+    v3.putValue(1, 1.0f);
+    v3.putValue(2, 3.0f);
+    v3.putValue(9, 10.0f);
 
-    v4.putValue(0, 0.0);
-    v4.putValue(1, 4.0);
-    v4.putValue(2, 10.0);
-    v4.putValue(9, 0.0);
+    v4.putValue(0, 0.0f);
+    v4.putValue(1, 4.0f);
+    v4.putValue(2, 10.0f);
+    v4.putValue(9, 0.0f);
 
     System.out.println("Vector v3 = " + v3);
     System.out.println("Vector v4 = " + v4);

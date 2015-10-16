@@ -54,7 +54,7 @@ final class GradientFunction implements VortexFunction<LRInput, PartialResult> {
       // Update the gradient vector.
       final double hypothesis = getHypothesis(predict);
       final double multiplier =  hypothesis - y;
-      gradientResult.addVector(instance.getFeature().nTimes(multiplier));
+      gradientResult.addVector(instance.getFeature().nTimes((float) multiplier));
     }
 
     return new PartialResult(gradientResult, numPositive, numNegative);

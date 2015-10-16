@@ -24,16 +24,22 @@ import org.apache.reef.vortex.examples.lr.input.Row;
 import org.apache.reef.vortex.examples.lr.input.SparseVector;
 import org.apache.reef.vortex.examples.lr.input.TrainingData;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Outputs the gradient.
  */
 final class GradientFunction implements VortexFunction<LRInput, PartialResult> {
+  private static final Logger LOG = Logger.getLogger(GradientFunction.class.getName());
   /**
    * Outputs the gradient.
    */
   @Override
 
   public PartialResult call(final LRInput lrInput) throws Exception {
+    final long startTime = System.currentTimeMillis();
+
     final SparseVector parameterVector = lrInput.getParameterVector();
     final TrainingData trainingData = lrInput.getTrainingData();
     final SparseVector gradientResult = new SparseVector(trainingData.getDimension());
@@ -52,11 +58,18 @@ final class GradientFunction implements VortexFunction<LRInput, PartialResult> {
       }
 
       // Update the gradient vector.
-      final double hypothesis = getHypothesis(predict);
-      final double multiplier =  hypothesis - y;
-      gradientResult.addVector(instance.getFeature().nTimes((float) multiplier));
-    }
+      final double exponent = -predict * y;
+      final double maxExponent = Math.max(exponent, 0);
+      final double lambda = 1.0; // regularization
+      final double logSumExp = maxExponent + Math.log(Math.exp(-maxExponent) + Math.exp(exponent - maxExponent));
+      final SparseVector gradient = instance.getFeature().nTimes((float)(y * (Math.exp(-logSumExp) - 1) + lambda));
 
+      final float stepSize = 1e-2f;
+      gradientResult.addVector(gradient.nTimes(-stepSize));
+    }
+    final long finishTime = System.currentTimeMillis();
+    final long lifeTime = finishTime - startTime;
+    LOG.log(Level.INFO, "$V$\tTasklet lifetime\t{0}", lifeTime);
     return new PartialResult(gradientResult, numPositive, numNegative);
   }
 

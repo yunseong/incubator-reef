@@ -39,6 +39,8 @@ import javax.inject.Inject;
 import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -57,7 +59,7 @@ final class DefaultVortexMaster implements VortexMaster {
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
   // TODO This should be replaced by Guava
-  private final Map<String, byte[]> cacheMap = new HashMap<>();
+  private final ConcurrentMap<String, byte[]> cacheMap = new ConcurrentHashMap<>();
 
   /**
    * @param runningWorkers for managing all running workers.
@@ -133,28 +135,26 @@ final class DefaultVortexMaster implements VortexMaster {
   @Override
   public <T extends Serializable> CacheKey cache(final String keyName, @Nonnull final T data)
       throws VortexCacheException {
-    synchronized (cacheMap) {
-      if (cacheMap.containsKey(keyName)) {
-        throw new VortexCacheException("The keyName " + keyName + "is already used.");
-      }
-
-      final Kryo kryo = new Kryo();
-      kryo.register(LRInputCached.class);
-      kryo.register(LRInputHalfCached.class);
-
-      final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-      final Output output = new Output(byteArrayOutputStream);
-
-      final CacheKey key = new CacheKey(keyName);
-      final CacheSentRequest cacheSentRequest = new CacheSentRequest(key, data);
-
-      kryo.writeObject(output, new VortexRequest(cacheSentRequest));
-      output.close();
-      final byte[] requestBytes = byteArrayOutputStream.toByteArray();
-
-      cacheMap.put(keyName, requestBytes);
-      return key;
+    if (cacheMap.containsKey(keyName)) {
+      throw new VortexCacheException("The keyName " + keyName + "is already used.");
     }
+
+    final Kryo kryo = new Kryo();
+    kryo.register(LRInputCached.class);
+    kryo.register(LRInputHalfCached.class);
+
+    final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    final Output output = new Output(byteArrayOutputStream);
+
+    final CacheKey key = new CacheKey(keyName);
+    final CacheSentRequest cacheSentRequest = new CacheSentRequest(key, data);
+
+    kryo.writeObject(output, new VortexRequest(cacheSentRequest));
+    output.close();
+    final byte[] requestBytes = byteArrayOutputStream.toByteArray();
+
+    cacheMap.put(keyName, requestBytes);
+    return key;
   }
 
   @Override

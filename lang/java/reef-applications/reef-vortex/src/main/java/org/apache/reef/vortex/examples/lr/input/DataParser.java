@@ -18,6 +18,8 @@
  */
 package org.apache.reef.vortex.examples.lr.input;
 
+import java.util.ArrayList;
+
 /**
  * Parse concatenated lines into Training Data.
  */
@@ -25,44 +27,12 @@ public final class DataParser {
   private DataParser() {
   }
 
-  static TrainingData parseTrainingData(final String str, final int modelDim) throws ParseException {
+  static TrainingData parseTrainingData(final ArrayList<ArrayBasedVector> partitions, final int modelDim) {
     final TrainingData result = new TrainingData();
-    final String[] split = str.split("#");
-    for (final String parsed : split) {
-      if (null != parsed && parsed.length() != 0) {
-        result.addRow(parseLine(parsed, modelDim));
-      }
+    for (final ArrayBasedVector partition : partitions) {
+      // -1 is the index of the output
+      result.addRow(Row.getInstance(new SparseVector(partition.toHashMap(modelDim), modelDim), partition.getOutput()));
     }
     return result;
-  }
-
-  /**
-   * Parse a line and create a training data.
-   */
-  private static Row parseLine(final String line, final int modelDim) throws ParseException {
-    final SparseVector feature = new SparseVector(modelDim);
-
-    final String[] split = line.split(" ");
-
-    try {
-      final int output = Integer.valueOf(split[0]);
-
-      for (int i = 1; i < split.length; i++) {
-        final String[] column = split[i].split(":");
-
-        final int index = Integer.valueOf(column[0]);
-        final double value = Double.valueOf(column[1]);
-
-        if (index >= modelDim) {
-          // Restrict the dimension of model to save our time.
-          break;
-        }
-        feature.putValue(index, value);
-      }
-      return Row.getInstance(feature, output);
-
-    } catch (final NumberFormatException e) {
-      throw new ParseException(e.getMessage());
-    }
   }
 }

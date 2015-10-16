@@ -19,12 +19,13 @@
 package org.apache.reef.vortex.examples.lr.input;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 
 /**
  * Input used in Logistic Regression which does not cache the data.
  */
 public class LRInput implements Serializable {
-  private StringBuilder trainingData;
+  private ArrayList<ArrayBasedVector> trainingData;
   private SparseVector parameterVector;
   private int modelDim;
 
@@ -32,7 +33,7 @@ public class LRInput implements Serializable {
   }
 
   public LRInput(final SparseVector parameterVector,
-                 final StringBuilder trainingData,
+                 final ArrayList<ArrayBasedVector> trainingData,
                  final int modelDim) {
     this.parameterVector = parameterVector;
     this.trainingData = trainingData;
@@ -44,6 +45,6 @@ public class LRInput implements Serializable {
   }
 
   public TrainingData getTrainingData() throws ParseException {
-    return DataParser.parseTrainingData(trainingData.toString(), modelDim);
+    return DataParser.parseTrainingData(trainingData, modelDim);
   }
 }

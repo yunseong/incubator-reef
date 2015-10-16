@@ -34,6 +34,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,6 +50,9 @@ final class LRUrlReputationStart implements VortexStart {
   private static final String CACHE_FULL = "full";
   private static final String CACHE_HALF = "half";
   private static final String CACHE_NO = "no";
+  private static final int THREAD_POOL_SIZE = 8;
+  private static final int BATCH_ADD_SIZE = 2000;
+
 
   private final String dir;
   private final int numIter;
@@ -158,12 +165,35 @@ final class LRUrlReputationStart implements VortexStart {
    */
   private ArrayList<CacheKey<ArrayList<ArrayBasedVector>>>
       cachePartitions(final VortexThreadPool vortexThreadPool,
-                      final ArrayList<ArrayList<ArrayBasedVector>> partitions) throws VortexCacheException {
+                      final ArrayList<ArrayList<ArrayBasedVector>> partitions)
+      throws VortexCacheException, InterruptedException {
+    final long startTime = System.currentTimeMillis();
 
     final ArrayList<CacheKey<ArrayList<ArrayBasedVector>>> keys = new ArrayList<>(divideFactor);
+
+    final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+    final CountDownLatch latch = new CountDownLatch(partitions.size());
+
     for (int i = 0; i < partitions.size(); i++) {
-      keys.add(vortexThreadPool.cache(String.valueOf(i), partitions.get(i)));
+      final int index = i;
+      executorService.submit(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            final CacheKey key = vortexThreadPool.cache(String.valueOf(index), partitions.get(index));
+            synchronized (this) {
+              keys.add(key);
+            }
+            latch.countDown();
+          } catch (final VortexCacheException e) {
+            LOG.log(Level.WARNING, "Exception while caching partition " + index, e);
+          }
+        }
+      });
     }
+    latch.await();
+    executorService.shutdown();
+    LOG.log(Level.INFO, "Took {0}ms for caching", System.currentTimeMillis() - startTime);
     return keys;
   }
 
@@ -172,28 +202,66 @@ final class LRUrlReputationStart implements VortexStart {
    * @return the partitions that consist of the records.
    * @throws IOException If it fails while parsing the input.
    */
-  private ArrayList<ArrayList<ArrayBasedVector>> parse() throws IOException {
+  private ArrayList<ArrayList<ArrayBasedVector>> parse() throws IOException, InterruptedException {
+    final long startTime = System.currentTimeMillis();
+
     final ArrayList<ArrayList<ArrayBasedVector>> partitions = new ArrayList<>(divideFactor);
     for (int i = 0; i < divideFactor; i++) {
       partitions.add(new ArrayList<ArrayBasedVector>());
     }
 
-    long recordCount = 0;
-    for (int fileIndex = 0; fileIndex < numFile; fileIndex++) {
-      final String path = dir + "Day" + fileIndex + ".svm"; // e.g., dir/Day13.svm
-      LOG.log(Level.INFO, "Path: {0}", path);
+    final AtomicLong bucketCount = new AtomicLong(0);
 
-      try (final BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path)))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-          final int index = (int) (recordCount % divideFactor);
-          final ArrayBasedVector vector = parseLine(line, modelDim);
-          partitions.get(index).add(vector);
-          recordCount++;
-        }
+    final ExecutorService executorService = Executors.newFixedThreadPool(2);
+    final CountDownLatch latch = new CountDownLatch(numFile);
+    for (int fileIndex = 0; fileIndex < numFile; fileIndex++) {
+      final int index = fileIndex;
+      executorService.submit(new Runnable() {
+        @Override
+        public void run() {
+          final String path = dir + "Day" + index + ".svm"; // e.g., dir/Day13.svm
+          final ArrayList<ArrayBasedVector> vectors;
+          try {
+            vectors = parseFile(path);
+            int numPut = 0;
+            for (int vectorIndex = 0; vectorIndex < vectors.size(); vectorIndex += BATCH_ADD_SIZE) {
+              final int bucketIndex = (int) (bucketCount.getAndIncrement() % divideFactor);
+              synchronized (this) {
+                for (int j = 0; j < BATCH_ADD_SIZE; j++) {
+                  if (vectors.size() <= vectorIndex + j) {
+                    break;
+                  }
+                  partitions.get(bucketIndex).add(vectors.get(vectorIndex + j));
+                  numPut++;
+                }
+              }
+            }
+            LOG.log(Level.INFO, "Put {0} vectors out of {1}", new Object[]{numPut, vectors.size()});
+          } catch (final IOException e) {
+            LOG.warning("Exception occurred while parsing " + path);
+          }
+          LOG.log(Level.INFO, "Path: {0}", path);
+          latch.countDown();
+        }});
+    }
+    latch.await();
+    executorService.shutdown();
+    LOG.log(Level.INFO, "Took {0}ms for parsing", System.currentTimeMillis() - startTime);
+    return partitions;
+  }
+
+  private ArrayList<ArrayBasedVector> parseFile(final String path) throws IOException {
+    final ArrayList<ArrayBasedVector> vectors = new ArrayList<>();
+    final long startTime = System.currentTimeMillis();
+    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path)))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        final ArrayBasedVector vector = parseLine(line, modelDim);
+        vectors.add(vector);
       }
     }
-    return partitions;
+    LOG.log(Level.INFO, "Parsing one file took {0} ms", System.currentTimeMillis() - startTime);
+    return vectors;
   }
 
   /**

@@ -50,7 +50,7 @@ public final class LRInputCached implements Serializable, VortexCacheable {
     return VortexCache.getData(parameterVectorKey);
   }
 
-  public TrainingData getTrainingData() throws VortexCacheException, ParseException {
+  public TrainingData getTrainingData() throws VortexCacheException {
     final ArrayList<ArrayBasedVector> trainingData = VortexCache.getData(trainingDataKey);
     return DataParser.parseTrainingData(trainingData, modelDim);
   }

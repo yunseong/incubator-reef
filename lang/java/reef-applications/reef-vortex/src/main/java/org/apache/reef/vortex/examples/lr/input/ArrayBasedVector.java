@@ -51,7 +51,7 @@ public final class ArrayBasedVector {
     for (int i = 0; i < values.length; i++) {
       // Just for partial test.
       if (indices[i] <= modelDim) {
-        map.put(indices[i], values[i]);
+        map.put(indices[i]-1, values[i]);
       }
     }
     return map;

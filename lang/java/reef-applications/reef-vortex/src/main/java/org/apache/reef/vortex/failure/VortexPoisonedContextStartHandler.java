@@ -20,7 +20,7 @@ package org.apache.reef.vortex.failure;
 
 import org.apache.reef.evaluator.context.events.ContextStart;
 import org.apache.reef.tang.annotations.Parameter;
-import org.apache.reef.vortex.failure.parameters.Interval;
+import org.apache.reef.vortex.failure.parameters.IntervalMs;
 import org.apache.reef.vortex.failure.parameters.Probability;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.time.Clock;
@@ -28,30 +28,29 @@ import org.apache.reef.wake.time.event.Alarm;
 
 import javax.inject.Inject;
 import java.util.Random;
-import java.util.logging.Logger;
 
 /**
  * Inject failure in the running context.
  */
 public final class VortexPoisonedContextStartHandler implements EventHandler<ContextStart> {
-  private static final Logger LOG = Logger.getLogger(VortexPoisonedContextStartHandler.class.getName());
+  private static final int INITIAL_DELAY_MS = 2000; // to prevent failure before task launch
   private final Clock clock;
   private final double probability;
-  private final int intervalSec;
+  private final int intervalMs;
 
   @Inject
   private VortexPoisonedContextStartHandler(final Clock clock,
                                             @Parameter(Probability.class) final double probability,
-                                            @Parameter(Interval.class) final int intervalMs) {
+                                            @Parameter(IntervalMs.class) final int intervalMs) {
     this.clock = clock;
     this.probability = probability;
-    this.intervalSec = intervalMs * 1000;
+    this.intervalMs = intervalMs;
   }
 
   @Override
   public void onNext(final ContextStart contextStart) {
     // We can make sure the failure is guranteed to occur after interval(sec).
-    clock.scheduleAlarm(intervalSec, new AlarmHandler(clock, probability, intervalSec));
+    clock.scheduleAlarm(INITIAL_DELAY_MS, new AlarmHandler(clock, probability, intervalMs));
   }
 
   private final class AlarmHandler implements EventHandler<Alarm> {

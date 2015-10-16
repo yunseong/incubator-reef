@@ -26,7 +26,6 @@ import org.apache.reef.vortex.evaluator.VortexCache;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Input used in Logistic Regression which caches the training data only.
@@ -35,7 +34,6 @@ public class LRInputHalfCached implements Serializable, VortexCacheable {
   private CacheKey<ArrayList<ArrayBasedVector>> trainingDataKey;
   private SparseVector parameterVector;
   private int modelDim;
-  private AtomicReference<TrainingData> parsed = new AtomicReference<>();
 
   public LRInputHalfCached() {
   }
@@ -53,8 +51,7 @@ public class LRInputHalfCached implements Serializable, VortexCacheable {
   }
 
   public TrainingData getTrainingData() throws VortexCacheException, ParseException {
-    parsed.compareAndSet(null, DataParser.parseTrainingData(VortexCache.getData(trainingDataKey), modelDim));
-    return parsed.get();
+    return DataParser.parseTrainingData(VortexCache.getData(trainingDataKey), modelDim);
   }
 
   @Override

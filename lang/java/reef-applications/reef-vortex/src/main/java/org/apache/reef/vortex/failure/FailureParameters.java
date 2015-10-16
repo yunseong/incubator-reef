@@ -19,7 +19,7 @@
 package org.apache.reef.vortex.failure;
 
 import org.apache.reef.tang.formats.CommandLine;
-import org.apache.reef.vortex.failure.parameters.Interval;
+import org.apache.reef.vortex.failure.parameters.IntervalMs;
 import org.apache.reef.vortex.failure.parameters.Probability;
 
 /**
@@ -37,7 +37,7 @@ public final class FailureParameters {
   public static CommandLine registerShortNames(final CommandLine commandLine) {
     return commandLine
         .registerShortNameOfClass(Probability.class)
-        .registerShortNameOfClass(Interval.class);
+        .registerShortNameOfClass(IntervalMs.class);
   }
 }
 

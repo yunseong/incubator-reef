@@ -41,7 +41,7 @@ import org.apache.reef.vortex.common.WorkerReport;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexWorker;
 import org.apache.reef.vortex.failure.VortexPoisonedContextStartHandler;
-import org.apache.reef.vortex.failure.parameters.Interval;
+import org.apache.reef.vortex.failure.parameters.IntervalMs;
 import org.apache.reef.vortex.failure.parameters.Probability;
 import org.apache.reef.vortex.trace.parameters.ReceiverHost;
 import org.apache.reef.vortex.trace.parameters.ReceiverPort;
@@ -106,7 +106,7 @@ final class VortexDriver {
                        @Parameter(ReceiverHost.class) final String receiverHost,
                        @Parameter(ReceiverPort.class) final int receiverPort,
                        @Parameter(Probability.class) final double failureProbability,
-                       @Parameter(Interval.class) final int failureInterval) {
+                       @Parameter(IntervalMs.class) final int failureInterval) {
     this.vortexStartEStage = new ThreadPoolStage<>(vortexStartExecutor, numOfStartThreads);
     this.vortexStart = vortexStart;
     this.pendingTaskletSchedulerEStage = new SingleThreadStage<>(pendingTaskletLauncher, 1);
@@ -160,7 +160,7 @@ final class VortexDriver {
           Configurations.merge(
               Tang.Factory.getTang().newConfigurationBuilder()
                   .bindNamedParameter(Probability.class, Double.toString(failureProbability))
-                  .bindNamedParameter(Interval.class, Integer.toString(failureInterval))
+                  .bindNamedParameter(IntervalMs.class, Integer.toString(failureInterval))
                   .build(),
               ContextConfiguration.CONF
                   .set(ContextConfiguration.IDENTIFIER, "vortex_worker")

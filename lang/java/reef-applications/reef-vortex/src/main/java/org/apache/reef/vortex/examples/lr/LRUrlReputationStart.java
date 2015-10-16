@@ -25,7 +25,7 @@ import org.apache.reef.vortex.api.VortexThreadPool;
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.examples.lr.input.*;
-import org.apache.reef.vortex.failure.parameters.Interval;
+import org.apache.reef.vortex.failure.parameters.IntervalMs;
 import org.apache.reef.vortex.failure.parameters.Probability;
 
 import javax.inject.Inject;
@@ -74,7 +74,7 @@ final class LRUrlReputationStart implements VortexStart {
                                @Parameter(LogisticRegression.ModelDim.class) final int modelDim,
                                @Parameter(LogisticRegression.Cache.class) final String cached,
                                @Parameter(Probability.class) final double probability,
-                               @Parameter(Interval.class) final int interval) {
+                               @Parameter(IntervalMs.class) final int interval) {
     this.divideFactor = divideFactor;
     this.numIter = numIter;
     this.numFile = numFile;
@@ -155,8 +155,7 @@ final class LRUrlReputationStart implements VortexStart {
       LOG.log(Level.INFO, "#V#finish\t{0}", summary);
     } catch (final Exception e) {
       final long duration = System.currentTimeMillis() - start;
-      final JobSummary summary = new JobSummary(duration, -1);
-      LOG.log(Level.SEVERE, "#V#failed\t" + summary, e);
+      throw new RuntimeException("#V#failed after " + duration, e);
     }
   }
 

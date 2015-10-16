@@ -24,17 +24,27 @@ import org.apache.reef.vortex.examples.lr.input.Row;
 import org.apache.reef.vortex.examples.lr.input.SparseVector;
 import org.apache.reef.vortex.examples.lr.input.TrainingData;
 
+import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Outputs the gradient.
  */
 final class CachedGradientFunction implements VortexFunction<LRInputCached, PartialResult> {
+  private static final Logger LOG = Logger.getLogger(CachedGradientFunction.class.getName());
   /**
    * Outputs the gradient.
    */
   @Override
   public PartialResult call(final LRInputCached lrInput) throws Exception {
+    final long startTime = System.currentTimeMillis();
+
     final SparseVector parameterVector = lrInput.getParameterVector();
+    final long modelLoadedTime = System.currentTimeMillis();
+
     final TrainingData trainingData = lrInput.getTrainingData();
+    final long trainingLoadedTime = System.currentTimeMillis();
 
     final SparseVector gradientResult = new SparseVector(trainingData.getDimension());
 
@@ -61,6 +71,14 @@ final class CachedGradientFunction implements VortexFunction<LRInputCached, Part
       final float stepSize = 1e-2f;
       gradientResult.addVector(gradient.nTimes(-stepSize));
     }
+
+    final long finishTime = System.currentTimeMillis();
+    final long executionTime = finishTime - trainingLoadedTime;
+    final long modelOverhead = modelLoadedTime - startTime;
+    final long trainingOverhead = trainingLoadedTime - modelLoadedTime;
+    LOG.log(Level.INFO, "!V!\tExecution\t{0}\tModel\t{1}\tTraining\t{2}\t\tkey\t{4}",
+        new Object[]{executionTime, modelOverhead, trainingOverhead,
+            Arrays.toString(lrInput.getCachedKeys().toArray())});
     return new PartialResult(gradientResult, numPositive, numNegative);
   }
 

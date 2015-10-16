@@ -30,7 +30,6 @@ public final class DataParser {
   static TrainingData parseTrainingData(final ArrayList<ArrayBasedVector> partitions, final int modelDim) {
     final TrainingData result = new TrainingData();
     for (final ArrayBasedVector partition : partitions) {
-      // -1 is the index of the output
       result.addRow(Row.getInstance(new SparseVector(partition.toHashMap(modelDim), modelDim), partition.getOutput()));
     }
     return result;

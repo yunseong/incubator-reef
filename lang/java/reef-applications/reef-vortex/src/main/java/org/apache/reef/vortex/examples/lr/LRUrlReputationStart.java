@@ -155,7 +155,7 @@ final class LRUrlReputationStart implements VortexStart {
       LOG.log(Level.INFO, "#V#finish\t{0}", summary);
     } catch (final Exception e) {
       final long duration = System.currentTimeMillis() - start;
-      throw new RuntimeException("#V#failed after " + duration, e);
+      LOG.log(Level.WARNING, "#V#failed after " + duration, e);
     }
   }
 
@@ -225,7 +225,6 @@ final class LRUrlReputationStart implements VortexStart {
             synchronized (this) {
               for (int vectorIndex = 0; vectorIndex < vectors.size(); vectorIndex += BATCH_ADD_SIZE) {
                 final int bucketIndex = (int) (bucketCount.getAndIncrement() % divideFactor);
-                LOG.log(Level.INFO, "Adding {0}", bucketIndex);
                 for (int j = 0; j < BATCH_ADD_SIZE; j++) {
                   if (vectors.size() <= vectorIndex + j) {
                     break;

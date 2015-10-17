@@ -24,7 +24,6 @@ import org.apache.htrace.TraceScope;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.context.ContextConfiguration;
 import org.apache.reef.driver.evaluator.*;
-import org.apache.reef.driver.task.FailedTask;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.driver.task.TaskConfiguration;
 import org.apache.reef.driver.task.TaskMessage;
@@ -255,35 +254,7 @@ final class VortexDriver {
         if (failedEvaluator.getFailedTask().isPresent()) {
           vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
         } else {
-          LOG.log(Level.SEVERE, "!Preempted, but task id is not present");
-        }
-      }
-    }
-  }
-
-  /**
-   * This simulates the worker failure by resource preemption.
-   */
-  final class FailedTaskHandler implements EventHandler<FailedTask> {
-
-    @Override
-    public void onNext(final FailedTask failedTask) {
-      LOG.log(Level.INFO, "Task Failed. Same as Evaluator preempted");
-      if (numberOfFailures.incrementAndGet() >= MAX_NUM_OF_FAILURES) {
-        throw new RuntimeException("Exceeded max number of failures");
-      } else {
-        // We request a new evaluator to take the place of the preempted one
-        evaluatorRequestor.submit(EvaluatorRequest.newBuilder()
-            .setNumber(1)
-            .setMemory(evalMem)
-            .setNumberOfCores(evalCores)
-            .build());
-
-        vortexMaster.workerPreempted(failedTask.getId());
-
-        if (failedTask.getActiveContext().isPresent()) {
-          LOG.log(Level.WARNING, "Close the context to prevent the duplicate resource request.");
-          failedTask.getActiveContext().get().close();
+          throw new RuntimeException("Worker preempted, but not recoverable.");
         }
       }
     }

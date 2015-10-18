@@ -60,8 +60,8 @@ public final class LogisticRegression {
           .registerShortNameOfClass(WorkerMemMb.class)
           .registerShortNameOfClass(DivideFactor.class)
           .registerShortNameOfClass(NumIter.class)
-          .registerShortNameOfClass(NumFile.class)
-          .registerShortNameOfClass(Dir.class)
+          .registerShortNameOfClass(NumRecords.class)
+          .registerShortNameOfClass(Path.class)
           .registerShortNameOfClass(ModelDim.class)
           .registerShortNameOfClass(Cache.class)
           .processCommandLine(args);
@@ -69,6 +69,7 @@ public final class LogisticRegression {
       final Injector injector = tang.newInjector(cb.build());
 
       final boolean isLocal = injector.getNamedInstance(Local.class);
+      final boolean isCached = injector.getNamedInstance(Cache.class);
       final int numOfWorkers = injector.getNamedInstance(NumWorkers.class);
       final int workerCores = injector.getNamedInstance(WorkerCores.class);
       final int workerCapacity = injector.getNamedInstance(WorkerCapacity.class);
@@ -78,11 +79,12 @@ public final class LogisticRegression {
           .log(Level.INFO, "Config: [worker] {0} / [mem] {1} / [cores] {2} / [capacity] {3}",
           new Object[]{numOfWorkers, workerMemory, workerCores, workerCapacity});
 
+      final Class startClass = isCached ? CachedLRUrlReputationStart.class : LRUrlReputationStart.class;
       if (isLocal) {
-        VortexLauncher.launchLocal("Vortex_LR", LRUrlReputationStart.class,
+        VortexLauncher.launchLocal("Vortex_LR", startClass,
             numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());
       } else {
-        VortexLauncher.launchYarn("Vortex_LR", LRUrlReputationStart.class,
+        VortexLauncher.launchYarn("Vortex_LR", startClass,
             numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());
       }
 
@@ -127,19 +129,19 @@ public final class LogisticRegression {
   public static final class NumIter implements Name<Integer> {
   }
 
-  @NamedParameter(short_name = "num_file", default_value = "30")
-  public static final class NumFile implements Name<Integer> {
+  @NamedParameter(short_name = "num_records", default_value = "20000")
+  public static final class NumRecords implements Name<Integer> {
   }
 
-  @NamedParameter(short_name = "dir")
-  public static final class Dir implements Name<String> {
+  @NamedParameter(short_name = "path")
+  public static final class Path implements Name<String> {
   }
 
-  @NamedParameter(short_name = "model_dim", default_value = "8")
+  @NamedParameter(short_name = "model_dim", default_value = "3231961")
   public static final class ModelDim implements Name<Integer> {
   }
 
-  @NamedParameter(short_name = "cache", default_value = "half")
-  public static final class Cache implements Name<String> {
+  @NamedParameter(short_name = "cache", default_value = "true")
+  public static final class Cache implements Name<Boolean> {
   }
 }

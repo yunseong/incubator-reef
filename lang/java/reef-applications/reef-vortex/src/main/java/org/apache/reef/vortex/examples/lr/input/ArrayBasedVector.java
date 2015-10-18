@@ -60,4 +60,12 @@ public final class ArrayBasedVector {
   public int getOutput() {
     return output;
   }
+
+  public int[] getIndices() {
+    return indices;
+  }
+
+  public float[] getValues() {
+    return values;
+  }
 }

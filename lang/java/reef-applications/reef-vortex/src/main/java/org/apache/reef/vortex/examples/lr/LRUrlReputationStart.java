@@ -62,17 +62,15 @@ final class LRUrlReputationStart implements VortexStart {
   private final int divideFactor;
 
   private final int modelDim;
-  private final String cached;
   private final double probability;
   private final int interval;
 
   @Inject
   private LRUrlReputationStart(@Parameter(LogisticRegression.DivideFactor.class) final int divideFactor,
                                @Parameter(LogisticRegression.NumIter.class) final int numIter,
-                               @Parameter(LogisticRegression.NumFile.class) final int numFile,
-                               @Parameter(LogisticRegression.Dir.class) final String dir,
+                               @Parameter(LogisticRegression.NumRecords.class) final int numFile,
+                               @Parameter(LogisticRegression.Path.class) final String dir,
                                @Parameter(LogisticRegression.ModelDim.class) final int modelDim,
-                               @Parameter(LogisticRegression.Cache.class) final String cached,
                                @Parameter(Probability.class) final double probability,
                                @Parameter(IntervalMs.class) final int interval) {
     this.divideFactor = divideFactor;
@@ -80,7 +78,6 @@ final class LRUrlReputationStart implements VortexStart {
     this.numFile = numFile;
     this.dir = dir;
     this.modelDim = modelDim;
-    this.cached = cached;
     this.probability = probability;
     this.interval = interval;
   }
@@ -91,8 +88,8 @@ final class LRUrlReputationStart implements VortexStart {
   @Override
   public void start(final VortexThreadPool vortexThreadPool) {
     LOG.log(Level.INFO,
-        "#V#start\tDIVIDE_FACTOR\t{0}\tCRASH_PROB\t{1}\tCACHE\t{2}\tCRASH_INTERVAL\t{3}\tNUM_ITER\t{4}\tNUM_FILE\t{5}",
-        new Object[]{divideFactor, probability, cached, interval, numIter, numFile});
+        "#V#start\tDIVIDE_FACTOR\t{0}\tCRASH_PROB\t{1}\tCRASH_INTERVAL\t{2}\tNUM_ITER\t{3}\tNUM_FILE\t{4}",
+        new Object[]{divideFactor, probability, interval, numIter, numFile});
 
     SparseVector parameterVector = new SparseVector(modelDim);
 
@@ -115,21 +112,9 @@ final class LRUrlReputationStart implements VortexStart {
         // Launch tasklets, each operating on a partition
         final ArrayList<VortexFuture<PartialResult>> futures = new ArrayList<>();
         for (int pIndex = 0; pIndex < partitions.size(); pIndex++) {
-          if (CACHE_FULL.equals(cached)) {
-            futures.add(vortexThreadPool.submit(
-                new CachedGradientFunction(),
-                new LRInputCached(parameterKey, partitionKeys.get(pIndex), modelDim)));
-          } else if (CACHE_HALF.equals(cached)) {
-            futures.add(vortexThreadPool.submit(
-                new HalfCachedGradientFunction(),
-                new LRInputHalfCached(parameterVector, partitionKeys.get(pIndex), modelDim)));
-          } else if (CACHE_NO.equals(cached)) {
-            futures.add(vortexThreadPool.submit(
-                new GradientFunction(),
-                new LRInput(parameterVector, partitions.get(pIndex), modelDim)));
-          } else {
-            throw new RuntimeException("Unknown type");
-          }
+          futures.add(vortexThreadPool.submit(
+              new GradientFunction(),
+              new LRInput(parameterVector, partitions.get(pIndex), modelDim)));
         }
 
         for (final VortexFuture<PartialResult> future : futures) {

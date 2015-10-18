@@ -53,7 +53,7 @@ public final class SparseVector implements Serializable {
    * Insert a value to the index.
    **/
   public void putValue(final int index, final float value) {
-    if (index < 0 || index >= dimension) {
+    if (index < 0 || index > dimension) {
       throw new RuntimeException("Index out of bounds:" + index + "/" + dimension);
     }
 
@@ -70,7 +70,7 @@ public final class SparseVector implements Serializable {
    * @return Get the value at the index.
    */
   public float getValue(final int index) {
-    if (index < 0 || index >= dimension) {
+    if (index < 0 || index > dimension) {
       throw new RuntimeException("Index out of bounds:" + index + "/" + dimension);
     }
 
@@ -113,6 +113,18 @@ public final class SparseVector implements Serializable {
     return sum;
   }
 
+  public float dot(final ArrayBasedVector vector) {
+    float sum = 0.0f;
+
+    for (int i = 0; i < vector.getIndices().length; i++) {
+      final int index = vector.getIndices()[i];
+      if (map.containsKey(index)) {
+        sum += map.get(index) * vector.getValues()[i];
+      }
+    }
+    return sum;
+  }
+
   /**
    * Compute the sum of the two vectors. They should have the same dimension.
    * @param vector
@@ -145,6 +157,19 @@ public final class SparseVector implements Serializable {
     for (final Map.Entry<Integer, Float> entry : vector.map.entrySet()) {
       final int index = entry.getKey();
       final float value = getValue(index) + entry.getValue();
+      putValue(index, value);
+    }
+  }
+
+  /**
+   * Return v1 + c * v2 where v2 is the ArrayBasedVector.
+   * @param coefficient
+   * @param vector
+   */
+  public void addVector(final float coefficient, final ArrayBasedVector vector) {
+    for (int i = 0; i < vector.getIndices().length; i++) {
+      final int index = vector.getIndices()[i];
+      final float value = getValue(index) + coefficient * vector.getValues()[i];
       putValue(index, value);
     }
   }

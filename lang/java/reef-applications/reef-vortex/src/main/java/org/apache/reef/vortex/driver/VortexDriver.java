@@ -254,7 +254,7 @@ final class VortexDriver {
         if (failedEvaluator.getFailedTask().isPresent()) {
           vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
         } else {
-          throw new RuntimeException("Worker preempted, but not recoverable.");
+          LOG.log(Level.WARNING, "Worker preempted, but not recoverable.");
         }
       }
     }

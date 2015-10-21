@@ -33,7 +33,7 @@ import java.util.Random;
  * Inject failure in the running context.
  */
 public final class VortexPoisonedContextStartHandler implements EventHandler<ContextStart> {
-  private static final int INITIAL_DELAY_MS = 2000; // to prevent failure before task launch
+  private static final int INITIAL_DELAY_MS = 5000; // to prevent failure before task launch
   private final Clock clock;
   private final double probability;
   private final int intervalMs;

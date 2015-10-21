@@ -109,9 +109,6 @@ final class CachedLRUrlReputationStart implements VortexStart {
       for (; iteration < numIter; iteration++) {
         // Process the partial result and update to the cache
         model = processResult(futures, iteration);
-        if (iteration == numIter - 1) {
-          break;
-        }
 
         final CacheKey<SparseVector> parameterKey = vortexThreadPool.cache("param" + iteration, model);
         // Launch tasklets, each operating on a partition
@@ -121,6 +118,10 @@ final class CachedLRUrlReputationStart implements VortexStart {
               new CachedGradientFunction(),
               new LRInputCached(parameterKey, partition, modelDim)));
         }
+      }
+
+      if (iteration == numIter) {
+        processResult(futures, iteration);
       }
 
       final long duration = System.currentTimeMillis() - start;
@@ -171,7 +172,7 @@ final class CachedLRUrlReputationStart implements VortexStart {
     final List<VortexFuture<PartialResult>> futures = new ArrayList<>(divideFactor);
 
     try (final BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path)))) {
-      final int partitionSize = numRecords / divideFactor;
+      final int partitionSize = (numRecords + divideFactor - 1) / divideFactor;
       final ArrayList<ArrayBasedVector> vectors = new ArrayList<>(partitionSize);
 
       String line;

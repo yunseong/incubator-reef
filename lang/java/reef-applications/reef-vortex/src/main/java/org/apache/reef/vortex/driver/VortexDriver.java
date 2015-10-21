@@ -49,6 +49,8 @@ import org.apache.reef.wake.EStage;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.impl.SingleThreadStage;
 import org.apache.reef.wake.impl.ThreadPoolStage;
+import org.apache.reef.wake.time.Clock;
+import org.apache.reef.wake.time.event.Alarm;
 import org.apache.reef.wake.time.event.StartTime;
 
 import javax.inject.Inject;
@@ -88,6 +90,7 @@ final class VortexDriver {
   private final AtomicInteger barrier;
   private final double failureProbability;
   private final int failureInterval;
+  private final Clock clock;
 
   @Inject
   private VortexDriver(final EvaluatorRequestor evaluatorRequestor,
@@ -96,6 +99,7 @@ final class VortexDriver {
                        final VortexStart vortexStart,
                        final VortexStartExecutor vortexStartExecutor,
                        final PendingTaskletLauncher pendingTaskletLauncher,
+                       final Clock clock,
                        @Parameter(VortexMasterConf.WorkerMem.class) final int workerMem,
                        @Parameter(VortexMasterConf.WorkerNum.class) final int workerNum,
                        @Parameter(VortexMasterConf.WorkerCores.class) final int workerCores,
@@ -112,6 +116,7 @@ final class VortexDriver {
     this.evaluatorRequestor = evaluatorRequestor;
     this.vortexMaster = vortexMaster;
     this.vortexRequestor = vortexRequestor;
+    this.clock = clock;
     this.evalMem = workerMem;
     this.evalNum = workerNum;
     this.evalCores = workerCores;
@@ -240,22 +245,28 @@ final class VortexDriver {
   final class FailedEvaluatorHandler implements EventHandler<FailedEvaluator> {
     @Override
     public void onNext(final FailedEvaluator failedEvaluator) {
-      LOG.log(Level.INFO, "Evaluator preempted");
+      LOG.log(Level.INFO, "#P#\t{0}", failedEvaluator.getFailedTask().get());
       if (numberOfFailures.incrementAndGet() >= MAX_NUM_OF_FAILURES) {
         throw new RuntimeException("Exceeded max number of failures");
       } else {
-        // We request a new evaluator to take the place of the preempted one
-        evaluatorRequestor.submit(EvaluatorRequest.newBuilder()
-            .setNumber(1)
-            .setMemory(evalMem)
-            .setNumberOfCores(evalCores)
-            .build());
+        LOG.log(Level.INFO, "#S#simulate preemption: sleep for interval {0} ms", failureInterval);
+        clock.scheduleAlarm(failureInterval, new EventHandler<Alarm>() {
+          @Override
+          public void onNext(final Alarm value) {
+            // We request a new evaluator to take the place of the preempted one
+            evaluatorRequestor.submit(EvaluatorRequest.newBuilder()
+                .setNumber(1)
+                .setMemory(evalMem)
+                .setNumberOfCores(evalCores)
+                .build());
 
-        if (failedEvaluator.getFailedTask().isPresent()) {
-          vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
-        } else {
-          LOG.log(Level.WARNING, "Worker preempted, but not recoverable.");
-        }
+            if (failedEvaluator.getFailedTask().isPresent()) {
+              vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
+            } else {
+              LOG.log(Level.WARNING, "Worker preempted, but not recoverable.");
+            }
+          }
+        });
       }
     }
   }

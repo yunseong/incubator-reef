@@ -37,6 +37,7 @@ import org.apache.reef.wake.EventHandler;
 import javax.inject.Inject;
 import java.io.Serializable;
 import java.util.concurrent.*;
+import java.util.logging.Logger;
 
 /**
  * Receives commands from VortexMaster, executes them, and returns the results.
@@ -46,6 +47,7 @@ import java.util.concurrent.*;
 @Unit
 @TaskSide
 public final class VortexWorker implements Task, TaskMessageSource {
+  private static final Logger LOG = Logger.getLogger(VortexWorker.class.getName());
   private static final String MESSAGE_SOURCE_ID = ""; // empty string as there is no use for it
 
   private final BlockingDeque<byte[]> pendingRequests = new LinkedBlockingDeque<>();
@@ -57,7 +59,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
 
   @Inject
   private VortexWorker(final HeartBeatTriggerManager heartBeatTriggerManager,
-                      @Parameter(VortexWorkerConf.NumOfThreads.class) final int numOfThreads) {
+                       @Parameter(VortexWorkerConf.NumOfThreads.class) final int numOfThreads) {
     this.heartBeatTriggerManager = heartBeatTriggerManager;
     this.numOfThreads = numOfThreads;
   }
@@ -67,6 +69,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
    */
   @Override
   public byte[] call(final byte[] memento) throws Exception {
+
     final ExecutorService schedulerThread = Executors.newSingleThreadExecutor();
     final ExecutorService commandExecutor = Executors.newFixedThreadPool(numOfThreads);
 

@@ -24,7 +24,7 @@ import org.apache.reef.util.Optional;
 /**
  * For choosing which worker to schedule the tasklet onto.
  */
-@DefaultImplementation(FirstFitSchedulingPolicy.class)
+@DefaultImplementation(StragglerHandlingSchedulingPolicy.class)
 interface SchedulingPolicy {
   /**
    * Implementation of this method is expected to be fast.

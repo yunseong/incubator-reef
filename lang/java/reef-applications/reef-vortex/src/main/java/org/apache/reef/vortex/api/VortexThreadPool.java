@@ -20,6 +20,7 @@ package org.apache.reef.vortex.api;
 
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.driver.VortexMaster;
 
@@ -50,6 +51,10 @@ public final class VortexThreadPool {
   public <T extends Serializable> CacheKey<T> cache(final String name, @Nonnull final T data)
       throws VortexCacheException {
     return vortexMaster.cache(name, data);
+  }
+
+  public <T extends Serializable> HDFSBackedCacheKey[] cache(final String path, final int numSplit) {
+    return vortexMaster.cache(path, numSplit);
   }
 
   /**

@@ -205,6 +205,10 @@ public final class VortexWorker implements Task, TaskMessageSource {
     heartBeatTriggerManager.triggerHeartBeat();
   }
 
+  void sendDataRequest(final HDFSBackedCacheKey key) {
+
+  }
+
   /**
    * Handle requests from Vortex Master.
    */

@@ -79,7 +79,7 @@ public final class LogisticRegression {
           .log(Level.INFO, "Config: [worker] {0} / [mem] {1} / [cores] {2} / [capacity] {3}",
           new Object[]{numOfWorkers, workerMemory, workerCores, workerCapacity});
 
-      final Class startClass = isCached ? CachedLRUrlReputationStart.class : LRUrlReputationStart.class;
+      final Class startClass = isCached ? HDFSLRUrlReputationStart.class : LRUrlReputationStart.class;
       if (isLocal) {
         VortexLauncher.launchLocal("Vortex_LR", startClass,
             numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());

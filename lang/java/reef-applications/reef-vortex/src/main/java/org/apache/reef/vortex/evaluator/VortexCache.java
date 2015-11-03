@@ -18,19 +18,34 @@
  */
 package org.apache.reef.vortex.evaluator;
 
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.htrace.Span;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceInfo;
 import org.apache.htrace.TraceScope;
+import org.apache.reef.io.data.loading.api.DataSet;
+import org.apache.reef.io.data.loading.impl.InMemoryInputFormatDataSet;
+import org.apache.reef.io.data.loading.impl.InputSplitExternalConstructor;
+import org.apache.reef.io.data.loading.impl.JobConfExternalConstructor;
+import org.apache.reef.io.network.util.Pair;
+import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.InjectionFuture;
+import org.apache.reef.tang.Tang;
 import org.apache.reef.util.cache.Cache;
 import org.apache.reef.util.cache.CacheImpl;
 import org.apache.reef.util.cache.SystemTime;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 import javax.inject.Inject;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -43,6 +58,7 @@ public final class VortexCache {
   private static final int CACHE_TIMEOUT = 100000;
   private static VortexCache cacheRef;
   private final Cache<CacheKey, Serializable> cache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT);
+  private final Cache<HDFSBackedCacheKey, List<String>> hdfsCache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT);
   private final ConcurrentHashMap<CacheKey, CustomCallable> waiters = new ConcurrentHashMap<>();
 
   private final InjectionFuture<VortexWorker> worker;
@@ -68,11 +84,44 @@ public final class VortexCache {
     }
   }
 
+  public static List<String> getData(final HDFSBackedCacheKey key) throws VortexCacheException {
+    return cacheRef.load(key);
+  }
+
   private <T extends Serializable> T load(final CacheKey<T> key, final TraceScope parentScope)
       throws VortexCacheException {
     try {
       return (T) cache.get(key, new CustomCallable<T>(key, parentScope));
     } catch (ExecutionException e) {
+      throw new VortexCacheException("Failed to fetch the data", e);
+    }
+  }
+
+  private List<String> load(final HDFSBackedCacheKey key) throws VortexCacheException {
+    try {
+      return hdfsCache.get(key, new Callable<List<String>>() {
+        @Override
+        public List<String> call() throws Exception {
+          final Configuration conf = Tang.Factory.getTang().newConfigurationBuilder()
+              .bindImplementation(DataSet.class, InMemoryInputFormatDataSet.class)
+              .bindConstructor(InputSplit.class, InputSplitExternalConstructor.class)
+              .bindConstructor(JobConf.class, JobConfExternalConstructor.class)
+              .bindNamedParameter(InputSplitExternalConstructor.SerializedInputSplit.class,
+                  key.getSerializedInputSplit())
+              .bindNamedParameter(JobConfExternalConstructor.InputFormatClass.class, TextInputFormat.class.getName())
+              .bindNamedParameter(JobConfExternalConstructor.InputPath.class, key.getPath())
+              .build();
+          final DataSet<LongWritable, Text> dataSet =
+              Tang.Factory.getTang().newInjector(conf).getInstance(DataSet.class);
+
+          final List<String> texts = new ArrayList<>();
+          for (final Pair<LongWritable, Text> keyValue : dataSet) {
+            texts.add(keyValue.getSecond().toString());
+          }
+          return texts;
+        }
+      });
+    } catch (final ExecutionException e) {
       throw new VortexCacheException("Failed to fetch the data", e);
     }
   }

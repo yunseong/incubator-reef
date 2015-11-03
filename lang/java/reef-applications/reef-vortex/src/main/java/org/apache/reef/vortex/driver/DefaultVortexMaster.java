@@ -21,13 +21,21 @@ package org.apache.reef.vortex.driver;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
 import net.jcip.annotations.ThreadSafe;
+import org.apache.hadoop.mapred.InputFormat;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.htrace.*;
 import org.apache.reef.annotations.audience.DriverSide;
+import org.apache.reef.io.data.loading.impl.JobConfExternalConstructor;
+import org.apache.reef.io.data.loading.impl.WritableSerializer;
+import org.apache.reef.tang.ExternalConstructor;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.CacheSentRequest;
+import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.common.VortexRequest;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.examples.lr.input.LRInputCached;
@@ -37,6 +45,7 @@ import org.apache.reef.vortex.trace.HTrace;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -155,6 +164,28 @@ final class DefaultVortexMaster implements VortexMaster {
 
     cacheMap.put(keyName, requestBytes);
     return key;
+  }
+
+  @Override
+  public HDFSBackedCacheKey[] cache(final String path, final int numSplit) {
+    try {
+      // TODO Other type of input formats could be used?
+      final ExternalConstructor<JobConf> jobConfConstructor =
+          new JobConfExternalConstructor(TextInputFormat.class.getName(), path);
+      final JobConf jobConf = jobConfConstructor.newInstance();
+      final InputFormat inputFormat = jobConf.getInputFormat();
+      final InputSplit[] splits = inputFormat.getSplits(jobConf, numSplit);
+      final String serializedJobConf =  WritableSerializer.serialize(jobConf);
+
+      final HDFSBackedCacheKey[] keys = new HDFSBackedCacheKey[numSplit];
+      for (int i = 0; i < numSplit; i++) {
+        final String serializedSplit = WritableSerializer.serialize(splits[i]);
+        keys[i] = new HDFSBackedCacheKey(path, serializedJobConf, serializedSplit);
+      }
+      return keys;
+    } catch (final IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

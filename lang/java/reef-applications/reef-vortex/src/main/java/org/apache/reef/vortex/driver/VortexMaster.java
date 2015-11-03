@@ -25,6 +25,7 @@ import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 import javax.annotation.Nonnull;
@@ -74,6 +75,8 @@ public interface VortexMaster {
    */
   <T extends Serializable> CacheKey<T> cache(final String keyName, @Nonnull final T data)
       throws VortexCacheException;
+
+  HDFSBackedCacheKey[] cache(final String path, int numSplit);
 
   /**
    * Call this when a worker requests the cached data.

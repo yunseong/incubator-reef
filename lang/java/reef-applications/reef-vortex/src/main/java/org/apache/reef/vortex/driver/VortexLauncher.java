@@ -22,7 +22,9 @@ import org.apache.reef.annotations.Unstable;
 import org.apache.reef.client.DriverLauncher;
 import org.apache.reef.client.LauncherStatus;
 import org.apache.reef.runtime.local.client.LocalRuntimeConfiguration;
+import org.apache.reef.runtime.yarn.client.YarnClientConfiguration;
 import org.apache.reef.tang.Configuration;
+import org.apache.reef.tang.Configurations;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.vortex.api.VortexStart;
 
@@ -41,21 +43,48 @@ public final class VortexLauncher {
    */
   public static LauncherStatus launchLocal(final String jobName,
                                            final Class<? extends VortexStart> vortexUserCode,
+                                           final boolean handleStraggler,
                                            final int numOfWorkers,
                                            final int workerMemory,
                                            final int workerCores,
-                                           final int workerCapacity) {
+                                           final int workerCapacity,
+                                           final Configuration clientConf) {
     final Configuration runtimeConf = LocalRuntimeConfiguration.CONF
         .set(LocalRuntimeConfiguration.MAX_NUMBER_OF_EVALUATORS, MAX_NUMBER_OF_EVALUATORS)
         .build();
     final Configuration vortexConf = VortexConfHelper.getVortexConf(
         jobName,
         vortexUserCode,
+        handleStraggler,
         numOfWorkers,
         workerMemory,
         workerCores,
         workerCapacity);
-    return launch(runtimeConf, vortexConf);
+    return launch(runtimeConf, Configurations.merge(vortexConf, clientConf));
+  }
+
+  /**
+   * Launch a Vortex job using YARN runtime.
+   */
+  public static LauncherStatus launchYarn(final String jobName,
+                                          final Class<? extends VortexStart> vortexUserCode,
+                                          final boolean handlesStraggler,
+                                          final int numOfWorkers,
+                                          final int workerMemory,
+                                          final int workerCores,
+                                          final int workerCapacity,
+                                          final Configuration clientConf) {
+    final Configuration runtimeConf = YarnClientConfiguration.CONF
+        .build();
+    final Configuration vortexConf = VortexConfHelper.getVortexConf(
+        jobName,
+        vortexUserCode,
+        handlesStraggler,
+        numOfWorkers,
+        workerMemory,
+        workerCores,
+        workerCapacity);
+    return launch(runtimeConf, Configurations.merge(vortexConf, clientConf));
   }
 
   private static LauncherStatus launch(final Configuration runtimeConf, final Configuration vortexConf) {

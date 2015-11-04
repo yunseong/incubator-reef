@@ -18,6 +18,7 @@
  */
 package org.apache.reef.vortex.examples.straggler;
 
+import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.api.VortexThreadPool;
@@ -34,25 +35,28 @@ import java.util.logging.Logger;
  */
 public final class StragglerStart implements VortexStart {
   private static final Logger LOG = Logger.getLogger(StragglerStart.class.getName());
+  private final String stragglerAddresses;
+  private final int numTasklets;
 
   @Inject
-  private StragglerStart() {
+  private StragglerStart(@Parameter(Straggler.StragglerAddresses.class) final String stragglerAddresses,
+                         @Parameter(Straggler.NumTasklets.class) final int numTasklets) {
+    this.stragglerAddresses = stragglerAddresses;
+    this.numTasklets = numTasklets;
   }
-
-  private static final int NUM_TASKLETS = 400;
 
   @Override
   public void start(final VortexThreadPool vortexThreadPool) {
     final long startTime = System.currentTimeMillis();
 
-    final List<VortexFuture<Long>> futures = new ArrayList<>(NUM_TASKLETS);
+    final List<VortexFuture<Long>> futures = new ArrayList<>(numTasklets);
 
-    for (int i = 0; i < NUM_TASKLETS; i++) {
-      futures.add(vortexThreadPool.submit(new StragglerFunction(), "172.22.151.235,172.22.151.236"));
+    for (int i = 0; i < numTasklets; i++) {
+      futures.add(vortexThreadPool.submit(new StragglerFunction(), stragglerAddresses));
     }
 
     try {
-      for (int i = 0; i < NUM_TASKLETS; i++) {
+      for (int i = 0; i < numTasklets; i++) {
         final VortexFuture<Long> future = futures.get(i);
         final long result = future.get();
         LOG.log(Level.INFO, "Result: time {0}", result);

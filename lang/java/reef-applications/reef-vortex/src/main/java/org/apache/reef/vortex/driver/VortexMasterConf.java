@@ -97,6 +97,11 @@ public final class VortexMasterConf extends ConfigurationModuleBuilder {
   public static final RequiredParameter<Integer> NUM_OF_VORTEX_START_THERAD = new RequiredParameter<>();
 
   /**
+   * Implementation of Scheduling policy.
+   */
+  public static final OptionalImpl<SchedulingPolicy> SCHEDULING_POLICY = new OptionalImpl<>();
+
+  /**
    * Vortex Master configuration.
    */
   public static final ConfigurationModule CONF = new VortexMasterConf()
@@ -105,6 +110,7 @@ public final class VortexMasterConf extends ConfigurationModuleBuilder {
       .bindNamedParameter(WorkerCores.class, WORKER_CORES)
       .bindNamedParameter(WorkerCapacity.class, WORKER_CAPACITY)
       .bindImplementation(VortexStart.class, VORTEX_START)
+      .bindImplementation(SchedulingPolicy.class, SCHEDULING_POLICY)
       .bindNamedParameter(NumberOfVortexStartThreads.class, NUM_OF_VORTEX_START_THERAD)
       .build();
 }

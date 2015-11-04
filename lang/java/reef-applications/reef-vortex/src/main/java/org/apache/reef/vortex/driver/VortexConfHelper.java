@@ -40,6 +40,7 @@ public final class VortexConfHelper {
    */
   public static Configuration getVortexConf(final String jobName,
                                             final Class<? extends VortexStart> vortexStart,
+                                            final boolean handleStraggler,
                                             final int numOfWorkers,
                                             final int workerMemory,
                                             final int workerCores,
@@ -54,6 +55,9 @@ public final class VortexConfHelper {
         .set(DriverConfiguration.DRIVER_IDENTIFIER, jobName)
         .build();
 
+    final Class<? extends SchedulingPolicy> schedulingPolicyClass = handleStraggler ?
+        StragglerHandlingSchedulingPolicy.class : FirstFitSchedulingPolicy.class;
+
     final Configuration vortexMasterConf = VortexMasterConf.CONF
         .set(VortexMasterConf.WORKER_NUM, numOfWorkers)
         .set(VortexMasterConf.WORKER_MEM, workerMemory)
@@ -61,6 +65,7 @@ public final class VortexConfHelper {
         .set(VortexMasterConf.WORKER_CAPACITY, workerCapacity)
         .set(VortexMasterConf.VORTEX_START, vortexStart)
         .set(VortexMasterConf.NUM_OF_VORTEX_START_THERAD, DEFAULT_NUM_OF_VORTEX_START_THERAD) // fixed to 1 for now
+        .set(VortexMasterConf.SCHEDULING_POLICY, schedulingPolicyClass)
         .build();
 
     return Configurations.merge(vortexDriverConf, vortexMasterConf);

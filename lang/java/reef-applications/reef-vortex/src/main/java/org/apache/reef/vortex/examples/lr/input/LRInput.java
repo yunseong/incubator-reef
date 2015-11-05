@@ -18,33 +18,44 @@
  */
 package org.apache.reef.vortex.examples.lr.input;
 
+import org.apache.reef.vortex.api.VortexCacheable;
+import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
+import org.apache.reef.vortex.evaluator.VortexCache;
+
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Input used in Logistic Regression which does not cache the data.
+ * Input used in Logistic Regression which caches the training data only.
  */
-public class LRInput implements Serializable {
-  private ArrayList<ArrayBasedVector> trainingData;
-  private SparseVector parameterVector;
-  private int modelDim;
+public final class LRInput implements Serializable, VortexCacheable {
+  private CacheKey<ArrayList<ArrayBasedVector>> trainingDataKey;
+  private CacheKey<MapBasedVector> parameterVectorKey;
 
-  public LRInput() {
+  private LRInput() {
   }
 
-  public LRInput(final SparseVector parameterVector,
-                 final ArrayList<ArrayBasedVector> trainingData,
-                 final int modelDim) {
-    this.parameterVector = parameterVector;
-    this.trainingData = trainingData;
-    this.modelDim = modelDim;
+  public LRInput(final CacheKey<MapBasedVector> parameterVectorKey,
+                 final CacheKey<ArrayList<ArrayBasedVector>> trainingDataKey) {
+    this.parameterVectorKey = parameterVectorKey;
+    this.trainingDataKey = trainingDataKey;
   }
 
-  public SparseVector getParameterVector() {
-    return parameterVector;
+  public MapBasedVector getParameterVector() throws VortexCacheException {
+    return VortexCache.getData(parameterVectorKey);
   }
 
-  public TrainingData getTrainingData() throws ParseException {
-    return DataParser.parseTrainingData(trainingData, modelDim);
+  public ArrayList<ArrayBasedVector> getTrainingData() throws VortexCacheException {
+    return VortexCache.getData(trainingDataKey);
+  }
+
+  @Override
+  public List<CacheKey> getCachedKeys() {
+    final List<CacheKey> keys = new ArrayList<>();
+    keys.add(trainingDataKey);
+    keys.add(parameterVectorKey);
+    return keys;
   }
 }

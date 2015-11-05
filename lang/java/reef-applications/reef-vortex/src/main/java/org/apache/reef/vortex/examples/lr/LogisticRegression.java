@@ -63,13 +63,11 @@ public final class LogisticRegression {
           .registerShortNameOfClass(NumRecords.class)
           .registerShortNameOfClass(Path.class)
           .registerShortNameOfClass(ModelDim.class)
-          .registerShortNameOfClass(Cache.class)
           .processCommandLine(args);
 
       final Injector injector = tang.newInjector(cb.build());
 
       final boolean isLocal = injector.getNamedInstance(Local.class);
-      final boolean isCached = injector.getNamedInstance(Cache.class);
       final int numOfWorkers = injector.getNamedInstance(NumWorkers.class);
       final int workerCores = injector.getNamedInstance(WorkerCores.class);
       final int workerCapacity = injector.getNamedInstance(WorkerCapacity.class);
@@ -79,12 +77,11 @@ public final class LogisticRegression {
           .log(Level.INFO, "Config: [worker] {0} / [mem] {1} / [cores] {2} / [capacity] {3}",
               new Object[]{numOfWorkers, workerMemory, workerCores, workerCapacity});
 
-      final Class startClass = isCached ? CachedLRUrlReputationStart.class : LRUrlReputationStart.class;
       if (isLocal) {
-        VortexLauncher.launchLocal("Vortex_LR", startClass,
+        VortexLauncher.launchLocal("Vortex_LR", LRStart.class,
             numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());
       } else {
-        VortexLauncher.launchYarn("Vortex_LR", startClass,
+        VortexLauncher.launchYarn("Vortex_LR", LRStart.class,
             numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());
       }
 
@@ -139,9 +136,5 @@ public final class LogisticRegression {
 
   @NamedParameter(short_name = "model_dim", default_value = "3231961")
   public static final class ModelDim implements Name<Integer> {
-  }
-
-  @NamedParameter(short_name = "cache", default_value = "true")
-  public static final class Cache implements Name<Boolean> {
   }
 }

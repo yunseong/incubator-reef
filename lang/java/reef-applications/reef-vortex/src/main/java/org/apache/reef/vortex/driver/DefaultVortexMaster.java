@@ -34,8 +34,6 @@ import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.CacheSentRequest;
 import org.apache.reef.vortex.common.VortexRequest;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
-import org.apache.reef.vortex.examples.lr.input.LRInputCached;
-import org.apache.reef.vortex.examples.lr.input.LRInputHalfCached;
 import org.apache.reef.vortex.trace.HTrace;
 
 import javax.annotation.Nonnull;
@@ -57,7 +55,6 @@ import java.util.logging.Logger;
 final class DefaultVortexMaster implements VortexMaster {
   private static final Logger LOG = Logger.getLogger(DefaultVortexMaster.class.getName());
   private static final String JOB_SPAN = "JobSpan";
-  private static final Logger LOG = Logger.getLogger(DefaultVortexMaster.class.getName());
   private static final int CONCURRENCY_LEVEL = 4;
   private final Span jobSpan;
 
@@ -150,8 +147,6 @@ final class DefaultVortexMaster implements VortexMaster {
       throws VortexCacheException {
 
     final Kryo kryo = new Kryo();
-    kryo.register(LRInputCached.class);
-    kryo.register(LRInputHalfCached.class);
 
     final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     final Output output = new Output(byteArrayOutputStream);

@@ -18,7 +18,7 @@
  */
 package org.apache.reef.vortex.examples.lr;
 
-import org.apache.reef.vortex.examples.lr.input.SparseVector;
+import org.apache.reef.vortex.examples.lr.input.MapBasedVector;
 
 import java.io.Serializable;
 
@@ -26,12 +26,12 @@ import java.io.Serializable;
  * Representation of partial result of the Logistic Regression in each iteration.
  */
 public final class PartialResult implements Serializable {
-  private final SparseVector partialGradient;
+  private final MapBasedVector partialGradient;
   private int numPositive;
   private int numNegative;
   private int count;
 
-  public PartialResult(final SparseVector partialGradient,
+  public PartialResult(final MapBasedVector partialGradient,
                        final int numPositive,
                        final int numNegative) {
     this.partialGradient = partialGradient;
@@ -47,7 +47,7 @@ public final class PartialResult implements Serializable {
     count += result.getCount();
   }
 
-  public SparseVector getPartialGradient() {
+  public MapBasedVector getPartialGradient() {
     return partialGradient;
   }
 
@@ -61,5 +61,15 @@ public final class PartialResult implements Serializable {
 
   public int getCount() {
     return count;
+  }
+
+  @Override
+  public String toString() {
+    return "PartialResult{" +
+        "count=" + count +
+        ", partialGradient=" + partialGradient +
+        ", numPositive=" + numPositive +
+        ", numNegative=" + numNegative +
+        '}';
   }
 }

@@ -18,14 +18,14 @@
  */
 package org.apache.reef.vortex.examples.lr.input;
 
-import java.util.HashMap;
+import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Created by v-yunlee on 10/16/2015.
+ * Sparse Vector based on Array.
  */
-public final class ArrayBasedVector {
+public final class ArrayBasedVector implements Serializable {
   private float[] values;
   private int[] indices;
   private int output;
@@ -43,18 +43,6 @@ public final class ArrayBasedVector {
           .log(Level.WARNING, "The length does not match: indices {0} / values {1]",
               new Object[]{indices.length, values.length});
     }
-  }
-
-  public HashMap<Integer, Float> toHashMap(final int modelDim) {
-    final HashMap<Integer, Float> map = new HashMap<>(values.length);
-
-    for (int i = 0; i < values.length; i++) {
-      // Just for partial test.
-      if (indices[i] <= modelDim) {
-        map.put(indices[i]-1, values[i]);
-      }
-    }
-    return map;
   }
 
   public int getOutput() {

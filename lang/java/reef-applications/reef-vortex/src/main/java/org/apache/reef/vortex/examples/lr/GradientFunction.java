@@ -19,11 +19,12 @@
 package org.apache.reef.vortex.examples.lr;
 
 import org.apache.reef.vortex.api.VortexFunction;
+import org.apache.reef.vortex.examples.lr.input.ArrayBasedVector;
 import org.apache.reef.vortex.examples.lr.input.LRInput;
-import org.apache.reef.vortex.examples.lr.input.Row;
-import org.apache.reef.vortex.examples.lr.input.SparseVector;
-import org.apache.reef.vortex.examples.lr.input.TrainingData;
+import org.apache.reef.vortex.examples.lr.input.MapBasedVector;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,50 +37,47 @@ final class GradientFunction implements VortexFunction<LRInput, PartialResult> {
    * Outputs the gradient.
    */
   @Override
-
   public PartialResult call(final LRInput lrInput) throws Exception {
     final long startTime = System.currentTimeMillis();
 
-    final SparseVector parameterVector = lrInput.getParameterVector();
-    final TrainingData trainingData = lrInput.getTrainingData();
-    final SparseVector gradientResult = new SparseVector(trainingData.getDimension());
+    final MapBasedVector parameterVector = lrInput.getParameterVector();
+    final long modelLoadedTime = System.currentTimeMillis();
+
+    final ArrayList<ArrayBasedVector> trainingData = lrInput.getTrainingData();
+    final long trainingLoadedTime = System.currentTimeMillis();
+
+    final MapBasedVector gradientResult = new MapBasedVector(parameterVector.getDimension());
 
     // For estimating the accuracy.
     int numPositive = 0;
     int numNegative = 0;
 
-    for (final Row instance : trainingData.get()) {
-      final double predict = parameterVector.dot(instance.getFeature());
+    for (final ArrayBasedVector instance : trainingData) {
+      final double predict = parameterVector.dot(instance);
       final double y = instance.getOutput();
       if (predict * y > 0) {
         numPositive++;
       } else {
         numNegative++;
       }
-
       // Update the gradient vector.
       final double exponent = -predict * y;
       final double maxExponent = Math.max(exponent, 0);
       final double lambda = 1.0; // regularization
       final double logSumExp = maxExponent + Math.log(Math.exp(-maxExponent) + Math.exp(exponent - maxExponent));
-      final SparseVector gradient = instance.getFeature().nTimes((float)(y * (Math.exp(-logSumExp) - 1) + lambda));
 
       final float stepSize = 1e-2f;
-      gradientResult.addVector(gradient.nTimes(-stepSize));
+      gradientResult.addVector((float) (-stepSize * (y * (Math.exp(-logSumExp) - 1) + lambda)), instance);
     }
-    final long finishTime = System.currentTimeMillis();
-    final long lifeTime = finishTime - startTime;
-    LOG.log(Level.INFO, "$V$\tTasklet lifetime\t{0}", lifeTime);
-    return new PartialResult(gradientResult, numPositive, numNegative);
-  }
 
-  /**
-   *
-   * @param predict inner product of the gradient and instance.
-   * @return
-   */
-  private double getHypothesis(final double predict) {
-    final double exponent = -1.0 * predict;
-    return 1 / (1 + Math.pow(Math.E, exponent));
+    final long finishTime = System.currentTimeMillis();
+    final long executionTime = finishTime - trainingLoadedTime;
+    final long modelOverhead = modelLoadedTime - startTime;
+    final long trainingOverhead = trainingLoadedTime - modelLoadedTime;
+    LOG.log(Level.INFO, "!V!\tExecution\t{0}\tModel\t{1}\tTraining\t{2}\tNumRecords\t{3}\tkey\t{4}",
+        new Object[]{executionTime, modelOverhead, trainingOverhead, trainingData.size(),
+            Arrays.toString(lrInput.getCachedKeys().toArray())});
+    final PartialResult result = new PartialResult(gradientResult, numPositive, numNegative);
+    return result;
   }
 }

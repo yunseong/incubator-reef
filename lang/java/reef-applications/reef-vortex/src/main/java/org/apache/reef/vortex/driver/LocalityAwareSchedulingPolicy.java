@@ -29,6 +29,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Schedule Tasklets with best effort for data locality by bookkeeping the location of cached data.
@@ -125,6 +128,21 @@ class LocalityAwareSchedulingPolicy implements SchedulingPolicy {
 
     final Collection<CacheKey> workerKeys = workerKeysMap.get(workerId);
     workerKeys.addAll(keys);
+
+    final StringBuilder sb = new StringBuilder();
+    sb.append("{");
+    for (final Map.Entry<CacheKey, Collection<String>> entry : keyWorkersMap.entrySet()) {
+      if (entry.getKey().getName().startsWith("partition") &&
+          entry.getValue().size() > 1) {
+        sb.append(entry.getKey().getName());
+        sb.append(':');
+        sb.append(entry.getValue().size());
+        sb.append('/');
+      }
+    }
+    sb.append("}");
+    Logger.getLogger(LocalityAwareSchedulingPolicy.class.getName())
+        .log(Level.INFO, "Key distribution: {0}", sb);
   }
 
 

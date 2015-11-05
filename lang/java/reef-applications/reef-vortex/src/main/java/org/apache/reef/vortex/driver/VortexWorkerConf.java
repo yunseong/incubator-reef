@@ -18,6 +18,7 @@
  */
 package org.apache.reef.vortex.driver;
 
+import com.google.common.cache.Cache;
 import org.apache.htrace.SpanReceiver;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.annotations.audience.DriverSide;
@@ -27,6 +28,7 @@ import org.apache.reef.tang.formats.ConfigurationModule;
 import org.apache.reef.tang.formats.ConfigurationModuleBuilder;
 import org.apache.reef.tang.formats.OptionalParameter;
 import org.apache.reef.tang.formats.RequiredParameter;
+import org.apache.reef.vortex.evaluator.CacheConstructor;
 import org.apache.reef.vortex.trace.ReceiverConstructor;
 import org.apache.reef.vortex.trace.parameters.ProcessName;
 import org.apache.reef.vortex.trace.parameters.ReceiverHost;
@@ -78,5 +80,6 @@ public final class VortexWorkerConf extends ConfigurationModuleBuilder {
       .bindNamedParameter(ReceiverHost.class, RECEIVER_HOST)
       .bindNamedParameter(ReceiverPort.class, RECEIVER_PORT)
       .bindConstructor(SpanReceiver.class, ReceiverConstructor.class)
+      .bindConstructor(Cache.class, CacheConstructor.class)
       .build();
 }

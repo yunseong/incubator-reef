@@ -18,14 +18,12 @@
  */
 package org.apache.reef.vortex.evaluator;
 
+import com.google.common.cache.Cache;
 import org.apache.htrace.Span;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceInfo;
 import org.apache.htrace.TraceScope;
 import org.apache.reef.tang.InjectionFuture;
-import org.apache.reef.util.cache.Cache;
-import org.apache.reef.util.cache.CacheImpl;
-import org.apache.reef.util.cache.SystemTime;
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
@@ -34,23 +32,27 @@ import java.io.Serializable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Logger;
 
 /**
  * Caches the data. Users can access the data by calling {@link #getData(CacheKey)} in the user code.
  * If the data does not exist yet, then the cache fetches it from the Driver and returns the loaded data.
  */
 public final class VortexCache {
-  private static final int CACHE_TIMEOUT = 100000;
+  private static final Logger LOG = Logger.getLogger(VortexCache.class.getName());
+
   private static VortexCache cacheRef;
-  private final Cache<CacheKey, Serializable> cache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT);
+  private final Cache<CacheKey, Serializable> cache;
   private final ConcurrentHashMap<CacheKey, CustomCallable> waiters = new ConcurrentHashMap<>();
 
   private final InjectionFuture<VortexWorker> worker;
 
   @Inject
-  private VortexCache(final InjectionFuture<VortexWorker> worker) {
+  private VortexCache(final InjectionFuture<VortexWorker> worker,
+                      final Cache<CacheKey, Serializable> cache) {
     this.worker = worker;
     this.cacheRef = VortexCache.this;
+    this.cache = cache;
   }
 
   /**

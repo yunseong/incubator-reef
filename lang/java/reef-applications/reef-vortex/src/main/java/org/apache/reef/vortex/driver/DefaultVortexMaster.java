@@ -20,6 +20,10 @@ package org.apache.reef.vortex.driver;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import net.jcip.annotations.ThreadSafe;
 import org.apache.htrace.*;
 import org.apache.reef.annotations.audience.DriverSide;
@@ -40,8 +44,6 @@ import javax.inject.Inject;
 import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,13 +58,22 @@ import java.util.logging.Logger;
 final class DefaultVortexMaster implements VortexMaster {
   private static final Logger LOG = Logger.getLogger(DefaultVortexMaster.class.getName());
   private static final String JOB_SPAN = "JobSpan";
+  private static final Logger LOG = Logger.getLogger(DefaultVortexMaster.class.getName());
+  private static final int CONCURRENCY_LEVEL = 4;
   private final Span jobSpan;
 
   private final AtomicInteger taskletIdCounter = new AtomicInteger();
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
-  // TODO This should be replaced by Guava
-  private final ConcurrentMap<String, byte[]> cacheMap = new ConcurrentHashMap<>();
+  private final RemovalListener<String, byte[]> removalListener =
+      new RemovalListener<String, byte[]>() {
+        @Override
+        public void onRemoval(final RemovalNotification<String, byte[]> removalNotification) {
+          LOG.log(Level.INFO, "{0} is removed from MasterCache", removalNotification.getKey());
+        }
+      };
+  private final Cache<String, byte[]> cacheMap =
+      CacheBuilder.newBuilder().concurrencyLevel(CONCURRENCY_LEVEL).removalListener(removalListener).build();
 
   /**
    * @param runningWorkers for managing all running workers.
@@ -145,9 +156,6 @@ final class DefaultVortexMaster implements VortexMaster {
   @Override
   public <T extends Serializable> CacheKey cache(final String keyName, @Nonnull final T data)
       throws VortexCacheException {
-    if (cacheMap.containsKey(keyName)) {
-      throw new VortexCacheException("The keyName " + keyName + "is already used.");
-    }
 
     final Kryo kryo = new Kryo();
     kryo.register(LRInputCached.class);
@@ -163,6 +171,9 @@ final class DefaultVortexMaster implements VortexMaster {
     output.close();
     final byte[] requestBytes = byteArrayOutputStream.toByteArray();
 
+    if (cacheMap.getIfPresent(keyName) != null) {
+      throw new VortexCacheException("The keyName " + keyName + "is already used.");
+    }
     cacheMap.put(keyName, requestBytes);
     return key;
   }
@@ -170,17 +181,15 @@ final class DefaultVortexMaster implements VortexMaster {
   @Override
   public void dataRequested(final String workerId, final CacheKey cacheKey, final Span parentSpan)
       throws VortexCacheException {
-    synchronized (cacheMap) {
-      final String keyName = cacheKey.getName();
-      if (!cacheMap.containsKey(keyName)) {
-        throw new VortexCacheException("The entity does not exist for the key : " + cacheKey);
-      }
-      final byte[] serializedData = cacheMap.get(keyName);
-      Logger.getLogger(DefaultVortexMaster.class.getName())
-          .log(Level.INFO, "*V*fetch\t{0}\tkey\t{1}\tworker\t{2}",
-              new Object[]{serializedData.length, keyName, workerId});
-      runningWorkers.sendCacheData(workerId, serializedData, TraceInfo.fromSpan(parentSpan));
+    final String keyName = cacheKey.getName();
+    final byte[] serializedData = cacheMap.getIfPresent(keyName);
+    if (serializedData == null) {
+      throw new VortexCacheException("The entity does not exist for the key : " + cacheKey);
     }
+    Logger.getLogger(DefaultVortexMaster.class.getName())
+        .log(Level.INFO, "*V*fetch\t{0}\tkey\t{1}\tworker\t{2}",
+            new Object[]{serializedData.length, keyName, workerId});
+    runningWorkers.sendCacheData(workerId, serializedData, TraceInfo.fromSpan(parentSpan));
   }
 
   /**

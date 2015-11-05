@@ -22,7 +22,7 @@ import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.api.VortexThreadPool;
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.examples.lr.input.*;
 import org.apache.reef.vortex.failure.parameters.IntervalMs;
@@ -100,13 +100,13 @@ final class LRUrlReputationStart implements VortexStart {
       final ArrayList<ArrayList<ArrayBasedVector>> partitions = parse();
       final long parseOverhead = System.currentTimeMillis() - start;
 
-      final ArrayList<CacheKey<ArrayList<ArrayBasedVector>>> partitionKeys =
+      final ArrayList<MasterCacheKey<ArrayList<ArrayBasedVector>>> partitionKeys =
           cachePartitions(vortexThreadPool, partitions);
 
       // For each iteration...
       for (int iter = 0; iter < numIter; iter++) {
 
-        final CacheKey<SparseVector> parameterKey = vortexThreadPool.cache("param"+iter, parameterVector);
+        final MasterCacheKey<SparseVector> parameterKey = vortexThreadPool.cache("param"+iter, parameterVector);
         PartialResult reducedResult = null;
 
         // Launch tasklets, each operating on a partition
@@ -148,13 +148,13 @@ final class LRUrlReputationStart implements VortexStart {
    * Cache the partitions into Vortex Cache.
    * @return The cached keys
    */
-  private ArrayList<CacheKey<ArrayList<ArrayBasedVector>>>
+  private ArrayList<MasterCacheKey<ArrayList<ArrayBasedVector>>>
       cachePartitions(final VortexThreadPool vortexThreadPool,
                       final ArrayList<ArrayList<ArrayBasedVector>> partitions)
       throws VortexCacheException, InterruptedException {
     final long startTime = System.currentTimeMillis();
 
-    final ArrayList<CacheKey<ArrayList<ArrayBasedVector>>> keys = new ArrayList<>(partitions.size());
+    final ArrayList<MasterCacheKey<ArrayList<ArrayBasedVector>>> keys = new ArrayList<>(partitions.size());
 
     final ExecutorService executorService = Executors.newFixedThreadPool(NUM_CACHING_THREADS);
     final CountDownLatch latch = new CountDownLatch(partitions.size());
@@ -164,7 +164,7 @@ final class LRUrlReputationStart implements VortexStart {
         @Override
         public void run() {
           try {
-            final CacheKey key = vortexThreadPool.cache(String.valueOf(index), partitions.get(index));
+            final MasterCacheKey key = vortexThreadPool.cache(String.valueOf(index), partitions.get(index));
             synchronized (this) {
               keys.add(key);
             }

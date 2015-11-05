@@ -199,7 +199,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
    * Send the request for the cached data to Master.
    * @param key Key of the data.
    */
-  void sendDataRequest(final CacheKey key, final TraceInfo parentInfo) throws InterruptedException {
+  void sendDataRequest(final MasterCacheKey key, final TraceInfo parentInfo) throws InterruptedException {
     final WorkerReport report = new CacheDataRequest(key, parentInfo);
     workerReports.addLast(SerializationUtils.serialize(report));
     heartBeatTriggerManager.triggerHeartBeat();

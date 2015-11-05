@@ -20,6 +20,7 @@ package org.apache.reef.vortex.examples.lr.input;
 
 import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexCache;
@@ -33,12 +34,12 @@ import java.util.List;
  */
 public final class HDFSCachedInput implements Serializable, VortexCacheable {
   private HDFSBackedCacheKey trainingDataKey;
-  private CacheKey<SparseVector> parameterVectorKey;
+  private MasterCacheKey<SparseVector> parameterVectorKey;
 
   private HDFSCachedInput() {
   }
 
-  public HDFSCachedInput(final CacheKey<SparseVector> parameterVectorKey,
+  public HDFSCachedInput(final MasterCacheKey<SparseVector> parameterVectorKey,
                          final HDFSBackedCacheKey trainingDataKey) {
     this.parameterVectorKey = parameterVectorKey;
     this.trainingDataKey = trainingDataKey;
@@ -60,8 +61,7 @@ public final class HDFSCachedInput implements Serializable, VortexCacheable {
   @Override
   public List<CacheKey> getCachedKeys() {
     final List<CacheKey> keys = new ArrayList<>();
-    // TODO This should be added as CacheKeys
-//    keys.add(trainingDataKey);
+    keys.add(trainingDataKey);
     keys.add(parameterVectorKey);
     return keys;
   }

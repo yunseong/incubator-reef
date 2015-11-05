@@ -20,6 +20,7 @@ package org.apache.reef.vortex.examples.lr.input;
 
 import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexCache;
 
@@ -31,15 +32,15 @@ import java.util.List;
  * Input used in Logistic Regression which caches the training data only.
  */
 public final class LRInputCached implements Serializable, VortexCacheable {
-  private CacheKey<ArrayList<ArrayBasedVector>> trainingDataKey;
-  private CacheKey<SparseVector> parameterVectorKey;
+  private MasterCacheKey<ArrayList<ArrayBasedVector>> trainingDataKey;
+  private MasterCacheKey<SparseVector> parameterVectorKey;
   private int modelDim;
 
   public LRInputCached() {
   }
 
-  public LRInputCached(final CacheKey<SparseVector> parameterVectorKey,
-                       final CacheKey<ArrayList<ArrayBasedVector>> trainingDataKey,
+  public LRInputCached(final MasterCacheKey<SparseVector> parameterVectorKey,
+                       final MasterCacheKey<ArrayList<ArrayBasedVector>> trainingDataKey,
                        final int modelDim) {
     this.parameterVectorKey = parameterVectorKey;
     this.trainingDataKey = trainingDataKey;

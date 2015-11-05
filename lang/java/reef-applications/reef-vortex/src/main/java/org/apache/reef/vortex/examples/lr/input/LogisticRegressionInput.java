@@ -18,7 +18,7 @@
  */
 package org.apache.reef.vortex.examples.lr.input;
 
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexCache;
 
@@ -30,11 +30,11 @@ import java.util.Vector;
  * Encapsulates the input used in the LogisticRegression.
  */
 public class LogisticRegressionInput implements Serializable {
-  private CacheKey<Vector<Double>> parameterVectorKey;
-  private CacheKey<ArrayList<Vector<Double>>> trainingDataKey;
+  private MasterCacheKey<Vector<Double>> parameterVectorKey;
+  private MasterCacheKey<ArrayList<Vector<Double>>> trainingDataKey;
 
-  public LogisticRegressionInput(final CacheKey<Vector<Double>> parameterVectorKey,
-                                 final CacheKey<ArrayList<Vector<Double>>> trainingDataKey) {
+  public LogisticRegressionInput(final MasterCacheKey<Vector<Double>> parameterVectorKey,
+                                 final MasterCacheKey<ArrayList<Vector<Double>>> trainingDataKey) {
     this.parameterVectorKey = parameterVectorKey;
     this.trainingDataKey = trainingDataKey;
   }

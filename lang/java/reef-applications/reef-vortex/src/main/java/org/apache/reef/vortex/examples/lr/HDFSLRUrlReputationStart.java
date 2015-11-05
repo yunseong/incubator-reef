@@ -22,7 +22,7 @@ import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.api.VortexThreadPool;
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.examples.lr.input.HDFSCachedInput;
 import org.apache.reef.vortex.examples.lr.input.SparseVector;
@@ -78,9 +78,6 @@ final class HDFSLRUrlReputationStart implements VortexStart {
    */
   @Override
   public void start(final VortexThreadPool vortexThreadPool) {
-    LOG.log(Level.INFO,
-        "#V#startCached\tDIVIDE_FACTOR\t{0}\tCRASH_PROB\t{1}\tCRASH_INTERVAL\t{2}\tNUM_ITER\t{3}\tNUM_RECORDS\t{4}",
-        new Object[]{divideFactor, probability, interval, numIter, numRecords});
 
     // Measure job finish time from here
     final long start = System.currentTimeMillis();
@@ -90,10 +87,15 @@ final class HDFSLRUrlReputationStart implements VortexStart {
 
       final HDFSBackedCacheKey[] partitions = vortexThreadPool.cache(path, divideFactor);
       final List<VortexFuture<PartialResult>> futures = new ArrayList<>(partitions.length);
+
+      LOG.log(Level.INFO,
+          "#V#startCached\tDIVIDE_FACTOR\t{0}\tCRASH_PROB\t{1}\tCRASH_INTERVAL\t{2}\tNUM_ITER\t{3}\tSPLITS\t{4}",
+          new Object[]{divideFactor, probability, interval, numIter, partitions.length});
+
       // For each iteration...
       for (int iteration = 0; iteration < numIter; iteration++) {
         // Process the partial result and update to the cache
-        final CacheKey<SparseVector> parameterKey = vortexThreadPool.cache("param" + iteration, model);
+        final MasterCacheKey<SparseVector> parameterKey = vortexThreadPool.cache("param" + iteration, model);
         // Launch tasklets, each operating on a partition
         futures.clear();
 

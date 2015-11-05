@@ -24,7 +24,7 @@ import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
@@ -73,7 +73,7 @@ public interface VortexMaster {
    * @return The key with which the data is accessible in the Worker.
    * @throws VortexCacheException If the keyName is registered already in the cache.
    */
-  <T extends Serializable> CacheKey<T> cache(final String keyName, @Nonnull final T data)
+  <T extends Serializable> MasterCacheKey<T> cache(final String keyName, @Nonnull final T data)
       throws VortexCacheException;
 
   HDFSBackedCacheKey[] cache(final String path, int numSplit);
@@ -86,7 +86,7 @@ public interface VortexMaster {
    * @param parentSpan Span that is owned by its parent.
    * @throws VortexCacheException If the data is not found in the cache.
    */
-  <T extends Serializable> void dataRequested(final String workerId, final CacheKey<T> cacheKey,
+  <T extends Serializable> void dataRequested(final String workerId, final MasterCacheKey<T> cacheKey,
                                               final Span parentSpan)
       throws VortexCacheException;
 

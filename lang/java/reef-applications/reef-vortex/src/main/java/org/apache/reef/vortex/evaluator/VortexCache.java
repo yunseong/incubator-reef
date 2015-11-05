@@ -38,7 +38,7 @@ import org.apache.reef.tang.Tang;
 import org.apache.reef.util.cache.Cache;
 import org.apache.reef.util.cache.CacheImpl;
 import org.apache.reef.util.cache.SystemTime;
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
@@ -51,15 +51,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Caches the data. Users can access the data by calling {@link #getData(CacheKey)} in the user code.
+ * Caches the data. Users can access the data by calling {@link #getData(MasterCacheKey)} in the user code.
  * If the data does not exist yet, then the cache fetches it from the Driver and returns the loaded data.
  */
 public final class VortexCache {
   private static final int CACHE_TIMEOUT = 100000;
   private static VortexCache cacheRef;
-  private final Cache<CacheKey, Serializable> cache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT);
+  private final Cache<MasterCacheKey, Serializable> cache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT);
   private final Cache<HDFSBackedCacheKey, List<String>> hdfsCache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT);
-  private final ConcurrentHashMap<CacheKey, CustomCallable> waiters = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<MasterCacheKey, CustomCallable> waiters = new ConcurrentHashMap<>();
 
   private final InjectionFuture<VortexWorker> worker;
 
@@ -75,7 +75,7 @@ public final class VortexCache {
    * @return The data from the cache. If the data does not exist in cache, the thread is blocked until the data arrives.
    * @throws VortexCacheException If it fails to fetch the data.
    */
-  public static <T extends Serializable> T getData(final CacheKey<T> key) throws VortexCacheException {
+  public static <T extends Serializable> T getData(final MasterCacheKey<T> key) throws VortexCacheException {
     final Span currentSpan = Trace.currentSpan();
     try (final TraceScope getDataScope = Trace.startSpan("cache_get_"+key.getName(), currentSpan)) {
       return cacheRef.load(key, getDataScope);
@@ -88,7 +88,7 @@ public final class VortexCache {
     return cacheRef.load(key);
   }
 
-  private <T extends Serializable> T load(final CacheKey<T> key, final TraceScope parentScope)
+  private <T extends Serializable> T load(final MasterCacheKey<T> key, final TraceScope parentScope)
       throws VortexCacheException {
     try {
       return (T) cache.get(key, new CustomCallable<T>(key, parentScope));
@@ -122,7 +122,7 @@ public final class VortexCache {
         }
       });
     } catch (final ExecutionException e) {
-      throw new VortexCacheException("Failed to fetch the data", e);
+      throw new VortexCacheException("Failed to fetch the data for " + key, e);
     }
   }
 
@@ -131,7 +131,7 @@ public final class VortexCache {
    * @param key Key of the data.
    * @param data Data itself.
    */
-  void notifyOnArrival(final CacheKey key, final Serializable data) {
+  void notifyOnArrival(final MasterCacheKey key, final Serializable data) {
     if (!waiters.containsKey(key)) {
       throw new RuntimeException("Not requested key: " + key + "waiters size : " + waiters.size());
     }
@@ -146,10 +146,10 @@ public final class VortexCache {
   final class CustomCallable<T extends Serializable> implements Callable<Serializable> {
     private boolean dataArrived = false;
     private T waitingData;
-    private final CacheKey<T> cacheKey;
+    private final MasterCacheKey<T> cacheKey;
     private final Span callableSpan;
 
-    CustomCallable(final CacheKey<T> cacheKey, final TraceScope parentScope) {
+    CustomCallable(final MasterCacheKey<T> cacheKey, final TraceScope parentScope) {
       this.cacheKey = cacheKey;
       this.callableSpan = parentScope.detach();
     }

@@ -74,8 +74,8 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
     final long executionTime = finishTime - trainingLoadedTime;
     final long modelOverhead = modelLoadedTime - startTime;
     final long trainingOverhead = trainingLoadedTime - modelLoadedTime;
-    LOG.log(Level.INFO, "!V!\tExecution\t{0}\tModel\t{1}\tTraining\t{2}\t\tkey\t{3}",
-        new Object[]{executionTime, modelOverhead, trainingOverhead,
+    LOG.log(Level.INFO, "!V!\tExecution\t{0}\tModel\t{1}\tTraining\t{2}\tTrainingNum\t{3}\tkey\t{4}",
+        new Object[]{executionTime, modelOverhead, trainingOverhead, trainingData.size(),
             Arrays.toString(lrInput.getCachedKeys().toArray())});
     return new PartialResult(gradientResult, numPositive, numNegative);
   }

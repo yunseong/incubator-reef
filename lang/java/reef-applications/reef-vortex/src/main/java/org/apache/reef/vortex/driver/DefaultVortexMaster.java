@@ -33,7 +33,7 @@ import org.apache.reef.tang.ExternalConstructor;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.CacheSentRequest;
 import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.common.VortexRequest;
@@ -142,7 +142,7 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
-  public <T extends Serializable> CacheKey cache(final String keyName, @Nonnull final T data)
+  public <T extends Serializable> MasterCacheKey<T> cache(final String keyName, @Nonnull final T data)
       throws VortexCacheException {
     if (cacheMap.containsKey(keyName)) {
       throw new VortexCacheException("The keyName " + keyName + "is already used.");
@@ -155,7 +155,7 @@ final class DefaultVortexMaster implements VortexMaster {
     final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     final Output output = new Output(byteArrayOutputStream);
 
-    final CacheKey key = new CacheKey(keyName);
+    final MasterCacheKey key = new MasterCacheKey(keyName);
     final CacheSentRequest cacheSentRequest = new CacheSentRequest(key, data);
 
     kryo.writeObject(output, new VortexRequest(cacheSentRequest));
@@ -180,7 +180,7 @@ final class DefaultVortexMaster implements VortexMaster {
       final HDFSBackedCacheKey[] keys = new HDFSBackedCacheKey[numSplit];
       for (int i = 0; i < numSplit; i++) {
         final String serializedSplit = WritableSerializer.serialize(splits[i]);
-        keys[i] = new HDFSBackedCacheKey(path, serializedJobConf, serializedSplit);
+        keys[i] = new HDFSBackedCacheKey(path, i, serializedJobConf, serializedSplit);
       }
       return keys;
     } catch (final IOException e) {
@@ -189,7 +189,7 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
-  public void dataRequested(final String workerId, final CacheKey cacheKey, final Span parentSpan)
+  public void dataRequested(final String workerId, final MasterCacheKey cacheKey, final Span parentSpan)
       throws VortexCacheException {
     synchronized (cacheMap) {
       final String keyName = cacheKey.getName();

@@ -18,50 +18,10 @@
  */
 package org.apache.reef.vortex.common;
 
-import java.io.Serializable;
-
 /**
- * Key used to get the data from the Worker cache
- * Users should assign unique name to distinguish the keys.
+ * CacheKey is issued in Master's user code. Tasklets use this key to access
+ * the data from Worker cache. Each data is distinguished by cache key's identifier.
  */
-public final class CacheKey<T extends Serializable> implements Serializable {
-  private String name;
-
-  public CacheKey(){
-  }
-
-  public CacheKey(final String name) {
-    this.name = name;
-  }
-
-  /**
-   * @return Name of the key.
-   */
-  public String getName() {
-    return name;
-  }
-
-  @Override
-  public String toString() {
-    return "CacheKey{name='" + name + "'}";
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-
-    final CacheKey<?> cacheKey = (CacheKey<?>) o;
-
-    return name.equals(cacheKey.name);
-  }
-
-  @Override
-  public int hashCode() {
-    return name.hashCode();
-  }
+public interface CacheKey {
+  String getId();
 }

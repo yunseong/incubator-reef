@@ -24,16 +24,19 @@ import java.io.Serializable;
  * Key used to get the data from the Worker cache
  * Users should assign unique name to distinguish the keys.
  */
-public final class HDFSBackedCacheKey implements Serializable {
+public final class HDFSBackedCacheKey implements Serializable, CacheKey {
   private String serializedJobConf;
   private String serializedInputSplit;
   private String path;
+  private int index;
 
   private HDFSBackedCacheKey(){
   }
 
-  public HDFSBackedCacheKey(final String path, final String serializedJobConf, final String serializedInputSplit) {
+  public HDFSBackedCacheKey(final String path, final int index, final String serializedJobConf,
+                            final String serializedInputSplit) {
     this.path = path;
+    this.index = index;
     this.serializedJobConf = serializedJobConf;
     this.serializedInputSplit = serializedInputSplit;
   }
@@ -48,5 +51,48 @@ public final class HDFSBackedCacheKey implements Serializable {
 
   public String getSerializedInputSplit() {
     return serializedInputSplit;
+  }
+
+  @Override
+  public String toString() {
+    return "HDFSBackedCacheKey{" +
+        "path=" + path +
+        ", index='" + index + '\'' +
+        '}';
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    final HDFSBackedCacheKey that = (HDFSBackedCacheKey) o;
+
+    if (index != that.index) {
+      return false;
+    }
+    if (serializedInputSplit != null ?
+        !serializedInputSplit.equals(that.serializedInputSplit) : that.serializedInputSplit != null) {
+      return false;
+    }
+    return !(path != null ? !path.equals(that.path) : that.path != null);
+
+  }
+
+  @Override
+  public int hashCode() {
+    int result = serializedInputSplit != null ? serializedInputSplit.hashCode() : 0;
+    result = 31 * result + (path != null ? path.hashCode() : 0);
+    result = 31 * result + index;
+    return result;
+  }
+
+  @Override
+  public String getId() {
+    return path+index;
   }
 }

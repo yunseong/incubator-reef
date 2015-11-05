@@ -18,6 +18,8 @@
  */
 package org.apache.reef.vortex.evaluator;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.InputSplit;
@@ -35,9 +37,6 @@ import org.apache.reef.io.network.util.Pair;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.InjectionFuture;
 import org.apache.reef.tang.Tang;
-import org.apache.reef.util.cache.Cache;
-import org.apache.reef.util.cache.CacheImpl;
-import org.apache.reef.util.cache.SystemTime;
 import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
@@ -55,10 +54,9 @@ import java.util.concurrent.ExecutionException;
  * If the data does not exist yet, then the cache fetches it from the Driver and returns the loaded data.
  */
 public final class VortexCache {
-  private static final int CACHE_TIMEOUT = 100000;
   private static VortexCache cacheRef;
-  private final Cache<MasterCacheKey, Serializable> cache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT);
-  private final Cache<HDFSBackedCacheKey, List<String>> hdfsCache = new CacheImpl<>(new SystemTime(), CACHE_TIMEOUT);
+  private final Cache<MasterCacheKey, Serializable> cache;
+  private final Cache<HDFSBackedCacheKey, List<String>> hdfsCache;
   private final ConcurrentHashMap<MasterCacheKey, CustomCallable> waiters = new ConcurrentHashMap<>();
 
   private final InjectionFuture<VortexWorker> worker;
@@ -67,6 +65,8 @@ public final class VortexCache {
   private VortexCache(final InjectionFuture<VortexWorker> worker) {
     this.worker = worker;
     this.cacheRef = VortexCache.this;
+    cache = CacheBuilder.newBuilder().concurrencyLevel(4).build();
+    hdfsCache = CacheBuilder.newBuilder().concurrencyLevel(4).build();
   }
 
   /**

@@ -22,12 +22,14 @@ import org.apache.commons.lang.SerializationUtils;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.apache.reef.annotations.audience.DriverSide;
+import org.apache.reef.driver.context.ContextConfiguration;
 import org.apache.reef.driver.evaluator.*;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.driver.task.TaskConfiguration;
 import org.apache.reef.driver.task.TaskMessage;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Configurations;
+import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.tang.annotations.Unit;
 import org.apache.reef.vortex.api.VortexStart;
@@ -37,6 +39,9 @@ import org.apache.reef.vortex.common.TaskletResultReport;
 import org.apache.reef.vortex.common.WorkerReport;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexWorker;
+import org.apache.reef.vortex.failure.VortexPoisonedContextStartHandler;
+import org.apache.reef.vortex.failure.parameters.IntervalMs;
+import org.apache.reef.vortex.failure.parameters.Probability;
 import org.apache.reef.vortex.trace.parameters.ReceiverHost;
 import org.apache.reef.vortex.trace.parameters.ReceiverPort;
 import org.apache.reef.vortex.trace.parameters.ReceiverType;
@@ -44,6 +49,8 @@ import org.apache.reef.wake.EStage;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.impl.SingleThreadStage;
 import org.apache.reef.wake.impl.ThreadPoolStage;
+import org.apache.reef.wake.time.Clock;
+import org.apache.reef.wake.time.event.Alarm;
 import org.apache.reef.wake.time.event.StartTime;
 
 import javax.inject.Inject;
@@ -80,6 +87,9 @@ final class VortexDriver {
   private final EStage<Integer> pendingTaskletSchedulerEStage;
 
   private final AtomicInteger barrier;
+  private final double failureProbability;
+  private final int failureInterval;
+  private final Clock clock;
 
   @Inject
   private VortexDriver(final EvaluatorRequestor evaluatorRequestor,
@@ -88,19 +98,23 @@ final class VortexDriver {
                        final VortexStart vortexStart,
                        final VortexStartExecutor vortexStartExecutor,
                        final PendingTaskletLauncher pendingTaskletLauncher,
+                       final Clock clock,
                        @Parameter(VortexMasterConf.WorkerMem.class) final int workerMem,
                        @Parameter(VortexMasterConf.WorkerNum.class) final int workerNum,
                        @Parameter(VortexMasterConf.WorkerCores.class) final int workerCores,
                        @Parameter(VortexMasterConf.NumberOfVortexStartThreads.class) final int numOfStartThreads,
                        @Parameter(ReceiverType.class) final String receiverType,
                        @Parameter(ReceiverHost.class) final String receiverHost,
-                       @Parameter(ReceiverPort.class) final int receiverPort) {
+                       @Parameter(ReceiverPort.class) final int receiverPort,
+                       @Parameter(Probability.class) final double failureProbability,
+                       @Parameter(IntervalMs.class) final int failureInterval) {
     this.vortexStartEStage = new ThreadPoolStage<>(vortexStartExecutor, numOfStartThreads);
     this.vortexStart = vortexStart;
     this.pendingTaskletSchedulerEStage = new SingleThreadStage<>(pendingTaskletLauncher, 1);
     this.evaluatorRequestor = evaluatorRequestor;
     this.vortexMaster = vortexMaster;
     this.vortexRequestor = vortexRequestor;
+    this.clock = clock;
     this.evalMem = workerMem;
     this.evalNum = workerNum;
     this.evalCores = workerCores;
@@ -108,6 +122,8 @@ final class VortexDriver {
     this.receiverType = receiverType;
     this.receiverHost = receiverHost;
     this.receiverPort = receiverPort;
+    this.failureProbability = failureProbability;
+    this.failureInterval = failureInterval;
   }
 
   /**
@@ -141,6 +157,17 @@ final class VortexDriver {
           .set(VortexWorkerConf.NUM_OF_THREADS, evalCores) // NUM_OF_THREADS = evalCores
           .build();
 
+      final Configuration contextConfiguration =
+          Configurations.merge(
+              Tang.Factory.getTang().newConfigurationBuilder()
+                  .bindNamedParameter(Probability.class, Double.toString(failureProbability))
+                  .bindNamedParameter(IntervalMs.class, Integer.toString(failureInterval))
+                  .build(),
+              ContextConfiguration.CONF
+                  .set(ContextConfiguration.IDENTIFIER, "vortex_worker")
+                  .set(ContextConfiguration.ON_CONTEXT_STARTED, VortexPoisonedContextStartHandler.class)
+                  .build());
+
       final Configuration taskConfiguration = TaskConfiguration.CONF
           .set(TaskConfiguration.IDENTIFIER, workerId)
           .set(TaskConfiguration.TASK, VortexWorker.class)
@@ -149,7 +176,8 @@ final class VortexDriver {
           .set(TaskConfiguration.ON_CLOSE, VortexWorker.TaskCloseHandler.class)
           .build();
 
-      allocatedEvaluator.submitTask(Configurations.merge(workerConfiguration, taskConfiguration));
+      allocatedEvaluator.submitContextAndTask(contextConfiguration,
+          Configurations.merge(workerConfiguration, taskConfiguration));
     }
   }
 
@@ -218,14 +246,24 @@ final class VortexDriver {
       if (numberOfFailures.incrementAndGet() >= MAX_NUM_OF_FAILURES) {
         throw new RuntimeException("Exceeded max number of failures");
       } else {
-        // We request a new evaluator to take the place of the preempted one
-        evaluatorRequestor.submit(EvaluatorRequest.newBuilder()
-            .setNumber(1)
-            .setMemory(evalMem)
-            .setNumberOfCores(evalCores)
-            .build());
+        LOG.log(Level.INFO, "#S#simulate preemption: sleep for interval {0} ms", failureInterval);
+        clock.scheduleAlarm(failureInterval, new EventHandler<Alarm>() {
+          @Override
+          public void onNext(final Alarm value) {
+            // We request a new evaluator to take the place of the preempted one
+            evaluatorRequestor.submit(EvaluatorRequest.newBuilder()
+                .setNumber(1)
+                .setMemory(evalMem)
+                .setNumberOfCores(evalCores)
+                .build());
 
-        vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
+            if (failedEvaluator.getFailedTask().isPresent()) {
+              vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
+            } else {
+              LOG.log(Level.WARNING, "Worker preempted, but not recoverable.");
+            }
+          }
+        });
       }
     }
   }

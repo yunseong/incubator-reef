@@ -51,6 +51,7 @@ import java.util.logging.Logger;
 @ThreadSafe
 @DriverSide
 final class DefaultVortexMaster implements VortexMaster {
+  private static final Logger LOG = Logger.getLogger(DefaultVortexMaster.class.getName());
   private static final String JOB_SPAN = "JobSpan";
   private final Span jobSpan;
 
@@ -107,6 +108,7 @@ final class DefaultVortexMaster implements VortexMaster {
     final Optional<Collection<Tasklet>> preemptedTasklets = runningWorkers.removeWorker(id);
     if (preemptedTasklets.isPresent()) {
       for (final Tasklet tasklet : preemptedTasklets.get()) {
+        LOG.log(Level.INFO, "restore {0}", tasklet.getId());
         pendingTasklets.addFirst(tasklet);
       }
     }

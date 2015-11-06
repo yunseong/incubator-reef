@@ -22,6 +22,7 @@ import org.apache.reef.annotations.Unstable;
 import org.apache.reef.client.DriverLauncher;
 import org.apache.reef.client.LauncherStatus;
 import org.apache.reef.runtime.local.client.LocalRuntimeConfiguration;
+import org.apache.reef.runtime.yarn.client.YarnClientConfiguration;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.vortex.api.VortexStart;
@@ -47,6 +48,27 @@ public final class VortexLauncher {
                                            final int workerCapacity) {
     final Configuration runtimeConf = LocalRuntimeConfiguration.CONF
         .set(LocalRuntimeConfiguration.MAX_NUMBER_OF_EVALUATORS, MAX_NUMBER_OF_EVALUATORS)
+        .build();
+    final Configuration vortexConf = VortexConfHelper.getVortexConf(
+        jobName,
+        vortexUserCode,
+        numOfWorkers,
+        workerMemory,
+        workerCores,
+        workerCapacity);
+    return launch(runtimeConf, vortexConf);
+  }
+
+  /**
+   * Launch a Vortex job using the YARN runtime.
+   */
+  public static LauncherStatus launchYarn(final String jobName,
+                                           final Class<? extends VortexStart> vortexUserCode,
+                                           final int numOfWorkers,
+                                           final int workerMemory,
+                                           final int workerCores,
+                                           final int workerCapacity) {
+    final Configuration runtimeConf = YarnClientConfiguration.CONF
         .build();
     final Configuration vortexConf = VortexConfHelper.getVortexConf(
         jobName,

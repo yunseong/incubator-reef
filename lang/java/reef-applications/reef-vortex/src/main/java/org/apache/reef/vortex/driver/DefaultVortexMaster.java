@@ -30,6 +30,8 @@ import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.CacheSentRequest;
 import org.apache.reef.vortex.common.VortexRequest;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
+import org.apache.reef.vortex.examples.lr.input.LRInputCached;
+import org.apache.reef.vortex.examples.lr.input.LRInputHalfCached;
 import org.apache.reef.vortex.trace.HTrace;
 
 import javax.annotation.Nonnull;
@@ -140,6 +142,8 @@ final class DefaultVortexMaster implements VortexMaster {
     }
 
     final Kryo kryo = new Kryo();
+    kryo.register(LRInputCached.class);
+    kryo.register(LRInputHalfCached.class);
 
     final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     final Output output = new Output(byteArrayOutputStream);

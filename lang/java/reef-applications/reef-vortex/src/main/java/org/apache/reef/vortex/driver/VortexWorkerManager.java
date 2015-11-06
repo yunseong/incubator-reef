@@ -19,9 +19,13 @@
 package org.apache.reef.vortex.driver;
 
 import net.jcip.annotations.NotThreadSafe;
+import org.apache.htrace.TraceInfo;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.task.RunningTask;
+import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.CacheSentRequest;
 import org.apache.reef.vortex.common.TaskletExecutionRequest;
+import org.apache.reef.vortex.common.VortexRequest;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -46,9 +50,21 @@ class VortexWorkerManager {
       void launchTasklet(final Tasklet<TInput, TOutput> tasklet) {
     assert(!runningTasklets.containsKey(tasklet.getId()));
     runningTasklets.put(tasklet.getId(), tasklet);
-    final TaskletExecutionRequest<TInput, TOutput> taskletExecutionRequest
-        = new TaskletExecutionRequest<>(tasklet.getId(), tasklet.getUserFunction(), tasklet.getInput());
-    vortexRequestor.send(reefTask, taskletExecutionRequest, tasklet.getTraceInfo());
+    final TaskletExecutionRequest<TInput, TOutput> taskletExecutionRequest = new TaskletExecutionRequest<>(
+        tasklet.getId(),
+        tasklet.getUserFunction(),
+        tasklet.getInput());
+
+    vortexRequestor.send(reefTask, new VortexRequest(taskletExecutionRequest), tasklet.getTraceInfo());
+  }
+
+  <T extends Serializable> void sendCacheData(final CacheKey<T> key, final T data, final TraceInfo traceInfo) {
+    final CacheSentRequest<T> cacheSentRequest = new CacheSentRequest<>(key, data);
+    vortexRequestor.send(reefTask, new VortexRequest(cacheSentRequest), traceInfo);
+  }
+
+  <T extends Serializable> void sendCacheData(final byte[] serializedData, final TraceInfo traceInfo) {
+    vortexRequestor.send(reefTask, serializedData, traceInfo);
   }
 
   <TOutput extends Serializable> Tasklet taskletCompleted(final Integer taskletId, final TOutput result) {

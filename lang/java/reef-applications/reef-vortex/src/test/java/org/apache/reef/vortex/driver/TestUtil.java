@@ -19,10 +19,14 @@
 package org.apache.reef.vortex.driver;
 
 import org.apache.reef.driver.task.RunningTask;
+import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
+import org.apache.reef.vortex.common.CacheKey;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mockito.Mockito.mock;
@@ -53,12 +57,24 @@ public class TestUtil {
   }
 
   /**
+   * @return a new dummy tasklet that caches the data.
+   */
+  public Tasklet newTaskletWithCache(final String ... keys) {
+    final List<CacheKey> keyList = new ArrayList<>(keys.length);
+    for (final String key : keys) {
+      keyList.add(new CacheKey(key));
+    }
+    final VortexCacheable cacheable = mock(VortexCacheable.class);
+    when(cacheable.getCachedKeys()).thenReturn(keyList);
+    return new Tasklet(taskletId.getAndIncrement(), null, cacheable, new VortexFuture(), null);
+  }
+  /**
    * @return a new dummy function.
    */
   public VortexFunction newFunction() {
     return new VortexFunction() {
       @Override
-      public Serializable call(final Serializable serializable) throws Exception {
+      public Serializable call(final Object serializable) throws Exception {
         return null;
       }
     };

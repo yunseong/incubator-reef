@@ -18,12 +18,14 @@
  */
 package org.apache.reef.vortex.driver;
 
-import org.apache.commons.lang.SerializationUtils;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceInfo;
 import org.apache.htrace.TraceScope;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.task.RunningTask;
+import org.apache.reef.vortex.common.TaskletExecutionRequest;
 import org.apache.reef.vortex.common.VortexRequest;
 
 import javax.inject.Inject;
@@ -51,7 +53,15 @@ class VortexRequestor {
         final byte[] sendingBytes;
 
         try (final TraceScope traceScope = Trace.startSpan("master_serialize", traceInfo)) {
-          requestBytes = SerializationUtils.serialize(vortexRequest);
+          //  Possible race condition with VortexWorkerManager#terminate is addressed by the global lock in VortexMaster
+          final Kryo kryo = new Kryo();
+          final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+          final Output output = new Output(byteArrayOutputStream);
+          kryo.register(TaskletExecutionRequest.class);
+          kryo.register(VortexRequest.class);
+          kryo.writeObject(output, vortexRequest);
+          output.close();
+          requestBytes = byteArrayOutputStream.toByteArray();
         }
 
         try (final TraceScope traceScope =
@@ -60,6 +70,26 @@ class VortexRequestor {
               .putLong(traceInfo.traceId)
               .putLong(traceInfo.spanId)
               .put(requestBytes)
+              .array();
+        }
+
+        reefTask.send(sendingBytes);
+      }
+    });
+  }
+
+  void send(final RunningTask reefTask, final byte[] serializedRequest, final TraceInfo traceInfo) {
+    executorService.execute(new Runnable() {
+      @Override
+      public void run() {
+        final byte[] sendingBytes;
+
+        try (final TraceScope traceScope =
+                 Trace.startSpan("master_append_" + (serializedRequest.length / 1024 / 1024.0) + "mb", traceInfo)) {
+          sendingBytes = ByteBuffer.allocate(2 * (Long.SIZE / Byte.SIZE) + serializedRequest.length)
+              .putLong(traceInfo.traceId)
+              .putLong(traceInfo.spanId)
+              .put(serializedRequest)
               .array();
         }
 

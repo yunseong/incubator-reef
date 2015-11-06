@@ -20,8 +20,10 @@ package org.apache.reef.vortex.driver;
 
 import net.jcip.annotations.ThreadSafe;
 
+import org.apache.htrace.TraceInfo;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
+import org.apache.reef.vortex.common.CacheKey;
 
 import javax.inject.Inject;
 
@@ -191,6 +193,24 @@ final class RunningWorkers {
     }
   }
 
+  /**
+   * Send the cache data to Worker.
+   * @param workerId Worker who requested the cache data.
+   * @param cacheKey Key that is assigned to the data.
+   * @param <T> Type of the data.
+   */
+  <T extends Serializable> void sendCacheData(final String workerId,
+                                              final CacheKey<T> cacheKey,
+                                              final T data,
+                                              final TraceInfo traceInfo) {
+    if (isWorkerRunning(workerId)) {
+      this.runningWorkers.get(workerId).sendCacheData(cacheKey, data, traceInfo);
+      // TODO: schedulingPolicy#cached for bookkeeping cache location
+    } else {
+      throw new RuntimeException("Worker is not running");
+    }
+  }
+
   void terminate() {
     lock.lock();
     try {
@@ -206,6 +226,20 @@ final class RunningWorkers {
       }
     } finally {
       lock.unlock();
+    }
+  }
+
+  /**
+   * Send the serialized request to Worker.
+   */
+  <T extends Serializable> void sendCacheData(final String workerId,
+                                              final byte[] serializedRequest,
+                                              final TraceInfo traceInfo) {
+    if (isWorkerRunning(workerId)) {
+      this.runningWorkers.get(workerId).sendCacheData(serializedRequest, traceInfo);
+      // TODO: schedulingPolicy#cached for bookkeeping cache location
+    } else {
+      throw new RuntimeException("Worker is not running");
     }
   }
 

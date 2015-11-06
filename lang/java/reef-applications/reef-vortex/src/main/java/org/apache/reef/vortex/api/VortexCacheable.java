@@ -16,28 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.common;
+package org.apache.reef.vortex.api;
 
-import org.apache.reef.annotations.Unstable;
+import org.apache.reef.vortex.common.CacheKey;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
- * Worker -> Master protocol.
+ * Interface for letting Vortex know the cached keys.
+ * The keys that appear front have more priority.
  */
-@Unstable
-public interface WorkerReport extends Serializable {
-  /**
-   * Type of WorkerReport.
-   */
-  enum WorkerReportType {
-    TaskletResult,
-    TaskletFailure,
-    CacheRequest
-  }
-
-  /**
-   * @return the type of this WorkerReport.
-   */
-  WorkerReportType getType();
+public interface VortexCacheable extends Serializable {
+  List<CacheKey> getCachedKeys();
 }

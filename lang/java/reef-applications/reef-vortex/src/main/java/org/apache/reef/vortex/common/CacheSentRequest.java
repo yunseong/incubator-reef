@@ -18,24 +18,48 @@
  */
 package org.apache.reef.vortex.common;
 
-import org.apache.reef.annotations.Unstable;
+import java.io.Serializable;
 
 /**
- * Master-to-Worker protocol.
+ * Informs that the data was sent to Worker.
+ * @param <T> Type of the data.
  */
-@Unstable
+// TODO Fix the naming: note that this is not a request actually.
+public final class CacheSentRequest<T extends Serializable> {
+  private CacheKey<T> cacheKey;
+  private T data;
 
-public class VortexRequest<TRequest> {
-  private TRequest request;
-
-  public VortexRequest() {
+  public CacheSentRequest() {
   }
 
-  public VortexRequest(final TRequest request) {
-    this.request = request;
+  /**
+   * @param key Key of the data.
+   * @param data Data that was requested to send.
+   */
+  public CacheSentRequest(final CacheKey<T> key, final T data) {
+    this.cacheKey = key;
+    this.data = data;
   }
 
-  public TRequest getRequest() {
-    return this.request;
+  /**
+   * @return Key of the data.
+   */
+  public CacheKey<T> getCacheKey() {
+    return cacheKey;
+  }
+
+  /**
+   * @return Data that was requested to send.
+   */
+  public T getData() {
+    return data;
+  }
+
+  @Override
+  public String toString() {
+    return "CacheSentRequest{" +
+        "cacheKey=" + cacheKey +
+        ", data=" + data +
+        '}';
   }
 }

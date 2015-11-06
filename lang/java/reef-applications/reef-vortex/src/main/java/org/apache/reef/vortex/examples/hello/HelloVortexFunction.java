@@ -30,7 +30,7 @@ final class HelloVortexFunction implements VortexFunction {
    * Prints to stdout.
    */
   @Override
-  public Serializable call(final Serializable serializable) throws Exception {
+  public Serializable call(final Object serializable) throws Exception {
     System.out.println("Hello, Vortex!");
     return null;
   }

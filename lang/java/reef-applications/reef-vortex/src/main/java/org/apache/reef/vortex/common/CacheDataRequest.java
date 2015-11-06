@@ -18,26 +18,41 @@
  */
 package org.apache.reef.vortex.common;
 
-import org.apache.reef.annotations.Unstable;
+import org.apache.htrace.TraceInfo;
 
 import java.io.Serializable;
 
 /**
- * Worker-to-Master protocol.
+ * The message for Worker to request the cache data to Master.
  */
-@Unstable
-public interface WorkerReport extends Serializable {
-  /**
-   * Type of WorkerReport.
-   */
-  enum WorkerReportType {
-    TaskletResult,
-    TaskletFailure,
-    CacheRequest
+// TODO: The naming needs to be fixed.
+public class CacheDataRequest<T extends Serializable> implements WorkerReport {
+  private CacheKey<T> cacheKey;
+  private long traceId;
+  private long spanId;
+
+  public CacheDataRequest(final CacheKey<T> cacheKey, final TraceInfo traceInfo) {
+    this.cacheKey = cacheKey;
+    this.traceId = traceInfo.traceId;
+    this.spanId = traceInfo.spanId;
+  }
+
+  @Override
+  public WorkerReportType getType() {
+    return WorkerReportType.CacheRequest;
   }
 
   /**
-   * @return the type of this WorkerReport.
+   * @return The key of the data to request to Master.
    */
-  WorkerReportType getType();
+  public CacheKey<T> getCacheKey() {
+    return cacheKey;
+  }
+
+  /**
+   * @return TraceInfo that this request contains.
+   */
+  public TraceInfo getTraceInfo() {
+    return new TraceInfo(traceId, spanId);
+  }
 }

@@ -16,26 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.common;
-
-import org.apache.reef.annotations.Unstable;
+package org.apache.reef.vortex.common.exceptions;
 
 /**
- * Master-to-Worker protocol.
+ * Exception that is thrown while using the cache.
  */
-@Unstable
-
-public class VortexRequest<TRequest> {
-  private TRequest request;
-
-  public VortexRequest() {
+public class VortexCacheException extends Exception {
+  public VortexCacheException(final String message) {
+    super(message);
   }
 
-  public VortexRequest(final TRequest request) {
-    this.request = request;
-  }
-
-  public TRequest getRequest() {
-    return this.request;
+  public VortexCacheException(final String message, final Throwable cause) {
+    super(message, cause);
   }
 }

@@ -16,26 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.common;
+package org.apache.reef.vortex.api;
 
-import org.apache.reef.annotations.Unstable;
+import org.apache.reef.vortex.common.CacheKey;
+
+import java.io.Serializable;
+import java.util.List;
 
 /**
- * Master-to-Worker protocol.
+ * Interface for letting Vortex know the cached keys.
+ * The keys that appear front have more priority.
  */
-@Unstable
-
-public class VortexRequest<TRequest> {
-  private TRequest request;
-
-  public VortexRequest() {
-  }
-
-  public VortexRequest(final TRequest request) {
-    this.request = request;
-  }
-
-  public TRequest getRequest() {
-    return this.request;
-  }
+public interface VortexCacheable extends Serializable {
+  List<CacheKey> getCachedKeys();
 }

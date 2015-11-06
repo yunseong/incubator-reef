@@ -16,26 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.common;
-
-import org.apache.reef.annotations.Unstable;
-
 /**
- * Master-to-Worker protocol.
+ * Exceptions thrown in the Vortex.
  */
-@Unstable
-
-public class VortexRequest<TRequest> {
-  private TRequest request;
-
-  public VortexRequest() {
-  }
-
-  public VortexRequest(final TRequest request) {
-    this.request = request;
-  }
-
-  public TRequest getRequest() {
-    return this.request;
-  }
-}
+package org.apache.reef.vortex.common.exceptions;

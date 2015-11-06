@@ -18,6 +18,7 @@
  */
 package org.apache.reef.vortex.examples.matmul;
 
+import org.apache.reef.tang.Tang;
 import org.apache.reef.vortex.driver.VortexLauncher;
 
 /**
@@ -31,6 +32,7 @@ final class MatMul {
    * Launch the vortex job, passing appropriate arguments.
    */
   public static void main(final String[] args) {
-    VortexLauncher.launchLocal("Vortex_Example_MatMul", MatMulStart.class, 1, 2048, 2, 5000);
+    VortexLauncher.launchLocal("Vortex_Example_MatMul", MatMulStart.class, 1, 2048, 2, 5000,
+        Tang.Factory.getTang().newConfigurationBuilder().build());
   }
 }

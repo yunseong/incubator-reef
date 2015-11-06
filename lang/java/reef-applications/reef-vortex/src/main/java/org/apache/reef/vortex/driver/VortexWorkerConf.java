@@ -18,13 +18,20 @@
  */
 package org.apache.reef.vortex.driver;
 
+import org.apache.htrace.SpanReceiver;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.tang.annotations.NamedParameter;
 import org.apache.reef.tang.formats.ConfigurationModule;
 import org.apache.reef.tang.formats.ConfigurationModuleBuilder;
+import org.apache.reef.tang.formats.OptionalParameter;
 import org.apache.reef.tang.formats.RequiredParameter;
+import org.apache.reef.vortex.trace.ReceiverConstructor;
+import org.apache.reef.vortex.trace.parameters.ProcessName;
+import org.apache.reef.vortex.trace.parameters.ReceiverHost;
+import org.apache.reef.vortex.trace.parameters.ReceiverPort;
+import org.apache.reef.vortex.trace.parameters.ReceiverType;
 
 /**
  *  Vortex Worker configuration.
@@ -44,10 +51,19 @@ public final class VortexWorkerConf extends ConfigurationModuleBuilder {
    */
   public static final RequiredParameter<Integer> NUM_OF_THREADS = new RequiredParameter<>();
 
+  public static final OptionalParameter<String> RECEIVER_TYPE = new OptionalParameter<>();
+  public static final OptionalParameter<String> RECEIVER_HOST = new OptionalParameter<>();
+  public static final OptionalParameter<Integer> RECEIVER_PORT = new OptionalParameter<>();
+
   /**
    * Vortex Worker configuration.
    */
   public static final ConfigurationModule CONF = new VortexWorkerConf()
       .bindNamedParameter(NumOfThreads.class, NUM_OF_THREADS)
+      .bindNamedParameter(ProcessName.class, "vWorker")
+      .bindNamedParameter(ReceiverType.class, RECEIVER_TYPE)
+      .bindNamedParameter(ReceiverHost.class, RECEIVER_HOST)
+      .bindNamedParameter(ReceiverPort.class, RECEIVER_PORT)
+      .bindConstructor(SpanReceiver.class, ReceiverConstructor.class)
       .build();
 }

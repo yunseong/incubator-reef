@@ -48,7 +48,7 @@ class VortexWorkerManager {
     runningTasklets.put(tasklet.getId(), tasklet);
     final TaskletExecutionRequest<TInput, TOutput> taskletExecutionRequest
         = new TaskletExecutionRequest<>(tasklet.getId(), tasklet.getUserFunction(), tasklet.getInput());
-    vortexRequestor.send(reefTask, taskletExecutionRequest);
+    vortexRequestor.send(reefTask, taskletExecutionRequest, tasklet.getTraceInfo());
   }
 
   <TOutput extends Serializable> Tasklet taskletCompleted(final Integer taskletId, final TOutput result) {

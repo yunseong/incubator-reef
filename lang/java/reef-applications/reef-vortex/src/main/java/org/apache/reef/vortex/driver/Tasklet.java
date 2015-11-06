@@ -18,6 +18,7 @@
  */
 package org.apache.reef.vortex.driver;
 
+import org.apache.htrace.*;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
@@ -29,19 +30,25 @@ import java.io.Serializable;
  */
 @DriverSide
 class Tasklet<TInput extends Serializable, TOutput extends Serializable> implements Serializable {
+  private static final String TASKLET_SPAN = "tasklet";
+
   private final int taskletId;
   private final VortexFunction<TInput, TOutput> userTask;
   private final TInput input;
   private final VortexFuture<TOutput> vortexFuture;
+  private final Span taskletSpan;
 
   Tasklet(final int taskletId,
           final VortexFunction<TInput, TOutput> userTask,
           final TInput input,
-          final VortexFuture<TOutput> vortexFuture) {
+          final VortexFuture<TOutput> vortexFuture,
+          final TraceInfo jobTraceInfo) {
     this.taskletId = taskletId;
     this.userTask = userTask;
     this.input = input;
     this.vortexFuture = vortexFuture;
+    this.taskletSpan = Trace.startSpan(TASKLET_SPAN + "_" + taskletId + "_"+ System.currentTimeMillis(),
+        jobTraceInfo).detach();
   }
 
   /**
@@ -69,7 +76,11 @@ class Tasklet<TInput extends Serializable, TOutput extends Serializable> impleme
    * Called by VortexMaster to let the user know that the task completed.
    */
   void completed(final TOutput result) {
-    vortexFuture.completed(result);
+    try (final TraceScope traceScope = Trace.startSpan("master_tasklet_completed_" + taskletId +
+        "_" + System.currentTimeMillis(), TraceInfo.fromSpan(taskletSpan))) {
+      vortexFuture.completed(result);
+    }
+    Trace.continueSpan(taskletSpan).close();
   }
 
   /**
@@ -92,5 +103,12 @@ class Tasklet<TInput extends Serializable, TOutput extends Serializable> impleme
   @Override
   public String toString() {
     return "Tasklet: " + taskletId;
+  }
+
+  /**
+   * @return TraceInfo of the tasklet
+   */
+  public TraceInfo getTraceInfo() {
+    return TraceInfo.fromSpan(taskletSpan);
   }
 }

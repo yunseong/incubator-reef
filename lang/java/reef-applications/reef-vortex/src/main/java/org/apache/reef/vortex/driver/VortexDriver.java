@@ -33,6 +33,9 @@ import org.apache.reef.vortex.common.TaskletFailureReport;
 import org.apache.reef.vortex.common.TaskletResultReport;
 import org.apache.reef.vortex.common.WorkerReport;
 import org.apache.reef.vortex.evaluator.VortexWorker;
+import org.apache.reef.vortex.trace.parameters.ReceiverHost;
+import org.apache.reef.vortex.trace.parameters.ReceiverPort;
+import org.apache.reef.vortex.trace.parameters.ReceiverType;
 import org.apache.reef.wake.EStage;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.impl.SingleThreadStage;
@@ -64,6 +67,10 @@ final class VortexDriver {
   private final int evalNum;
   private final int evalCores;
 
+  private final String receiverType;
+  private final String receiverHost;
+  private final int receiverPort;
+
   private final EStage<VortexStart> vortexStartEStage;
   private final VortexStart vortexStart;
   private final EStage<Integer> pendingTaskletSchedulerEStage;
@@ -80,7 +87,10 @@ final class VortexDriver {
                        @Parameter(VortexMasterConf.WorkerMem.class) final int workerMem,
                        @Parameter(VortexMasterConf.WorkerNum.class) final int workerNum,
                        @Parameter(VortexMasterConf.WorkerCores.class) final int workerCores,
-                       @Parameter(VortexMasterConf.NumberOfVortexStartThreads.class) final int numOfStartThreads) {
+                       @Parameter(VortexMasterConf.NumberOfVortexStartThreads.class) final int numOfStartThreads,
+                       @Parameter(ReceiverType.class) final String receiverType,
+                       @Parameter(ReceiverHost.class) final String receiverHost,
+                       @Parameter(ReceiverPort.class) final int receiverPort) {
     this.vortexStartEStage = new ThreadPoolStage<>(vortexStartExecutor, numOfStartThreads);
     this.vortexStart = vortexStart;
     this.pendingTaskletSchedulerEStage = new SingleThreadStage<>(pendingTaskletLauncher, 1);
@@ -91,6 +101,9 @@ final class VortexDriver {
     this.evalNum = workerNum;
     this.evalCores = workerCores;
     this.barrier = new AtomicInteger(workerNum);
+    this.receiverType = receiverType;
+    this.receiverHost = receiverHost;
+    this.receiverPort = receiverPort;
   }
 
   /**
@@ -118,6 +131,9 @@ final class VortexDriver {
       final String workerId = allocatedEvaluator.getId() + "_vortex_worker";
 
       final Configuration workerConfiguration = VortexWorkerConf.CONF
+          .set(VortexWorkerConf.RECEIVER_TYPE, receiverType)
+          .set(VortexWorkerConf.RECEIVER_HOST, receiverHost)
+          .set(VortexWorkerConf.RECEIVER_PORT, receiverPort)
           .set(VortexWorkerConf.NUM_OF_THREADS, evalCores) // NUM_OF_THREADS = evalCores
           .build();
 

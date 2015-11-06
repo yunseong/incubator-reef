@@ -50,6 +50,11 @@ under the License.
             <artifactId>reef-runtime-local</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>reef-runtime-yarn</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

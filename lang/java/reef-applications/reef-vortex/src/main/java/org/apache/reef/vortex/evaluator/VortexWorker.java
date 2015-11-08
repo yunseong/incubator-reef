@@ -36,7 +36,9 @@ import org.apache.reef.wake.EventHandler;
 
 import javax.inject.Inject;
 import java.io.Serializable;
+import java.util.Map;
 import java.util.concurrent.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -49,6 +51,8 @@ import java.util.logging.Logger;
 public final class VortexWorker implements Task, TaskMessageSource {
   private static final Logger LOG = Logger.getLogger(VortexWorker.class.getName());
   private static final String MESSAGE_SOURCE_ID = ""; // empty string as there is no use for it
+  private static final int STRAGGLER_THRESHOLD_MILLIS = 3000;
+  private static final int STRAGGLER_MONITOR_PREIOD = 2000;
 
   private final BlockingDeque<byte[]> pendingRequests = new LinkedBlockingDeque<>();
   private final BlockingDeque<byte[]> workerReports = new LinkedBlockingDeque<>();
@@ -56,6 +60,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
   private final HeartBeatTriggerManager heartBeatTriggerManager;
   private final int numOfThreads;
   private final CountDownLatch terminated = new CountDownLatch(1);
+  private final ConcurrentMap<Integer, Long> taskletIdToStartTimeMap = new ConcurrentHashMap<>();
 
   @Inject
   private VortexWorker(final HeartBeatTriggerManager heartBeatTriggerManager,
@@ -70,6 +75,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
   @Override
   public byte[] call(final byte[] memento) throws Exception {
 
+    final ExecutorService stragglerMonitorThread = Executors.newSingleThreadExecutor();
     final ExecutorService schedulerThread = Executors.newSingleThreadExecutor();
     final ExecutorService commandExecutor = Executors.newFixedThreadPool(numOfThreads);
 
@@ -97,6 +103,8 @@ public final class VortexWorker implements Task, TaskMessageSource {
                   final TaskletExecutionRequest taskletExecutionRequest = (TaskletExecutionRequest) vortexRequest;
                   try {
                     // Command Executor: Execute the command
+                    taskletIdToStartTimeMap.putIfAbsent(taskletExecutionRequest.getTaskletId(),
+                        System.currentTimeMillis());
                     final Serializable result = taskletExecutionRequest.execute();
 
                     // Command Executor: Tasklet successfully returns result
@@ -118,6 +126,32 @@ public final class VortexWorker implements Task, TaskMessageSource {
             }
           });
 
+        }
+      }
+    });
+
+    stragglerMonitorThread.execute(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          while (true) {
+            // Look up progress tracker, and report if there are Tasklets which take longer than threshold.
+            Thread.sleep(STRAGGLER_MONITOR_PREIOD);
+
+            final long currentTime = System.currentTimeMillis();
+            for (final Map.Entry<Integer, Long> entry : taskletIdToStartTimeMap.entrySet()) {
+              final int taskletId = entry.getKey();
+              final long startTime = entry.getValue();
+              if (currentTime - startTime > STRAGGLER_THRESHOLD_MILLIS) {
+                LOG.log(Level.INFO, "Tasklet {0} seems to be a straggler", taskletId);
+                final WorkerReport report = new TaskletStragglerReport(taskletId);
+                workerReports.addLast(SerializationUtils.serialize(report));
+              }
+            }
+            heartBeatTriggerManager.triggerHeartBeat();
+          }
+        } catch (final InterruptedException e) {
+          throw new RuntimeException(e);
         }
       }
     });

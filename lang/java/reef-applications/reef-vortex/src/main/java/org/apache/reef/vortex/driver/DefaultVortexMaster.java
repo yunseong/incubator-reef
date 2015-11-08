@@ -101,6 +101,11 @@ final class DefaultVortexMaster implements VortexMaster {
     runningWorkers.errorTasklet(workerId, taskletId, exception);
   }
 
+  @Override
+  public void stragglerDetected(final String workerId, final int taskletId) {
+    runningWorkers.duplicateTasklet(workerId, taskletId);
+  }
+
   /**
    * Terminate the job.
    */

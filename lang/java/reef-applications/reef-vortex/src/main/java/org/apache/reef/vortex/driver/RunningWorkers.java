@@ -191,6 +191,32 @@ final class RunningWorkers {
     }
   }
 
+  /**
+   * For handling stragglers, relaunch the straggler to another worker.
+   * Since they may not be a straggler, the Tasklets already launched are not
+   * canceled, and the number of duplicate is limited.
+   * @param workerId
+   * @param taskletId
+   */
+  void duplicateTasklet(final String workerId, final int taskletId) {
+    lock.lock();
+    try {
+      if (!terminated) {
+        if (runningWorkers.containsKey(workerId)) { // Preemption can come before
+          final VortexWorkerManager worker = this.runningWorkers.get(workerId);
+          final Tasklet tasklet = worker.stragglerTasklet(taskletId);
+
+          this.schedulingPolicy.stragglerDetected(worker, tasklet);
+
+          // Notify (possibly) waiting scheduler
+          noWorkerOrResource.signal();
+        }
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+
   void terminate() {
     lock.lock();
     try {

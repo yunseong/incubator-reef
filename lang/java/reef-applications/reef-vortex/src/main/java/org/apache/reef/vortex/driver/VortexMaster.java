@@ -61,6 +61,10 @@ public interface VortexMaster {
   void taskletErrored(final String workerId, final int taskletId, final Exception exception);
 
   /**
+   * Call this when worker detected a Straggler.
+   */
+  void stragglerDetected(final String workerId, final int taskletId);
+  /**
    * Release all resources and shut down.
    */
   void terminate();

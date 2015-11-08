@@ -20,24 +20,32 @@ package org.apache.reef.vortex.common;
 
 import org.apache.reef.annotations.Unstable;
 
-import java.io.Serializable;
-
 /**
- * Worker -> Master protocol.
+ * Report of a tasklet execution result.
  */
 @Unstable
-public interface WorkerReport extends Serializable {
+public final class TaskletStragglerReport implements WorkerReport {
+  private final int taskletId;
+
   /**
-   * Type of WorkerReport.
+   * @param taskletId of the tasklet.
    */
-  enum WorkerReportType {
-    TaskletResult,
-    TaskletFailure,
-    TaskletStraggler
+  public TaskletStragglerReport(final int taskletId) {
+    this.taskletId = taskletId;
   }
 
   /**
    * @return the type of this WorkerReport.
    */
-  WorkerReportType getType();
+  @Override
+  public WorkerReportType getType() {
+    return WorkerReportType.TaskletStraggler;
+  }
+
+  /**
+   * @return the id of the tasklet.
+   */
+  public int getTaskletId() {
+    return taskletId;
+  }
 }

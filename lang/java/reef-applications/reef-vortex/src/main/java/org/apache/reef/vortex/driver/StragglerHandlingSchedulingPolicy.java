@@ -20,9 +20,6 @@ package org.apache.reef.vortex.driver;
 
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.util.Optional;
-import org.apache.reef.wake.EventHandler;
-import org.apache.reef.wake.time.Clock;
-import org.apache.reef.wake.time.event.Alarm;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -42,11 +39,9 @@ import java.util.logging.Logger;
 public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy {
   private static final Logger LOG = Logger.getLogger(StragglerHandlingSchedulingPolicy.class.getName());
   private static final int MAX_DUPLICATE = 3;
-  private static final int STRAGGLER_THRESHOLD_MILLIS = 3000;
 
   private final int workerCapacity;
   private final PendingTasklets pendingTasklets;
-  private final Clock clock;
   private final Map<Integer, Set<Integer>> taskletIdToWorkers = new HashMap<>(100);
 
   /**
@@ -68,11 +63,9 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
 
   @Inject
   StragglerHandlingSchedulingPolicy(@Parameter(VortexMasterConf.WorkerCapacity.class) final int capacity,
-                                    final PendingTasklets pendingTasklets,
-                                    final Clock clock) {
+                                    final PendingTasklets pendingTasklets) {
     this.workerCapacity = capacity;
     this.pendingTasklets = pendingTasklets;
-    this.clock = clock;
   }
 
   @Override
@@ -136,15 +129,10 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
 
     synchronized (this) {
       final Set<Integer> workers = taskletIdToWorkers.get(tasklet.getId());
+      LOG.log(Level.INFO, "Tasklet {0} is running on {1}. New worker: {2}",
+          new Object[]{tasklet.getId(), workers, idList.indexOf(vortexWorker.getId())});
       workers.add(idList.indexOf(vortexWorker.getId()));
       taskletIdToWorkers.put(tasklet.getId(), workers);
-      LOG.log(Level.INFO, "Tasklet {0} is running on {1}, newly launched: {2}",
-          new Object[]{tasklet.getId(), workers, idList.indexOf(vortexWorker.getId())});
-
-      // Up to limit, we schedule alarm to schedule another Tasklet in another Worker.
-      if (workers.size() < MAX_DUPLICATE) {
-        clock.scheduleAlarm(STRAGGLER_THRESHOLD_MILLIS, new StragglerAlarm(tasklet));
-      }
     }
   }
 
@@ -157,6 +145,19 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
   public void taskletFailed(final VortexWorkerManager vortexWorker, final Tasklet tasklet) {
     // Re-execute
     LOG.log(Level.WARNING, "Tasklet {0} failed in {1}", new Object[] {tasklet.getId(), vortexWorker.getId()});
+  }
+
+  @Override
+  public void stragglerDetected(final VortexWorkerManager vortexWorker, final Tasklet tasklet) {
+    synchronized (this) {
+      if (taskletIdToWorkers.containsKey(tasklet.getId()) &&
+          taskletIdToWorkers.get(tasklet.getId()).size() < MAX_DUPLICATE) {
+        pendingTasklets.addFirst(tasklet);
+        LOG.log(Level.INFO, "Reschedule Tasklet {0}", tasklet.getId());
+      } else {
+        LOG.log(Level.INFO, "Tasklet {0} has already finished", tasklet.getId());
+      }
+    }
   }
 
   // Hopefully this really cancels the execution of Tasklet.
@@ -177,26 +178,6 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
   }
 
   int getMaxDuplicate() {
-    return getMaxDuplicate();
-  }
-
-  final class StragglerAlarm implements EventHandler<Alarm> {
-    private Tasklet tasklet;
-
-    StragglerAlarm(final Tasklet tasklet) {
-      this.tasklet = tasklet;
-    }
-
-    @Override
-    public void onNext(final Alarm value) {
-      // Only if the Tasklet is not complete
-      // Check the number of trial?
-      if (taskletIdToWorkers.containsKey(tasklet.getId())) {
-        pendingTasklets.addFirst(tasklet);
-        LOG.log(Level.INFO, "$Reschedule Tasklet {0}", tasklet.getId());
-      } else {
-        LOG.log(Level.INFO, "$Failed to reschedule Tasklet {0}, which has already finished", tasklet.getId());
-      }
-    }
+    return MAX_DUPLICATE;
   }
 }

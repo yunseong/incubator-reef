@@ -65,6 +65,13 @@ class VortexWorkerManager {
     return tasklet;
   }
 
+  Tasklet stragglerTasklet(final Integer taskletId) {
+    // Don't remove tasklet immediately because they could be originally slow.
+    final Tasklet tasklet = runningTasklets.get(taskletId);
+    assert(tasklet != null); // Tasklet should complete/error only once
+    return tasklet;
+  }
+
   Collection<Tasklet> removed() {
     return runningTasklets.isEmpty() ? null : runningTasklets.values();
   }

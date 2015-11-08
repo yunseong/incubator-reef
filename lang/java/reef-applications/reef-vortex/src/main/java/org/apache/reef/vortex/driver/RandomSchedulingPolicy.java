@@ -102,4 +102,9 @@ class RandomSchedulingPolicy implements SchedulingPolicy {
     // Do nothing
   }
 
+  @Override
+  public void stragglerDetected(final VortexWorkerManager vortexWorker, final Tasklet tasklet) {
+    // Do nothing because there is no deterministic order to choose workers.
+  }
+
 }

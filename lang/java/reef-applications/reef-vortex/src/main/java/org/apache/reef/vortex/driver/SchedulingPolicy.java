@@ -57,4 +57,9 @@ interface SchedulingPolicy {
    * Tasklet failed.
    */
   void taskletFailed(final VortexWorkerManager vortexWorker, final Tasklet tasklet);
+
+  /**
+   * Tasklet is reported as a potential straggler.
+   */
+  void stragglerDetected(final VortexWorkerManager vortexWorker, final Tasklet tasklet);
 }

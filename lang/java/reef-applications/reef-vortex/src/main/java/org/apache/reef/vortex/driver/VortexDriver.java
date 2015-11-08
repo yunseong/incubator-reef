@@ -31,6 +31,7 @@ import org.apache.reef.tang.annotations.Unit;
 import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.common.TaskletFailureReport;
 import org.apache.reef.vortex.common.TaskletResultReport;
+import org.apache.reef.vortex.common.TaskletStragglerReport;
 import org.apache.reef.vortex.common.WorkerReport;
 import org.apache.reef.vortex.evaluator.VortexWorker;
 import org.apache.reef.wake.EStage;
@@ -163,6 +164,10 @@ final class VortexDriver {
       case TaskletFailure:
         final TaskletFailureReport taskletFailureReport = (TaskletFailureReport)workerReport;
         vortexMaster.taskletErrored(workerId, taskletFailureReport.getTaskletId(), taskletFailureReport.getException());
+        break;
+      case TaskletStraggler:
+        final TaskletStragglerReport taskletStragglerReport = (TaskletStragglerReport)workerReport;
+        vortexMaster.stragglerDetected(workerId, taskletStragglerReport.getTaskletId());
         break;
       default:
         throw new RuntimeException("Unknown Report");

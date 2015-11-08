@@ -67,9 +67,9 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
   private int nextIndex = 0;
 
   @Inject
-  private StragglerHandlingSchedulingPolicy(@Parameter(VortexMasterConf.WorkerCapacity.class) final int capacity,
-                                            final PendingTasklets pendingTasklets,
-                                            final Clock clock) {
+  StragglerHandlingSchedulingPolicy(@Parameter(VortexMasterConf.WorkerCapacity.class) final int capacity,
+                                    final PendingTasklets pendingTasklets,
+                                    final Clock clock) {
     this.workerCapacity = capacity;
     this.pendingTasklets = pendingTasklets;
     this.clock = clock;
@@ -170,6 +170,14 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
         taskletIdToWorkers.remove(taskletId);
       }
     }
+  }
+
+  synchronized Map<Integer, Set<Integer>> getScheduled() {
+    return taskletIdToWorkers;
+  }
+
+  int getMaxDuplicate() {
+    return getMaxDuplicate();
   }
 
   final class StragglerAlarm implements EventHandler<Alarm> {

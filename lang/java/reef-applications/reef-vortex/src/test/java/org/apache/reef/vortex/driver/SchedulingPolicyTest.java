@@ -18,6 +18,11 @@
  */
 package org.apache.reef.vortex.driver;
 
+import org.apache.reef.tang.Configuration;
+import org.apache.reef.tang.Injector;
+import org.apache.reef.tang.Tang;
+import org.apache.reef.util.Optional;
+import org.apache.reef.wake.time.Clock;
 import org.junit.Test;
 
 import java.util.ArrayDeque;
@@ -38,6 +43,86 @@ public class SchedulingPolicyTest {
   public void testCommon() throws Exception {
     commonPolicyTests(new RandomSchedulingPolicy());
     commonPolicyTests(new FirstFitSchedulingPolicy(10));
+  }
+
+  @Test
+  public void testStragglerHandlingNoStraggler() throws Exception {
+    final int workerCapacity = 1;
+    final int numOfWorkers = 5;
+
+    final Configuration conf = Tang.Factory.getTang().newConfigurationBuilder()
+        .bindNamedParameter(VortexMasterConf.WorkerCapacity.class, Integer.toString(workerCapacity)).build();
+    final StragglerHandlingSchedulingPolicy policy =
+        Tang.Factory.getTang().newInjector(conf).getInstance(StragglerHandlingSchedulingPolicy.class);
+
+    // Add workers
+    final Deque<VortexWorkerManager> workers = new ArrayDeque<>();
+    for (int i = 0; i < numOfWorkers; i++) {
+      final VortexWorkerManager worker = testUtil.newWorker();
+      workers.addFirst(worker);
+      policy.workerAdded(worker);
+    }
+
+    final Tasklet tasklet = testUtil.newTasklet();
+    final Optional<String> workerId = policy.trySchedule(tasklet);
+    assertTrue("Should assign one worker", workerId.isPresent());
+
+    final VortexWorkerManager worker = workers.getFirst();
+    policy.taskletLaunched(worker, tasklet);
+
+    // Terminate right away
+    policy.taskletCompleted(worker, tasklet);
+
+    assertFalse("Should be empty", policy.getScheduled().containsKey(tasklet.getId()));
+  }
+
+
+  @Test
+  public void testStragglerHandlingWithStraggler() throws Exception {
+    final int workerCapacity = 1;
+    final int numOfWorkers = 5;
+
+    final PendingTasklets pendingTasklets = Tang.Factory.getTang().newInjector().getInstance(PendingTasklets.class);
+    final Configuration conf = Tang.Factory.getTang().newConfigurationBuilder()
+        .bindNamedParameter(VortexMasterConf.WorkerCapacity.class, Integer.toString(workerCapacity)).build();
+    final Injector injector = Tang.Factory.getTang().newInjector(conf);
+    injector.bindVolatileInstance(PendingTasklets.class, pendingTasklets);
+    final StragglerHandlingSchedulingPolicy policy = injector.getInstance(StragglerHandlingSchedulingPolicy.class);
+
+    // Add workers
+    final Deque<VortexWorkerManager> workers = new ArrayDeque<>();
+    for (int i = 0; i < numOfWorkers; i++) {
+      final VortexWorkerManager worker = testUtil.newWorker();
+      workers.addFirst(worker);
+      policy.workerAdded(worker);
+    }
+
+    final Tasklet tasklet = testUtil.newTasklet();
+    final Optional<String> workerId = policy.trySchedule(tasklet);
+    assertTrue("Should assign one worker", workerId.isPresent());
+
+    final VortexWorkerManager worker = workers.getFirst();
+    policy.taskletLaunched(worker, tasklet);
+
+    System.out.println("Sleep 4s");
+    // Rather than randomly choose, use threshold.
+    Thread.sleep(4000);
+    // WARNING: Alarm is not working.
+
+    final int numDuplicate = policy.getScheduled().get(tasklet.getId()).size();
+    assertTrue("Should have scheduled more than one", numDuplicate > 1);
+
+    System.out.println("After 4s, there must be a pending Tasklet");
+    final Optional<String> workerId2 = policy.trySchedule(pendingTasklets.takeFirst());
+    assertTrue("Should assign one worker", workerId2.isPresent());
+
+
+    assertTrue("But reschedule does not exceed maximum", policy.getMaxDuplicate() <= numDuplicate);
+
+    // Terminate one Tasklet
+    policy.taskletCompleted(worker, tasklet);
+
+    assertFalse("Should be empty", policy.getScheduled().containsKey(tasklet.getId()));
   }
 
   /**

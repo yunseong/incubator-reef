@@ -22,11 +22,17 @@ import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Injector;
 import org.apache.reef.tang.Tang;
 import org.apache.reef.util.Optional;
-import org.apache.reef.wake.time.Clock;
 import org.junit.Test;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -82,6 +88,8 @@ public class SchedulingPolicyTest {
     final int workerCapacity = 1;
     final int numOfWorkers = 5;
 
+    final ExecutorService executor = Executors.newSingleThreadExecutor();
+
     final PendingTasklets pendingTasklets = Tang.Factory.getTang().newInjector().getInstance(PendingTasklets.class);
     final Configuration conf = Tang.Factory.getTang().newConfigurationBuilder()
         .bindNamedParameter(VortexMasterConf.WorkerCapacity.class, Integer.toString(workerCapacity)).build();
@@ -97,27 +105,44 @@ public class SchedulingPolicyTest {
       policy.workerAdded(worker);
     }
 
+    // Workers that the Tasklet is scheduled to
+    final Set<String> scheduledWorkers = new HashSet<>();
+
+    // Schedule initial time
     final Tasklet tasklet = testUtil.newTasklet();
     final Optional<String> workerId = policy.trySchedule(tasklet);
-    assertTrue("Should assign one worker", workerId.isPresent());
-
     final VortexWorkerManager worker = workers.getFirst();
+    assertTrue("Worker should exist", workerId.isPresent());
     policy.taskletLaunched(worker, tasklet);
 
-    System.out.println("Sleep 4s");
-    // Rather than randomly choose, use threshold.
-    Thread.sleep(4000);
-    // WARNING: Alarm is not working.
+    VortexWorkerManager oldWorker = worker;
+    for (int i = 0; i < numOfWorkers; i++) {
+      // If master receives report that this tasklet might be in a straggler node, then reschedule the tasklet.
+      policy.stragglerDetected(oldWorker, tasklet);
 
-    final int numDuplicate = policy.getScheduled().get(tasklet.getId()).size();
-    assertTrue("Should have scheduled more than one", numDuplicate > 1);
+      final int finalI = i;
+      Future<Tasklet> future = executor.submit(new Callable<Tasklet>() {
+        @Override
+        public Tasklet call() {
+          try {
+            return pendingTasklets.takeFirst();
+          } catch (final InterruptedException e) {
+            if (finalI < policy.getMaxDuplicate()) {
+              // This does not happen until the trial reach maximum trial.
+              fail();
+            }
+          }
+          return null;
+        }
+      });
 
-    System.out.println("After 4s, there must be a pending Tasklet");
-    final Optional<String> workerId2 = policy.trySchedule(pendingTasklets.takeFirst());
-    assertTrue("Should assign one worker", workerId2.isPresent());
-
-
-    assertTrue("But reschedule does not exceed maximum", policy.getMaxDuplicate() <= numDuplicate);
+      final Tasklet toReschedule = future.get(1, TimeUnit.SECONDS);
+      if (toReschedule != null) {
+        final Optional<String> newWorkerId = policy.trySchedule(toReschedule);
+        assertTrue("Should worker exist", newWorkerId.isPresent());
+        assertFalse("Should not the ones who have executed the Tasklets", scheduledWorkers.contains(newWorkerId.get()));
+      }
+    }
 
     // Terminate one Tasklet
     policy.taskletCompleted(worker, tasklet);

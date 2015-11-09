@@ -22,11 +22,12 @@ import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Injector;
 import org.apache.reef.tang.Tang;
 import org.apache.reef.util.Optional;
-import org.apache.reef.wake.time.Clock;
 import org.junit.Test;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
@@ -90,10 +91,10 @@ public class SchedulingPolicyTest {
     final StragglerHandlingSchedulingPolicy policy = injector.getInstance(StragglerHandlingSchedulingPolicy.class);
 
     // Add workers
-    final Deque<VortexWorkerManager> workers = new ArrayDeque<>();
+    final Map<String, VortexWorkerManager> workers = new HashMap<>();
     for (int i = 0; i < numOfWorkers; i++) {
       final VortexWorkerManager worker = testUtil.newWorker();
-      workers.addFirst(worker);
+      workers.put(worker.getId(), worker);
       policy.workerAdded(worker);
     }
 
@@ -101,28 +102,19 @@ public class SchedulingPolicyTest {
     final Optional<String> workerId = policy.trySchedule(tasklet);
     assertTrue("Should assign one worker", workerId.isPresent());
 
-    final VortexWorkerManager worker = workers.getFirst();
+    final VortexWorkerManager worker = workers.get(workerId.get());
     policy.taskletLaunched(worker, tasklet);
 
-    System.out.println("Sleep 4s");
-    // Rather than randomly choose, use threshold.
-    Thread.sleep(4000);
-    // WARNING: Alarm is not working.
-
-    final int numDuplicate = policy.getScheduled().get(tasklet.getId()).size();
-    assertTrue("Should have scheduled more than one", numDuplicate > 1);
-
-    System.out.println("After 4s, there must be a pending Tasklet");
+    // takeFirst() is blocked until a new Tasklet is put in the pending Tasklets.
     final Optional<String> workerId2 = policy.trySchedule(pendingTasklets.takeFirst());
     assertTrue("Should assign one worker", workerId2.isPresent());
-
-
-    assertTrue("But reschedule does not exceed maximum", policy.getMaxDuplicate() <= numDuplicate);
+    assertFalse("Should be different from original worker", workerId.get().equals(workerId2.get()));
+    policy.taskletLaunched(workers.get(workerId2.get()), tasklet);
 
     // Terminate one Tasklet
     policy.taskletCompleted(worker, tasklet);
 
-    assertFalse("Should be empty", policy.getScheduled().containsKey(tasklet.getId()));
+    assertTrue("Should be empty", policy.getScheduled().isEmpty());
   }
 
   /**

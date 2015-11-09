@@ -21,7 +21,6 @@ package org.apache.reef.vortex.driver;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.util.Optional;
 import org.apache.reef.wake.EventHandler;
-import org.apache.reef.wake.time.Clock;
 import org.apache.reef.wake.time.event.Alarm;
 
 import javax.inject.Inject;
@@ -31,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,11 +43,12 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
   private static final Logger LOG = Logger.getLogger(StragglerHandlingSchedulingPolicy.class.getName());
   private static final int MAX_DUPLICATE = 3;
   private static final int STRAGGLER_THRESHOLD_MILLIS = 3000;
+  private static final int STRAGGLER_MONITOR_PERIOD_MILLIS = 1000;
 
   private final int workerCapacity;
   private final PendingTasklets pendingTasklets;
-  private final Clock clock;
-  private final Map<Integer, Set<Integer>> taskletIdToWorkers = new HashMap<>(100);
+  private final Map<Integer, Set<Integer>> taskletIdToWorkers = new HashMap<>();
+  private final Map<Tasklet, Long> taskletToLastLaunchTime = new HashMap<>();
 
   /**
    * Keep the load information for each worker.
@@ -68,11 +69,10 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
 
   @Inject
   StragglerHandlingSchedulingPolicy(@Parameter(VortexMasterConf.WorkerCapacity.class) final int capacity,
-                                    final PendingTasklets pendingTasklets,
-                                    final Clock clock) {
+                                    final PendingTasklets pendingTasklets) {
     this.workerCapacity = capacity;
     this.pendingTasklets = pendingTasklets;
-    this.clock = clock;
+    Executors.newSingleThreadExecutor().execute(new StragglerMonitor());
   }
 
   @Override
@@ -138,13 +138,9 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
       final Set<Integer> workers = taskletIdToWorkers.get(tasklet.getId());
       workers.add(idList.indexOf(vortexWorker.getId()));
       taskletIdToWorkers.put(tasklet.getId(), workers);
+      taskletToLastLaunchTime.put(tasklet, System.currentTimeMillis()); // update the last time
       LOG.log(Level.INFO, "Tasklet {0} is running on {1}, newly launched: {2}",
           new Object[]{tasklet.getId(), workers, idList.indexOf(vortexWorker.getId())});
-
-      // Up to limit, we schedule alarm to schedule another Tasklet in another Worker.
-      if (workers.size() < MAX_DUPLICATE) {
-        clock.scheduleAlarm(STRAGGLER_THRESHOLD_MILLIS, new StragglerAlarm(tasklet));
-      }
     }
   }
 
@@ -196,6 +192,36 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
         LOG.log(Level.INFO, "$Reschedule Tasklet {0}", tasklet.getId());
       } else {
         LOG.log(Level.INFO, "$Failed to reschedule Tasklet {0}, which has already finished", tasklet.getId());
+      }
+    }
+  }
+
+  /**
+   * Monitors Straggler periodically, and duplicate the Tasklet to another if it seems to be a Straggler.
+   */
+  final class StragglerMonitor implements Runnable {
+    @Override
+    public void run() {
+      while (true) {
+        try {
+          synchronized (this) {
+            final long currentTime = System.currentTimeMillis();
+            for (final Map.Entry<Tasklet, Long> entry : taskletToLastLaunchTime.entrySet()) {
+              final Tasklet tasklet = entry.getKey();
+              final int taskletId = tasklet.getId();
+              final long startTime = entry.getValue();
+              if (currentTime - startTime > STRAGGLER_THRESHOLD_MILLIS &&
+                  taskletIdToWorkers.get(taskletId).size() < MAX_DUPLICATE) {
+                LOG.log(Level.INFO, "Tasklet {0} seems to be a Straggler", taskletId);
+                // Reschedule only if the maximum is not exceeded.
+                pendingTasklets.addFirst(tasklet);
+              }
+            }
+          }
+          Thread.sleep(STRAGGLER_MONITOR_PERIOD_MILLIS);
+        } catch (final InterruptedException e) {
+          break;
+        }
       }
     }
   }

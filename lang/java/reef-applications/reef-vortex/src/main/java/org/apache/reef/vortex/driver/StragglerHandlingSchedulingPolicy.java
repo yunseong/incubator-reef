@@ -20,8 +20,6 @@ package org.apache.reef.vortex.driver;
 
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.util.Optional;
-import org.apache.reef.wake.EventHandler;
-import org.apache.reef.wake.time.event.Alarm;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -146,7 +144,7 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
 
   @Override
   public void taskletCompleted(final VortexWorkerManager vortexWorker, final Tasklet tasklet) {
-    removeTasklet(vortexWorker.getId(), tasklet.getId());
+    removeTasklet(vortexWorker.getId(), tasklet);
   }
 
   @Override
@@ -156,44 +154,22 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
   }
 
   // Hopefully this really cancels the execution of Tasklet.
-  private void removeTasklet(final String workerId, final int taskletId) {
+  private void removeTasklet(final String workerId, final Tasklet tasklet) {
     if (idLoadMap.containsKey(workerId)) {
       idLoadMap.put(workerId, Math.max(0, idLoadMap.get(workerId) - 1));
     }
-
     synchronized (this) {
-      if (taskletIdToWorkers.containsKey(taskletId)) {
-        taskletIdToWorkers.remove(taskletId);
+      if (taskletIdToWorkers.containsKey(tasklet.getId())) {
+        taskletIdToWorkers.remove(tasklet.getId());
+      }
+      if (taskletToLastLaunchTime.containsKey(tasklet)) {
+        taskletToLastLaunchTime.remove(tasklet);
       }
     }
   }
 
   synchronized Map<Integer, Set<Integer>> getScheduled() {
     return taskletIdToWorkers;
-  }
-
-  int getMaxDuplicate() {
-    return getMaxDuplicate();
-  }
-
-  final class StragglerAlarm implements EventHandler<Alarm> {
-    private Tasklet tasklet;
-
-    StragglerAlarm(final Tasklet tasklet) {
-      this.tasklet = tasklet;
-    }
-
-    @Override
-    public void onNext(final Alarm value) {
-      // Only if the Tasklet is not complete
-      // Check the number of trial?
-      if (taskletIdToWorkers.containsKey(tasklet.getId())) {
-        pendingTasklets.addFirst(tasklet);
-        LOG.log(Level.INFO, "$Reschedule Tasklet {0}", tasklet.getId());
-      } else {
-        LOG.log(Level.INFO, "$Failed to reschedule Tasklet {0}, which has already finished", tasklet.getId());
-      }
-    }
   }
 
   /**
@@ -204,7 +180,7 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
     public void run() {
       while (true) {
         try {
-          synchronized (this) {
+          synchronized (StragglerHandlingSchedulingPolicy.this) {
             final long currentTime = System.currentTimeMillis();
             for (final Map.Entry<Tasklet, Long> entry : taskletToLastLaunchTime.entrySet()) {
               final Tasklet tasklet = entry.getKey();

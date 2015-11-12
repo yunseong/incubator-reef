@@ -66,6 +66,26 @@ public final class VortexMasterConf extends ConfigurationModuleBuilder {
   final class NumberOfVortexStartThreads implements Name<Integer> {
   }
 
+  @NamedParameter(doc = "Maximum number of duplicate scheduling for handling stragglers")
+  final class MaxDuplicates implements  Name<Integer> {
+  }
+
+  /**
+   * Threshold to determine a Tasklet
+   * {@link org.apache.reef.vortex.driver.StragglerHandlingSchedulingPolicy.StragglerMonitor}.
+   */
+  @NamedParameter(doc = "Period to check stragglers (in ms)", default_value = "3000")
+  final class StragglerThresholdMillis implements  Name<Integer> {
+  }
+
+  /**
+   * Period to check stragglers in
+   * {@link org.apache.reef.vortex.driver.StragglerHandlingSchedulingPolicy.StragglerMonitor}.
+   */
+  @NamedParameter(doc = "Period to check stragglers (in ms)", default_value = "1000")
+  final class StragglerCheckingPeriodMillis implements  Name<Integer> {
+  }
+
   /**
    * Number of Workers.
    */

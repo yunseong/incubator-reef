@@ -40,10 +40,10 @@ import java.util.logging.Logger;
 public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy {
   private static final Logger LOG = Logger.getLogger(StragglerHandlingSchedulingPolicy.class.getName());
   private static final int MAX_DUPLICATE = 3;
-  private static final int STRAGGLER_THRESHOLD_MILLIS = 3000;
-  private static final int STRAGGLER_MONITOR_PERIOD_MILLIS = 1000;
 
   private final int workerCapacity;
+  private final int stragglerThresholdMillis;
+  private final int stragglerCheckingPeriodMillis;
   private final PendingTasklets pendingTasklets;
   private final Map<Integer, Set<Integer>> taskletIdToWorkers = new HashMap<>();
   private final Map<Tasklet, Long> taskletToLastLaunchTime = new HashMap<>();
@@ -67,8 +67,15 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
 
   @Inject
   StragglerHandlingSchedulingPolicy(@Parameter(VortexMasterConf.WorkerCapacity.class) final int capacity,
+                                    @Parameter(VortexMasterConf.MaxDuplicates.class) final int maxDuplicate,
+                                    @Parameter(VortexMasterConf.StragglerCheckingPeriodMillis.class)
+                                    final int stragglerCheckingPeriodMillis,
+                                    @Parameter(VortexMasterConf.StragglerThresholdMillis.class)
+                                    final int stragglerThresholdMillis,
                                     final PendingTasklets pendingTasklets) {
     this.workerCapacity = capacity;
+    this.stragglerCheckingPeriodMillis = stragglerCheckingPeriodMillis;
+    this.stragglerThresholdMillis = stragglerThresholdMillis;
     this.pendingTasklets = pendingTasklets;
     Executors.newSingleThreadExecutor().execute(new StragglerMonitor());
   }
@@ -186,7 +193,7 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
               final Tasklet tasklet = entry.getKey();
               final int taskletId = tasklet.getId();
               final long startTime = entry.getValue();
-              if (currentTime - startTime > STRAGGLER_THRESHOLD_MILLIS &&
+              if (currentTime - startTime > stragglerThresholdMillis &&
                   taskletIdToWorkers.get(taskletId).size() < MAX_DUPLICATE) {
                 LOG.log(Level.INFO, "Tasklet {0} seems to be a Straggler", taskletId);
                 // Reschedule only if the maximum is not exceeded.
@@ -194,7 +201,7 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
               }
             }
           }
-          Thread.sleep(STRAGGLER_MONITOR_PERIOD_MILLIS);
+          Thread.sleep(stragglerCheckingPeriodMillis);
         } catch (final InterruptedException e) {
           break;
         }

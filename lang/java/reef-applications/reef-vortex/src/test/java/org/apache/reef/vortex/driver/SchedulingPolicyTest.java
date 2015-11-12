@@ -82,10 +82,12 @@ public class SchedulingPolicyTest {
   public void testStragglerHandlingWithStraggler() throws Exception {
     final int workerCapacity = 1;
     final int numOfWorkers = 5;
+    final int maxDuplicate = 3;
 
     final PendingTasklets pendingTasklets = Tang.Factory.getTang().newInjector().getInstance(PendingTasklets.class);
     final Configuration conf = Tang.Factory.getTang().newConfigurationBuilder()
-        .bindNamedParameter(VortexMasterConf.WorkerCapacity.class, Integer.toString(workerCapacity)).build();
+        .bindNamedParameter(VortexMasterConf.WorkerCapacity.class, Integer.toString(workerCapacity))
+        .bindNamedParameter().build();
     final Injector injector = Tang.Factory.getTang().newInjector(conf);
     injector.bindVolatileInstance(PendingTasklets.class, pendingTasklets);
     final StragglerHandlingSchedulingPolicy policy = injector.getInstance(StragglerHandlingSchedulingPolicy.class);

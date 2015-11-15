@@ -39,13 +39,49 @@ import java.util.logging.Logger;
  */
 public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy {
   private static final Logger LOG = Logger.getLogger(StragglerHandlingSchedulingPolicy.class.getName());
-  private static final int MAX_DUPLICATE = 3;
 
+  /**
+   * How many Tasklets can run on each Worker at a time.
+   */
   private final int workerCapacity;
+
+  /**
+   * How many times to duplicate. For example, when this value is 3, then
+   * this scheduling policy tries at most 3 times for stragglers.
+   */
+  private final int maxDuplicate;
+
+  /**
+   * When a Tasklet does not finish at this threashold,
+   * then it is determined as a Straggler (So the same Tasklet is scheduled to another Worker).
+   */
   private final int stragglerThresholdMillis;
+
+  /**
+   * StragglerMonitor checks whether there is a Straggler periodically.
+   */
   private final int stragglerCheckingPeriodMillis;
+
+  /**
+   * This is needed for scheduling Stragglers in separate StragglerMonitor thread.
+   * Otherwise, we need to make the entire {@link SchedulingPolicy#trySchedule(Tasklet)}} synchronized.
+   * Moreover, we need to maintain all the {@link VortexWorkerManager}.
+   * Putting Tasklets in the end of pending queue, and keep the {@link RunningWorkers} using Scheduler
+   * makes things simpler.
+   */
   private final PendingTasklets pendingTasklets;
+
+  /**
+   * Bookkeeping the worker ids where each Tasklet has launched.
+   * Worker ids are added when a Tasklet is launched (not scheduled), and
+   * all the ids are removed when the first duplicate has finished.
+   */
   private final Map<Integer, Set<Integer>> taskletIdToWorkers = new HashMap<>();
+
+  /**
+   * Bookkeeping Tasklets launch time. Note that the time is the last one if a Tasklet
+   * has launched more than once. In that way, we may avoid frequent rescheduling.
+   */
   private final Map<Tasklet, Long> taskletToLastLaunchTime = new HashMap<>();
 
   /**
@@ -74,6 +110,7 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
                                     final int stragglerThresholdMillis,
                                     final PendingTasklets pendingTasklets) {
     this.workerCapacity = capacity;
+    this.maxDuplicate = maxDuplicate;
     this.stragglerCheckingPeriodMillis = stragglerCheckingPeriodMillis;
     this.stragglerThresholdMillis = stragglerThresholdMillis;
     this.pendingTasklets = pendingTasklets;
@@ -194,7 +231,7 @@ public final class StragglerHandlingSchedulingPolicy implements SchedulingPolicy
               final int taskletId = tasklet.getId();
               final long startTime = entry.getValue();
               if (currentTime - startTime > stragglerThresholdMillis &&
-                  taskletIdToWorkers.get(taskletId).size() < MAX_DUPLICATE) {
+                  taskletIdToWorkers.get(taskletId).size() <= maxDuplicate) {
                 LOG.log(Level.INFO, "Tasklet {0} seems to be a Straggler", taskletId);
                 // Reschedule only if the maximum is not exceeded.
                 pendingTasklets.addFirst(tasklet);

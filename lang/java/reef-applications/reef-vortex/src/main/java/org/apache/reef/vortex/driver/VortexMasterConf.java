@@ -66,8 +66,9 @@ public final class VortexMasterConf extends ConfigurationModuleBuilder {
   final class NumberOfVortexStartThreads implements Name<Integer> {
   }
 
-  @NamedParameter(doc = "Maximum number of duplicate scheduling for handling stragglers")
-  final class MaxDuplicates implements  Name<Integer> {
+  @NamedParameter(doc = "Maximum number of duplicate scheduling for handling stragglers",
+      short_name = "max_duplicate", default_value = "3")
+  public final class MaxDuplicates implements  Name<Integer> {
   }
 
   /**

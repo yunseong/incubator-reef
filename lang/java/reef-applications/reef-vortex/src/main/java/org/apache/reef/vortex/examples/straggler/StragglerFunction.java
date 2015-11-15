@@ -51,4 +51,13 @@ public final class StragglerFunction implements VortexFunction<String, Long> {
     final long endTime = System.currentTimeMillis();
     return endTime - startTime;
   }
+
+  /**
+   * (For testing only) {@link StragglerStart} checks the running time to make sure
+   * even there are Stragglers, running time should be the normal one.
+   * @return sleep time of the Tasklets who are not Stragglers.
+   */
+  static int getNormalSleepTimeMs() {
+    return NORMAL_SLEEP_TIME_MS;
+  }
 }

@@ -26,6 +26,7 @@ import org.apache.reef.tang.annotations.NamedParameter;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.tang.formats.CommandLine;
 import org.apache.reef.vortex.driver.VortexLauncher;
+import org.apache.reef.vortex.driver.VortexMasterConf;
 
 import java.io.IOException;
 
@@ -46,6 +47,7 @@ public final class Straggler {
           .registerShortNameOfClass(StragglerAddresses.class)
           .registerShortNameOfClass(HandleStraggler.class)
           .registerShortNameOfClass(NumTasklets.class)
+          .registerShortNameOfClass(VortexMasterConf.MaxDuplicates.class)
           .processCommandLine(args);
 
       final Injector injector = tang.newInjector(cb.build());

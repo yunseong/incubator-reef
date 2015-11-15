@@ -59,9 +59,11 @@ public final class StragglerStart implements VortexStart {
       for (int i = 0; i < numTasklets; i++) {
         final VortexFuture<Long> future = futures.get(i);
         final long result = future.get();
-        LOG.log(Level.INFO, "Result: time {0}", result);
+        if (result > StragglerFunction.getNormalSleepTimeMs() * 1.2) {
+          throw new RuntimeException(i + " th Tasklet took more than 20% of normal running time");
+        }
       }
-      LOG.log(Level.INFO, "#JCT: {0}", System.currentTimeMillis() - startTime);
+      LOG.log(Level.INFO, "Job Completion Time: {0}", System.currentTimeMillis() - startTime);
     } catch (final InterruptedException | ExecutionException e) {
       LOG.log(Level.WARNING, "Error occurred", e);
     }

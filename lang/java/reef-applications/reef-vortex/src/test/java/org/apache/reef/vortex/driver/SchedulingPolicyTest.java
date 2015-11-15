@@ -24,10 +24,8 @@ import org.apache.reef.tang.Tang;
 import org.apache.reef.util.Optional;
 import org.junit.Test;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.*;
 
 import static org.junit.Assert.*;
 
@@ -83,11 +81,17 @@ public class SchedulingPolicyTest {
     final int workerCapacity = 1;
     final int numOfWorkers = 5;
     final int maxDuplicate = 3;
+    final int threshold = 1000;
+    final int checkingPeriod = 500;
 
     final PendingTasklets pendingTasklets = Tang.Factory.getTang().newInjector().getInstance(PendingTasklets.class);
     final Configuration conf = Tang.Factory.getTang().newConfigurationBuilder()
         .bindNamedParameter(VortexMasterConf.WorkerCapacity.class, Integer.toString(workerCapacity))
-        .bindNamedParameter().build();
+        .bindNamedParameter(VortexMasterConf.MaxDuplicates.class, Integer.toString(maxDuplicate))
+        .bindNamedParameter(VortexMasterConf.StragglerThresholdMillis.class, Integer.toString(threshold))
+        .bindNamedParameter(VortexMasterConf.StragglerCheckingPeriodMillis.class, Integer.toString(checkingPeriod))
+        .build();
+
     final Injector injector = Tang.Factory.getTang().newInjector(conf);
     injector.bindVolatileInstance(PendingTasklets.class, pendingTasklets);
     final StragglerHandlingSchedulingPolicy policy = injector.getInstance(StragglerHandlingSchedulingPolicy.class);
@@ -100,21 +104,47 @@ public class SchedulingPolicyTest {
       policy.workerAdded(worker);
     }
 
+    final Set<String> launchedWorkers = new HashSet<>();
+
     final Tasklet tasklet = testUtil.newTasklet();
-    final Optional<String> workerId = policy.trySchedule(tasklet);
-    assertTrue("Should assign one worker", workerId.isPresent());
+    final Optional<String> firstWorkerId = policy.trySchedule(tasklet);
+    assertTrue("Should assign one worker", firstWorkerId.isPresent());
 
-    final VortexWorkerManager worker = workers.get(workerId.get());
-    policy.taskletLaunched(worker, tasklet);
+    final VortexWorkerManager firstWorker = workers.get(firstWorkerId.get());
+    policy.taskletLaunched(firstWorker, tasklet);
+    launchedWorkers.add(firstWorkerId.get());
 
-    // takeFirst() is blocked until a new Tasklet is put in the pending Tasklets.
-    final Optional<String> workerId2 = policy.trySchedule(pendingTasklets.takeFirst());
-    assertTrue("Should assign one worker", workerId2.isPresent());
-    assertFalse("Should be different from original worker", workerId.get().equals(workerId2.get()));
-    policy.taskletLaunched(workers.get(workerId2.get()), tasklet);
+    for (int i = 0; i < maxDuplicate; i++) {
+      // pendingTasklets.takeFirst() blocks until a Tasklet is put in the queue.
+      final Tasklet nextTasklet = pendingTasklets.takeFirst();
+      assertEquals("Should be same with the original Tasklet", tasklet, nextTasklet);
+
+      final Optional<String> nextWorkerId = policy.trySchedule(nextTasklet);
+      assertTrue("Should assign one worker", nextWorkerId.isPresent());
+
+      assertFalse("Should be different from previous workers", launchedWorkers.contains(nextWorkerId.get()));
+      policy.taskletLaunched(workers.get(nextWorkerId.get()), tasklet);
+      launchedWorkers.add(nextWorkerId.get());
+    }
+
+    // When the Tasklets already have duplicate as maximum.
+    final ExecutorService executor = Executors.newSingleThreadExecutor();
+    final Future<Tasklet> notSupposed = executor.submit(new Callable<Tasklet>() {
+      @Override
+      public Tasklet call() throws Exception {
+        return pendingTasklets.takeFirst();
+      }
+    });
+
+    try {
+      notSupposed.get(threshold + 2 * checkingPeriod, TimeUnit.SECONDS);
+      fail();
+    } catch (final TimeoutException e) {
+      // Success
+    }
 
     // Terminate one Tasklet
-    policy.taskletCompleted(worker, tasklet);
+    policy.taskletCompleted(firstWorker, tasklet);
 
     assertTrue("Should be empty", policy.getScheduled().isEmpty());
   }

@@ -42,8 +42,8 @@ final class MatMulFunction
     for (final Vector<Double> leftVector : leftMatrix) {
       final Vector<Double> resultVector = new Vector<>();
       for (final Vector<Double> rightVector : rightMatrix) {
-        assert(leftVector.size() == rightVector.size());
-        assert(leftVector.size() > 0);
+        assert leftVector.size() == rightVector.size();
+        assert leftVector.size() > 0;
 
         final int vectorSize = leftVector.size();
         double result = 0;

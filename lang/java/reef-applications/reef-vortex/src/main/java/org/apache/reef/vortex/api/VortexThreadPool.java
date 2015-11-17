@@ -19,7 +19,9 @@
 package org.apache.reef.vortex.api;
 
 import org.apache.reef.annotations.Unstable;
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
+import org.apache.reef.vortex.common.HDFSBackedCacheKey;
+import org.apache.reef.vortex.common.VortexParser;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.driver.VortexMaster;
 
@@ -47,9 +49,15 @@ public final class VortexThreadPool {
    * @return Key that is used to access the data in Workers {@link org.apache.reef.vortex.evaluator.VortexCache}.
    * @throws VortexCacheException If the keyName is registered already in the cache.
    */
-  public <T extends Serializable> CacheKey<T> cache(final String name, @Nonnull final T data)
+  public <T extends Serializable> MasterCacheKey<T> cache(final String name, @Nonnull final T data)
       throws VortexCacheException {
     return vortexMaster.cache(name, data);
+  }
+
+  public <T extends Serializable> HDFSBackedCacheKey[] cache(final String path,
+                                                             final int numSplit,
+                                                             final VortexParser parser) {
+    return vortexMaster.cache(path, numSplit, parser);
   }
 
   /**

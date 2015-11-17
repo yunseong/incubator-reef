@@ -23,7 +23,7 @@ import net.jcip.annotations.ThreadSafe;
 import org.apache.htrace.TraceInfo;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 
 import javax.inject.Inject;
 
@@ -196,7 +196,7 @@ final class RunningWorkers {
    * @param <T> Type of the data.
    */
   <T extends Serializable> void sendCacheData(final String workerId,
-                                              final CacheKey<T> cacheKey,
+                                              final MasterCacheKey<T> cacheKey,
                                               final T data,
                                               final TraceInfo traceInfo) {
     if (isWorkerRunning(workerId)) {

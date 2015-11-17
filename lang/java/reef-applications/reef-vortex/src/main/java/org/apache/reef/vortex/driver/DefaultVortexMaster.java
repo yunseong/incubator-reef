@@ -22,25 +22,27 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
 import net.jcip.annotations.ThreadSafe;
+import org.apache.hadoop.mapred.InputFormat;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.htrace.*;
 import org.apache.reef.annotations.audience.DriverSide;
+import org.apache.reef.io.data.loading.impl.JobConfExternalConstructor;
+import org.apache.reef.io.data.loading.impl.WritableSerializer;
+import org.apache.reef.tang.ExternalConstructor;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
-import org.apache.reef.vortex.common.CacheKey;
-import org.apache.reef.vortex.common.CacheSentRequest;
-import org.apache.reef.vortex.common.VortexRequest;
+import org.apache.reef.vortex.common.*;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
-import org.apache.reef.vortex.examples.lr.input.LRInputCached;
-import org.apache.reef.vortex.examples.lr.input.LRInputHalfCached;
 import org.apache.reef.vortex.trace.HTrace;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,22 +59,12 @@ import java.util.logging.Logger;
 final class DefaultVortexMaster implements VortexMaster {
   private static final Logger LOG = Logger.getLogger(DefaultVortexMaster.class.getName());
   private static final String JOB_SPAN = "JobSpan";
-  private static final Logger LOG = Logger.getLogger(DefaultVortexMaster.class.getName());
-  private static final int CONCURRENCY_LEVEL = 4;
   private final Span jobSpan;
 
   private final AtomicInteger taskletIdCounter = new AtomicInteger();
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
-  private final RemovalListener<String, byte[]> removalListener =
-      new RemovalListener<String, byte[]>() {
-        @Override
-        public void onRemoval(final RemovalNotification<String, byte[]> removalNotification) {
-          LOG.log(Level.INFO, "{0} is removed from MasterCache", removalNotification.getKey());
-        }
-      };
-  private final Cache<String, byte[]> cacheMap =
-      CacheBuilder.newBuilder().concurrencyLevel(CONCURRENCY_LEVEL).removalListener(removalListener).build();
+  private final Cache<String, byte[]> cacheMap = CacheBuilder.newBuilder().build();
 
   /**
    * @param runningWorkers for managing all running workers.
@@ -146,17 +138,14 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
-  public <T extends Serializable> CacheKey cache(final String keyName, @Nonnull final T data)
+  public <T extends Serializable> MasterCacheKey<T> cache(final String keyName, @Nonnull final T data)
       throws VortexCacheException {
 
     final Kryo kryo = new Kryo();
-    kryo.register(LRInputCached.class);
-    kryo.register(LRInputHalfCached.class);
-
     final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     final Output output = new Output(byteArrayOutputStream);
 
-    final CacheKey key = new CacheKey(keyName);
+    final MasterCacheKey key = new MasterCacheKey(keyName);
     final CacheSentRequest cacheSentRequest = new CacheSentRequest(key, data);
 
     kryo.writeObject(output, new VortexRequest(cacheSentRequest));
@@ -171,7 +160,31 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
-  public void dataRequested(final String workerId, final CacheKey cacheKey, final Span parentSpan)
+  public <T extends Serializable> HDFSBackedCacheKey<T>[] cache(final String path,
+                                                                final int numSplit,
+                                                                final VortexParser<?, T> parser) {
+    try {
+      // TODO Other type of input formats could be used?
+      final ExternalConstructor<JobConf> jobConfConstructor =
+          new JobConfExternalConstructor(TextInputFormat.class.getName(), path);
+      final JobConf jobConf = jobConfConstructor.newInstance();
+      final InputFormat inputFormat = jobConf.getInputFormat();
+      final InputSplit[] splits = inputFormat.getSplits(jobConf, numSplit);
+      final String serializedJobConf =  WritableSerializer.serialize(jobConf);
+
+      final HDFSBackedCacheKey[] keys = new HDFSBackedCacheKey[numSplit];
+      for (int i = 0; i < numSplit; i++) {
+        final String serializedSplit = WritableSerializer.serialize(splits[i]);
+        keys[i] = new HDFSBackedCacheKey<>(path, i, serializedJobConf, serializedSplit, parser);
+      }
+      return keys;
+    } catch (final IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public void dataRequested(final String workerId, final MasterCacheKey cacheKey, final Span parentSpan)
       throws VortexCacheException {
     final String keyName = cacheKey.getName();
     final byte[] serializedData = cacheMap.getIfPresent(keyName);

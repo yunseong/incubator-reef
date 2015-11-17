@@ -27,11 +27,11 @@ import java.io.Serializable;
  */
 // TODO: The naming needs to be fixed.
 public class CacheDataRequest<T extends Serializable> implements WorkerReport {
-  private CacheKey<T> cacheKey;
+  private MasterCacheKey<T> cacheKey;
   private long traceId;
   private long spanId;
 
-  public CacheDataRequest(final CacheKey<T> cacheKey, final TraceInfo traceInfo) {
+  public CacheDataRequest(final MasterCacheKey<T> cacheKey, final TraceInfo traceInfo) {
     this.cacheKey = cacheKey;
     this.traceId = traceInfo.traceId;
     this.spanId = traceInfo.spanId;
@@ -45,7 +45,7 @@ public class CacheDataRequest<T extends Serializable> implements WorkerReport {
   /**
    * @return The key of the data to request to Master.
    */
-  public CacheKey<T> getCacheKey() {
+  public MasterCacheKey<T> getCacheKey() {
     return cacheKey;
   }
 

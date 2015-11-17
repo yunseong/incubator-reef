@@ -18,14 +18,12 @@
  */
 package org.apache.reef.vortex.examples.lr.input;
 
-import java.util.HashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.Serializable;
 
 /**
- * Created by v-yunlee on 10/16/2015.
+ * Implementation of sparse vector based on Array.
  */
-public final class ArrayBasedVector {
+public final class ArrayBasedVector implements Serializable {
   private float[] values;
   private int[] indices;
   private int output;
@@ -37,12 +35,6 @@ public final class ArrayBasedVector {
     this.values = values;
     this.indices = indices;
     this.output = output;
-
-    if (values.length != indices.length) {
-      Logger.getLogger(ArrayBasedVector.class.getName())
-          .log(Level.WARNING, "The length does not match: indices {0} / values {1]",
-              new Object[]{indices.length, values.length});
-    }
   }
 
   public int getOutput() {

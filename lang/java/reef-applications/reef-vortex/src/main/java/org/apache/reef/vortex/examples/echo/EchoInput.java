@@ -18,7 +18,7 @@
  */
 package org.apache.reef.vortex.examples.echo;
 
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 import java.io.Serializable;
@@ -27,13 +27,13 @@ import java.io.Serializable;
  * Defines the input used in Echo.
  */
 public final class EchoInput implements Serializable {
-  private final CacheKey<String> messageKey;
+  private final MasterCacheKey<String> messageKey;
 
-  public EchoInput(final CacheKey<String> messageKey) {
+  public EchoInput(final MasterCacheKey<String> messageKey) {
     this.messageKey = messageKey;
   }
 
-  public CacheKey<String> getMessageKey() throws VortexCacheException {
+  public MasterCacheKey<String> getMessageKey() throws VortexCacheException {
     return messageKey;
   }
 }

@@ -18,6 +18,7 @@
  */
 package org.apache.reef.vortex.examples.lr;
 
+import org.apache.commons.compress.utils.CharsetNames;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexStart;
@@ -36,6 +37,7 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -170,7 +172,8 @@ final class CachedLRUrlReputationStart implements VortexStart {
 
     final List<VortexFuture<PartialResult>> futures = new ArrayList<>(divideFactor);
 
-    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path)))) {
+    try (final BufferedReader reader = new BufferedReader(
+        new InputStreamReader(new FileInputStream(path), Charset.forName(CharsetNames.UTF_8)))) {
       final int partitionSize = (numRecords + divideFactor - 1) / divideFactor;
       final ArrayList<ArrayBasedVector> vectors = new ArrayList<>(partitionSize);
 
@@ -218,15 +221,15 @@ final class CachedLRUrlReputationStart implements VortexStart {
     final String[] split = line.split(" ");
 
     try {
-      final int output = Integer.valueOf(split[0]);
+      final int output = Integer.parseInt(split[0]);
       final int[] indices = new int[split.length - 1];
       final float[] values = new float[split.length - 1];
 
       for (int i = 1; i < split.length; i++) {
         final String[] column = split[i].split(":");
 
-        final int index = Integer.valueOf(column[0]);
-        final float value = Float.valueOf(column[1]);
+        final int index = Integer.parseInt(column[0]);
+        final float value = Float.parseFloat(column[1]);
 
         indices[i-1] = index;
         values[i-1] = value;

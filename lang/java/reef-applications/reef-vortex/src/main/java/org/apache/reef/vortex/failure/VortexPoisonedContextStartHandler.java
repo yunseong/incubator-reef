@@ -37,6 +37,7 @@ public final class VortexPoisonedContextStartHandler implements EventHandler<Con
   private final Clock clock;
   private final double probability;
   private final int intervalMs;
+  private final Random random = new Random();
 
   @Inject
   private VortexPoisonedContextStartHandler(final Clock clock,
@@ -66,7 +67,7 @@ public final class VortexPoisonedContextStartHandler implements EventHandler<Con
 
     @Override
     public void onNext(final Alarm value) {
-      if (new Random().nextDouble() <= probability) {
+      if (random.nextDouble() <= probability) {
         throw new RuntimeException("Crashed at: " + System.currentTimeMillis());
       } else {
         clock.scheduleAlarm(interval, this);

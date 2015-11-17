@@ -41,14 +41,14 @@ public final class ArrayBasedVectorParser
       for (final Pair<LongWritable, Text> keyValue : dataSet) {
         final String[] split = keyValue.getSecond().toString().split(" ");
 
-        final int output = Integer.valueOf(split[0]);
+        final int output = Integer.parseInt(split[0]);
         final int[] indices = new int[split.length - 1];
         final float[] values = new float[split.length - 1];
 
         for (int i = 1; i < split.length; i++) {
           final String[] column = split[i].split(":");
-          final int index = Integer.valueOf(column[0]);
-          final float value = Float.valueOf(column[1]);
+          final int index = Integer.parseInt(column[0]);
+          final float value = Float.parseFloat(column[1]);
 
           indices[i-1] = index;
           values[i-1] = value;

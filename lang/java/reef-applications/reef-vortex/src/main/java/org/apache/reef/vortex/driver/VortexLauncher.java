@@ -23,6 +23,7 @@ import org.apache.reef.client.DriverLauncher;
 import org.apache.reef.client.LauncherStatus;
 import org.apache.reef.runtime.local.client.LocalRuntimeConfiguration;
 import org.apache.reef.runtime.yarn.client.YarnClientConfiguration;
+import org.apache.reef.runtime.yarn.client.YarnDriverConfiguration;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Configurations;
 import org.apache.reef.tang.exceptions.InjectionException;
@@ -72,6 +73,7 @@ public final class VortexLauncher {
                                            final int workerCapacity,
                                            final Configuration clientConf) {
     final Configuration runtimeConf = YarnClientConfiguration.CONF
+        .set(YarnClientConfiguration.YARN_PRIORITY, 2)
         .build();
     final Configuration vortexConf = VortexConfHelper.getVortexConf(
         jobName,
@@ -80,7 +82,10 @@ public final class VortexLauncher {
         workerMemory,
         workerCores,
         workerCapacity);
-    return launch(runtimeConf, Configurations.merge(vortexConf, clientConf));
+    final Configuration yarnDriverConf = YarnDriverConfiguration.CONF
+        .set(YarnDriverConfiguration.QUEUE, "be")
+        .build();
+    return launch(runtimeConf, Configurations.merge(vortexConf, clientConf, yarnDriverConf));
   }
 
   private static LauncherStatus launch(final Configuration runtimeConf, final Configuration vortexConf) {

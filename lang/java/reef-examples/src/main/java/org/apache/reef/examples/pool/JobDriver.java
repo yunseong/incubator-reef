@@ -133,8 +133,8 @@ public final class JobDriver {
       LOG.log(Level.INFO, "TIME: Start Driver with {0} Evaluators", numEvaluators);
       evaluatorRequestor.submit(
           EvaluatorRequest.newBuilder()
-              .setMemory(128)
-              .setNumberOfCores(1)
+              .setMemory(7168)
+              .setNumberOfCores(8)
               .setNumber(numEvaluators).build()
       );
     }

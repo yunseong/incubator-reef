@@ -22,6 +22,7 @@ import org.apache.reef.client.DriverConfiguration;
 import org.apache.reef.client.DriverLauncher;
 import org.apache.reef.runtime.local.client.LocalRuntimeConfiguration;
 import org.apache.reef.runtime.yarn.client.YarnClientConfiguration;
+import org.apache.reef.runtime.yarn.client.YarnDriverConfiguration;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Injector;
 import org.apache.reef.tang.JavaConfigurationBuilder;
@@ -111,7 +112,9 @@ public final class Launch {
           .build();
     } else {
       LOG.log(Level.FINE, "Running on YARN");
-      runtimeConfiguration = YarnClientConfiguration.CONF.build();
+      runtimeConfiguration = YarnClientConfiguration.CONF
+          .set(YarnClientConfiguration.YARN_PRIORITY, 1)
+          .build();
     }
     return Tang.Factory.getTang().newConfigurationBuilder(
         runtimeConfiguration, cloneCommandLineConfiguration(commandLineConf))
@@ -130,7 +133,7 @@ public final class Launch {
       final Configuration commandLineConf = parseCommandLine(args);
       final Injector injector = Tang.Factory.getTang().newInjector(commandLineConf);
 
-      final boolean isLocal = injector.getNamedInstance(Local.class);
+      final boolean isLocal = false;
       final int numEvaluators = injector.getNamedInstance(NumEvaluators.class);
       final int numTasks = injector.getNamedInstance(NumTasks.class);
       final int delay = injector.getNamedInstance(Delay.class);
@@ -158,8 +161,11 @@ public final class Launch {
           .set(DriverConfiguration.ON_EVALUATOR_COMPLETED, JobDriver.CompletedEvaluatorHandler.class)
           .build();
 
+      final Configuration yarnDriverConfig = YarnDriverConfiguration.CONF
+          .set(YarnDriverConfiguration.QUEUE, "prod")
+          .build();
       final Configuration submittedConfiguration = Tang.Factory.getTang()
-          .newConfigurationBuilder(driverConfig, commandLineConf).build();
+          .newConfigurationBuilder(driverConfig, commandLineConf, yarnDriverConfig).build();
       DriverLauncher.getLauncher(runtimeConfig)
           .run(submittedConfiguration, timeout);
 

@@ -24,7 +24,7 @@ import org.apache.reef.tang.annotations.NamedParameter;
 /**
  * Driver RAM allocation in MB.
  */
-@NamedParameter(doc = "Driver RAM allocation in MB", default_value = "256")
+@NamedParameter(doc = "Driver RAM allocation in MB", default_value = "8192")
 public final class DriverMemory implements Name<Integer> {
   private DriverMemory() {
   }

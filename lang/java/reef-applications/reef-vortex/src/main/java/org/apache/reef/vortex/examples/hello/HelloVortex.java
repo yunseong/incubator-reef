@@ -18,7 +18,11 @@
  */
 package org.apache.reef.vortex.examples.hello;
 
+import org.apache.reef.tang.formats.CommandLine;
+import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.driver.VortexLauncher;
+
+import java.io.IOException;
 
 /**
  * User's main function.
@@ -30,7 +34,8 @@ final class HelloVortex {
   /**
    * Launch the vortex job, passing appropriate arguments.
    */
-  public static void main(final String[] args) {
-    VortexLauncher.launchLocal("Vortex_Example_HelloVortex", HelloVortexStart.class, 1, 1024, 1, 2000);
+  public static void main(final String[] args) throws IOException {
+    VortexLauncher.launchLocal("Vortex_Example_HelloVortex", HelloVortexStart.class, 1, 1024, 1, 2000, args,
+        Optional.<CommandLine>empty());
   }
 }

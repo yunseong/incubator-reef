@@ -21,9 +21,15 @@ package org.apache.reef.vortex.driver;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.client.DriverConfiguration;
 import org.apache.reef.tang.Configuration;
+import org.apache.reef.tang.ConfigurationBuilder;
 import org.apache.reef.tang.Configurations;
+import org.apache.reef.tang.Tang;
+import org.apache.reef.tang.formats.CommandLine;
 import org.apache.reef.util.EnvironmentUtils;
+import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexStart;
+
+import java.io.IOException;
 
 /**
  * Helper class for building a configuration for Vortex.
@@ -33,8 +39,6 @@ public final class VortexConfHelper {
   private VortexConfHelper() {
   }
 
-  private static final int DEFAULT_NUM_OF_VORTEX_START_THREAD = 1;
-
   /**
    * @return Configuration for Vortex job.
    */
@@ -43,7 +47,9 @@ public final class VortexConfHelper {
                                             final int numOfWorkers,
                                             final int workerMemory,
                                             final int workerCores,
-                                            final int workerCapacity) {
+                                            final int workerCapacity,
+                                            final String[] args,
+                                            final Optional<CommandLine> cmdLine) throws IOException {
     final Configuration vortexDriverConf = DriverConfiguration.CONF
         .set(DriverConfiguration.GLOBAL_LIBRARIES, EnvironmentUtils.getClassLocation(VortexDriver.class))
         .set(DriverConfiguration.ON_DRIVER_STARTED, VortexDriver.StartHandler.class)
@@ -60,9 +66,19 @@ public final class VortexConfHelper {
         .set(VortexMasterConf.WORKER_CORES, workerCores)
         .set(VortexMasterConf.WORKER_CAPACITY, workerCapacity)
         .set(VortexMasterConf.VORTEX_START, vortexStart)
-        .set(VortexMasterConf.NUM_OF_VORTEX_START_THREAD, DEFAULT_NUM_OF_VORTEX_START_THREAD) // fixed to 1 for now
         .build();
 
-    return Configurations.merge(vortexDriverConf, vortexMasterConf);
+    final Configuration commandLineConf;
+    if (cmdLine.isPresent()) {
+      final ConfigurationBuilder configurationBuilder = cmdLine.get().getBuilder();
+      // Named parameters can be registered here.
+      cmdLine.get().registerShortNameOfClass(VortexMasterConf.NumberOfVortexStartThreads.class);
+      cmdLine.get().processCommandLine(args);
+      commandLineConf = configurationBuilder.build();
+    } else {
+      commandLineConf = Tang.Factory.getTang().newConfigurationBuilder().build();
+    }
+
+    return Configurations.merge(vortexDriverConf, vortexMasterConf, commandLineConf);
   }
 }

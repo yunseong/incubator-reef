@@ -20,13 +20,17 @@ package org.apache.reef.tests.applications.vortex.addone;
 
 import org.apache.reef.client.LauncherStatus;
 import org.apache.reef.tang.Configuration;
+import org.apache.reef.tang.formats.CommandLine;
 import org.apache.reef.tests.TestEnvironment;
 import org.apache.reef.tests.TestEnvironmentFactory;
+import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.driver.VortexConfHelper;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
 
 /**
  * Launch the AddOne Vortex test.
@@ -54,9 +58,10 @@ public final class AddOneTest {
    * Run the AddOne test.
    */
   @Test
-  public void testVortexAddOne() {
+  public void testVortexAddOne() throws IOException {
     final Configuration conf =
-        VortexConfHelper.getVortexConf("TEST_Vortex_AddOneTest", AddOneTestStart.class, 2, 64, 4, 2000);
+        VortexConfHelper.getVortexConf("TEST_Vortex_AddOneTest", AddOneTestStart.class, 2, 64, 4, 2000, new String[]{},
+            Optional.<CommandLine>empty());
     final LauncherStatus status = this.testEnvironment.run(conf);
     Assert.assertTrue("Job state after execution: " + status, status.isSuccess());
   }
@@ -66,9 +71,10 @@ public final class AddOneTest {
    * using {@link org.apache.reef.vortex.api.VortexFuture#get()}.
    */
   @Test
-  public void testVortexAddOneCallback() {
+  public void testVortexAddOneCallback() throws IOException {
     final Configuration conf =
-        VortexConfHelper.getVortexConf("TEST_Vortex_AddOneCallbackTest", AddOneCallbackTestStart.class, 2, 64, 4, 2000);
+        VortexConfHelper.getVortexConf("TEST_Vortex_AddOneCallbackTest", AddOneCallbackTestStart.class, 2, 64, 4, 2000,
+            new String[]{}, Optional.<CommandLine>empty());
     final LauncherStatus status = this.testEnvironment.run(conf);
     Assert.assertTrue("Job state after execution: " + status, status.isSuccess());
   }

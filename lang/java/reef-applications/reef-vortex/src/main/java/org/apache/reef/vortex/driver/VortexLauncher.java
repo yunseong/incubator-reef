@@ -24,7 +24,11 @@ import org.apache.reef.client.LauncherStatus;
 import org.apache.reef.runtime.local.client.LocalRuntimeConfiguration;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.exceptions.InjectionException;
+import org.apache.reef.tang.formats.CommandLine;
+import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexStart;
+
+import java.io.IOException;
 
 /**
  * Launches a Vortex Job.
@@ -44,7 +48,9 @@ public final class VortexLauncher {
                                            final int numOfWorkers,
                                            final int workerMemory,
                                            final int workerCores,
-                                           final int workerCapacity) {
+                                           final int workerCapacity,
+                                           final String[] args,
+                                           final Optional<CommandLine> cmdLine) throws IOException {
     final Configuration runtimeConf = LocalRuntimeConfiguration.CONF
         .set(LocalRuntimeConfiguration.MAX_NUMBER_OF_EVALUATORS, MAX_NUMBER_OF_EVALUATORS)
         .build();
@@ -54,7 +60,9 @@ public final class VortexLauncher {
         numOfWorkers,
         workerMemory,
         workerCores,
-        workerCapacity);
+        workerCapacity,
+        args,
+        cmdLine);
     return launch(runtimeConf, vortexConf);
   }
 

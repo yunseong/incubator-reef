@@ -18,7 +18,13 @@
  */
 package org.apache.reef.vortex.examples.addone;
 
+import org.apache.reef.tang.annotations.Name;
+import org.apache.reef.tang.annotations.NamedParameter;
+import org.apache.reef.tang.formats.CommandLine;
+import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.driver.VortexLauncher;
+
+import java.io.IOException;
 
 /**
  * User's main function.
@@ -30,7 +36,14 @@ final class AddOne {
   /**
    * Launch the vortex job, passing appropriate arguments.
    */
-  public static void main(final String[] args) {
-    VortexLauncher.launchLocal("Vortex_Example_AddOne", AddOneStart.class, 2, 1024, 4, 2000);
+  public static void main(final String[] args) throws IOException {
+    final CommandLine cmdLine = new CommandLine();
+    cmdLine.registerShortNameOfClass(Dimension.class);
+    VortexLauncher.launchLocal("Vortex_Example_AddOne", AddOneStart.class, 2, 1024, 4, 2000, args,
+        Optional.of(cmdLine));
+  }
+
+  @NamedParameter(doc = "Dimension of the vector", short_name = "dim", default_value = "1000")
+  public static final class Dimension implements Name<Integer> {
   }
 }

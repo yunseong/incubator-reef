@@ -68,14 +68,14 @@ namespace Org.Apache.REEF.IMRU.InProcess
                     results.Add(updateResult.Result);
                 }
 
-                Debug.Assert(updateResult.HasMapInput);
+                Debug.Assert(updateResult.HasMapInput, "MapInput is needed.");
                 var mapinput = updateResult.MapInput;
                 var mapOutputs = new List<TMapOutput>();
 
                 foreach (var mapfunc in _mapfunctions)
                 {
-                    //We create a copy by doing coding and decoding since the map task might 
-                    //reuse the fields in next iteration and meanwhile update task might update it.
+                    // We create a copy by doing coding and decoding since the map task might 
+                    // reuse the fields in next iteration and meanwhile update task might update it.
                     using (MemoryStream mapInputStream = new MemoryStream(), mapOutputStream = new MemoryStream())
                     {
                         var mapInputWriter = new StreamDataWriter(mapInputStream);

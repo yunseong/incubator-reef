@@ -36,11 +36,12 @@ namespace Org.Apache.REEF.Tang.Implementations.Tang
 
         private static IDictionary<SetValuedKey, ICsClassHierarchy> defaultClassHierarchy = new Dictionary<SetValuedKey, ICsClassHierarchy>();
 
+        private static object classHierarchyLock = new object();
         public IInjector NewInjector()
         {
             try
             {
-                return NewInjector(new ConfigurationImpl[] {});
+                return NewInjector(new ConfigurationImpl[] { });
             }
             catch (BindException e)
             {
@@ -66,16 +67,15 @@ namespace Org.Apache.REEF.Tang.Implementations.Tang
             return NewConfigurationBuilder(new IConfiguration[] { conf });
         }
 
-        //public IInjector NewInjector(string[] assemblies, IDictionary<string, string> configurations)
-        //{
-        //    ITang tang = TangFactory.GetTang();
-        //    ICsConfigurationBuilder cb1 = tang.NewConfigurationBuilder(assemblies);
-        //    ConfigurationFile.ProcessConfigData(cb1, configurations);
-        //    IConfiguration conf = cb1.Build();
-
-        //    IInjector injector = tang.NewInjector(conf);
-        //    return injector;
-        //}
+        ////public IInjector NewInjector(string[] assemblies, IDictionary<string, string> configurations)
+        ////{
+        ////   ITang tang = TangFactory.GetTang();
+        ////   ICsConfigurationBuilder cb1 = tang.NewConfigurationBuilder(assemblies);
+        ////   ConfigurationFile.ProcessConfigData(cb1, configurations);
+        ////   IConfiguration conf = cb1.Build();
+        ////   IInjector injector = tang.NewInjector(conf);
+        ////   return injector;
+        ////}
 
         public IInjector NewInjector(string[] assemblies, IDictionary<string, string> configurations)
         {
@@ -105,7 +105,7 @@ namespace Org.Apache.REEF.Tang.Implementations.Tang
 
         public IInjector NewInjector(IConfiguration conf)
         {
-            //return new InjectorImpl(conf);
+            // return new InjectorImpl(conf);
             try
             {
                 return NewInjector(new ConfigurationImpl[] { (ConfigurationImpl)conf });
@@ -133,11 +133,14 @@ namespace Org.Apache.REEF.Tang.Implementations.Tang
             SetValuedKey key = new SetValuedKey(assemblies, parameterParsers);
 
             ICsClassHierarchy ret = null;
-            defaultClassHierarchy.TryGetValue(key, out ret);
-            if (ret == null)
+            lock (classHierarchyLock)
             {
-                ret = new ClassHierarchyImpl(assemblies, parameterParsers);
-                defaultClassHierarchy.Add(key, ret);
+                defaultClassHierarchy.TryGetValue(key, out ret);
+                if (ret == null)
+                {
+                    ret = new ClassHierarchyImpl(assemblies, parameterParsers);
+                    defaultClassHierarchy.Add(key, ret);
+                }
             }
             return ret;
         }

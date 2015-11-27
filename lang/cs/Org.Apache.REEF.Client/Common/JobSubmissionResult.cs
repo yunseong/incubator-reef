@@ -34,7 +34,7 @@ namespace Org.Apache.REEF.Client.Common
 {
     internal abstract class JobSubmissionResult : IJobSubmissionResult
     {
-        private static readonly Logger LOGGER = Logger.GetLogger(typeof (JobSubmissionResult));
+        private static readonly Logger LOGGER = Logger.GetLogger(typeof(JobSubmissionResult));
         private const int MaxConnectAttemptCount = 20;
         private const int MilliSecondsToWaitBeforeNextConnectAttempt = 1000;
         private const int SecondsForHttpClientTimeout = 120;
@@ -124,7 +124,7 @@ namespace Org.Apache.REEF.Client.Common
             }
         }
 
-        internal async Task<string> CallUrl (string url)
+        internal async Task<string> CallUrl(string url)
         {
             var result = await TryGetUri(url);
             if (HasCommandFailed(result))
@@ -151,8 +151,8 @@ namespace Org.Apache.REEF.Client.Common
         private static bool ShouldRetry(HttpRequestException httpRequestException)
         {
             var shouldRetry = false;
-            if (httpRequestException.Message.IndexOf(((int)(HttpStatusCode.NotFound)).ToString(), StringComparison.Ordinal) != -1 ||
-                httpRequestException.Message.IndexOf(((int)(HttpStatusCode.BadGateway)).ToString(), StringComparison.Ordinal) != -1)
+            if (httpRequestException.Message.IndexOf(((int)HttpStatusCode.NotFound).ToString(), StringComparison.Ordinal) != -1 ||
+                httpRequestException.Message.IndexOf(((int)HttpStatusCode.BadGateway).ToString(), StringComparison.Ordinal) != -1)
             {
                 shouldRetry = true;
             }

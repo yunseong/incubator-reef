@@ -164,22 +164,28 @@ namespace Org.Apache.REEF.Driver.Bridge
             {
                 try
                 {
-                    GCHandle gc = GCHandle.FromIntPtr((IntPtr) handle);
+                    GCHandle gc = GCHandle.FromIntPtr((IntPtr)handle);
                     if (!gc.IsAllocated)
                     {
                         LOGGER.Log(Level.Warning, "gc is not allocated.");
                     } 
-                    ClrSystemHandler<IHttpMessage> obj = (ClrSystemHandler<IHttpMessage>) gc.Target;
+                    ClrSystemHandler<IHttpMessage> obj = (ClrSystemHandler<IHttpMessage>)gc.Target;
                     obj.OnNext(new HttpMessage(clr2Java));
                 }
                 catch (Exception ex)
                 {
                   
-                    LOGGER.Log(Level.Info, "Caught exception: " + ex.Message + ex.StackTrace );
+                    LOGGER.Log(Level.Info, "Caught exception: " + ex.Message + ex.StackTrace);
                     Exceptions.CaughtAndThrow(ex, Level.Warning,  LOGGER);
-                }}
+                }
+            }
         }
 
+        /// <summary>
+        /// Invokes event handlers registered to the closed context event.
+        /// </summary>
+        /// <param name="handle">Pointer to the event handler object</param>
+        /// <param name="clr2Java">Proxy object to the Java closed context.</param>
         public static void Call_ClrSystemClosedContext_OnNext(ulong handle, IClosedContextClr2Java clr2Java)
         {
             using (LOGGER.LogFunction("ClrSystemHandlerWrapper::Call_ClrSystemClosedContext_OnNext"))

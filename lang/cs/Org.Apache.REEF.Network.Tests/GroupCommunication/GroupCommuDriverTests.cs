@@ -17,7 +17,6 @@
  * under the License.
  */
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Org.Apache.REEF.Common.Services;
 using Org.Apache.REEF.Network.Group.Config;
 using Org.Apache.REEF.Tang.Exceptions;
@@ -27,13 +26,13 @@ using Org.Apache.REEF.Tang.Implementations.Tang;
 using Org.Apache.REEF.Tang.Interface;
 using Org.Apache.REEF.Tang.Util;
 using Org.Apache.REEF.Wake.Remote.Impl;
+using Xunit;
 
 namespace Org.Apache.REEF.Network.Tests.GroupCommunication
 {
-    [TestClass]
     public class GroupCommuDriverTests
     {
-        [TestMethod]
+        [Fact]
         public void TestServiceConfiguration()
         {
             string groupName = "group1";
@@ -48,14 +47,14 @@ namespace Org.Apache.REEF.Network.Tests.GroupCommunication
                 groupName, fanOut,
                 numTasks);
 
-            //driver side to prepar for service config
+            // driver side to prepar for service config
             var codecConfig = CodecConfiguration<int>.Conf
                 .Set(CodecConfiguration<int>.Codec, GenericType<IntCodec>.Class)
                 .Build();
             var driverServiceConfig = groupCommunicationDriver.GetServiceConfiguration();
             var serviceConfig = Configurations.Merge(driverServiceConfig, codecConfig);
 
-            //wrap it before serializing
+            // wrap it before serializing
             var wrappedSeriveConfig = TangFactory.GetTang().NewConfigurationBuilder()
                 .BindNamedParameter<ServicesConfigurationOptions.ServiceConfigString, string>(
                     GenericType<ServicesConfigurationOptions.ServiceConfigString>.Class,
@@ -63,10 +62,10 @@ namespace Org.Apache.REEF.Network.Tests.GroupCommunication
                 .Build();
             var serviceConfigString = serializer.ToString(wrappedSeriveConfig);
 
-            //the configuration string is received at Evaluator side
+            // the configuration string is received at Evaluator side
             var serviceConfig2 = new ServiceConfiguration(serviceConfigString);
 
-            Assert.AreEqual(serializer.ToString(serviceConfig), serializer.ToString(serviceConfig2.TangConfig));
+            Assert.Equal(serializer.ToString(serviceConfig), serializer.ToString(serviceConfig2.TangConfig));
         }
     }
 }

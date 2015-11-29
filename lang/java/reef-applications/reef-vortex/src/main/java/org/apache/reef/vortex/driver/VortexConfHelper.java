@@ -39,6 +39,8 @@ public final class VortexConfHelper {
   private VortexConfHelper() {
   }
 
+  private static final int DEFAULT_NUM_OF_VORTEX_START_THREAD = 1;
+
   /**
    * @return Configuration for Vortex job.
    */
@@ -66,13 +68,13 @@ public final class VortexConfHelper {
         .set(VortexMasterConf.WORKER_CORES, workerCores)
         .set(VortexMasterConf.WORKER_CAPACITY, workerCapacity)
         .set(VortexMasterConf.VORTEX_START, vortexStart)
+        .set(VortexMasterConf.NUM_OF_VORTEX_START_THREAD, DEFAULT_NUM_OF_VORTEX_START_THREAD) // fixed to 1 for now
         .build();
 
     final Configuration commandLineConf;
     if (cmdLine.isPresent()) {
       final ConfigurationBuilder configurationBuilder = cmdLine.get().getBuilder();
       // Named parameters can be registered here.
-      cmdLine.get().registerShortNameOfClass(VortexMasterConf.NumberOfVortexStartThreads.class);
       cmdLine.get().processCommandLine(args);
       commandLineConf = configurationBuilder.build();
     } else {

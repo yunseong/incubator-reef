@@ -62,7 +62,7 @@ public final class VortexMasterConf extends ConfigurationModuleBuilder {
   /**
    * Number of Vortex Start Threads.
    */
-  @NamedParameter(doc = "Number of Vortex Start Threads", short_name = "num_vortex_start_threads", default_value = "1")
+  @NamedParameter(doc = "Number of Vortex Start Threads")
   final class NumberOfVortexStartThreads implements Name<Integer> {
   }
 

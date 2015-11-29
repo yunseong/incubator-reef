@@ -16,26 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.examples.matmul;
-
-import org.apache.reef.tang.formats.CommandLine;
-import org.apache.reef.util.Optional;
-import org.apache.reef.vortex.driver.VortexLauncher;
-
-import java.io.IOException;
-
 /**
- * User's main function.
+ * Classes for trace in Vortex.
  */
-final class MatMul {
-  private MatMul() {
-  }
-
-  /**
-   * Launch the vortex job, passing appropriate arguments.
-   */
-  public static void main(final String[] args) throws IOException {
-    VortexLauncher.launchLocal("Vortex_Example_MatMul", IdentityMatMulStart.class, 2, 1024, 4, 2000,
-        args, Optional.<CommandLine>empty());
-  }
-}
+package org.apache.reef.vortex.trace;

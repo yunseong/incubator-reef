@@ -19,11 +19,13 @@
 package org.apache.reef.vortex.driver;
 
 import net.jcip.annotations.ThreadSafe;
+import org.apache.htrace.*;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.wake.EventHandler;
+import org.apache.reef.vortex.trace.HTrace;
 
 import javax.inject.Inject;
 import java.io.Serializable;
@@ -37,6 +39,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ThreadSafe
 @DriverSide
 final class DefaultVortexMaster implements VortexMaster {
+  private static final String JOB_SPAN = "JobSpan";
+  private final Span jobSpan;
+
   private final AtomicInteger taskletIdCounter = new AtomicInteger();
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
@@ -46,9 +51,12 @@ final class DefaultVortexMaster implements VortexMaster {
    */
   @Inject
   DefaultVortexMaster(final RunningWorkers runningWorkers,
-                      final PendingTasklets pendingTasklets) {
+                      final PendingTasklets pendingTasklets,
+                      final HTrace hTrace) {
+    hTrace.initialize();
     this.runningWorkers = runningWorkers;
     this.pendingTasklets = pendingTasklets;
+    jobSpan = Trace.startSpan(JOB_SPAN, Sampler.ALWAYS).detach();
   }
 
   /**
@@ -65,8 +73,9 @@ final class DefaultVortexMaster implements VortexMaster {
     } else {
       vortexFuture = new VortexFuture<>();
     }
-
-    this.pendingTasklets.addLast(new Tasklet<>(taskletIdCounter.getAndIncrement(), function, input, vortexFuture));
+    final Tasklet tasklet = new Tasklet<>(taskletIdCounter.getAndIncrement(), function, input, vortexFuture,
+        TraceInfo.fromSpan(jobSpan));
+    this.pendingTasklets.addLast(tasklet);
     return vortexFuture;
   }
 
@@ -114,6 +123,7 @@ final class DefaultVortexMaster implements VortexMaster {
    */
   @Override
   public void terminate() {
+    Trace.continueSpan(jobSpan).close();
     runningWorkers.terminate();
   }
 }

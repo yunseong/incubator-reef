@@ -18,12 +18,18 @@
  */
 package org.apache.reef.vortex.driver;
 
+import org.apache.commons.lang.SerializationUtils;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceInfo;
+import org.apache.htrace.TraceScope;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.vortex.common.VortexAvroUtils;
 import org.apache.reef.vortex.common.VortexRequest;
 
 import javax.inject.Inject;
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -38,12 +44,31 @@ class VortexRequestor {
   VortexRequestor() {
   }
 
-  void send(final RunningTask reefTask, final VortexRequest vortexRequest) {
+  void send(final RunningTask reefTask, final VortexRequest vortexRequest, final TraceInfo traceInfo) {
     executorService.execute(new Runnable() {
       @Override
       public void run() {
+        final byte[] requestBytes;
+        final byte[] sendingBytes;
+
+        try (final TraceScope traceScope = Trace.startSpan("master_serialize", traceInfo)) {
+          requestBytes = SerializationUtils.serialize(vortexRequest);
+        }
+
+        try (final TraceScope traceScope =
+                 Trace.startSpan("master_append_" + (requestBytes.length / 1024 / 1024.0) + "mb", traceInfo)) {
+          sendingBytes = ByteBuffer.allocate(2 * (Long.SIZE / Byte.SIZE) + requestBytes.length)
+              .putLong(traceInfo.traceId)
+              .putLong(traceInfo.spanId)
+              .put(requestBytes)
+              .array();
+        }
+
         //  Possible race condition with VortexWorkerManager#terminate is addressed by the global lock in VortexMaster
-        reefTask.send(VortexAvroUtils.toBytes(vortexRequest));
+        reefTask.send(sendingBytes);
+//        reefTask.send(VortexAvroUtils.toBytes(vortexRequest));
+
+
       }
     });
   }

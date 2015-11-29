@@ -18,12 +18,15 @@
  */
 package org.apache.reef.vortex.driver;
 
+import org.apache.htrace.SpanReceiver;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.tang.annotations.NamedParameter;
 import org.apache.reef.tang.formats.*;
 import org.apache.reef.vortex.api.VortexStart;
+import org.apache.reef.vortex.trace.ReceiverConstructor;
+import org.apache.reef.vortex.trace.parameters.ProcessName;
 
 /**
  * Vortex Master configuration.
@@ -106,5 +109,7 @@ public final class VortexMasterConf extends ConfigurationModuleBuilder {
       .bindNamedParameter(WorkerCapacity.class, WORKER_CAPACITY)
       .bindImplementation(VortexStart.class, VORTEX_START)
       .bindNamedParameter(NumberOfVortexStartThreads.class, NUM_OF_VORTEX_START_THREAD)
+      .bindNamedParameter(ProcessName.class, "vMaster")
+      .bindConstructor(SpanReceiver.class, ReceiverConstructor.class)
       .build();
 }

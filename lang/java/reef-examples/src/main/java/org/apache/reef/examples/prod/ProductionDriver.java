@@ -31,6 +31,9 @@ import org.apache.reef.wake.time.event.StartTime;
 import org.apache.reef.wake.time.event.StopTime;
 
 import javax.inject.Inject;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -46,6 +49,8 @@ public final class ProductionDriver {
   private final int numTasks;
   private final int delay;
   private final AtomicInteger numSubmittedTasks = new AtomicInteger(0);
+  private final Set<AllocatedEvaluator> evaluators =
+      Collections.newSetFromMap(new ConcurrentHashMap<AllocatedEvaluator, Boolean>());
 
   @Inject
   private ProductionDriver(final EvaluatorRequestor evaluatorRequestor,
@@ -65,7 +70,7 @@ public final class ProductionDriver {
       LOG.log(Level.INFO, "TIME: Start Driver with {0} Evaluators", numTasks);
       evaluatorRequestor.submit(
           EvaluatorRequest.newBuilder()
-              .setMemory(7168)
+              .setMemory(6144)
               .setNumberOfCores(8)
               .setNumber(numTasks).build()
       );
@@ -96,7 +101,14 @@ public final class ProductionDriver {
                   .build())
           .bindNamedParameter(ProductionREEF.Delay.class, String.valueOf(delay))
           .build();
-      evaluator.submitTask(taskConf);
+      evaluators.add(evaluator);
+      LOG.log(Level.INFO, "{0} evaluators are allocated", evaluators.size());
+      if (evaluators.size() == numTasks) {
+        LOG.log(Level.INFO, "All evaluators are ready. Submit Tasks");
+        for (final AllocatedEvaluator e : evaluators) {
+          e.submitTask(taskConf);
+        }
+      }
     }
   }
 }

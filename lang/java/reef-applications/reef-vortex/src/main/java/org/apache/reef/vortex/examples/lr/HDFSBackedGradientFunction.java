@@ -65,9 +65,9 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
       final double maxExponent = Math.max(exponent, 0);
       final double lambda = 1.0; // regularization
       final double logSumExp = maxExponent + Math.log(Math.exp(-maxExponent) + Math.exp(exponent - maxExponent));
-
-      final float stepSize = 1e-2f;
-      gradientResult.addVector((float) (-stepSize * (y * (Math.exp(-logSumExp) - 1) + lambda)), instance);
+      final double multiplier = y * (Math.exp(-logSumExp) - 1);
+      final float stepSize = 0.00001f;
+      gradientResult.addVector((float) (-stepSize * multiplier), instance);
     }
 
     final long finishTime = System.currentTimeMillis();

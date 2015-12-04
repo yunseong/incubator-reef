@@ -97,6 +97,11 @@ under the License.
             <artifactId>slf4j-jdk14</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>edu.snu.utils</groupId>
+            <artifactId>vector-utils</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>

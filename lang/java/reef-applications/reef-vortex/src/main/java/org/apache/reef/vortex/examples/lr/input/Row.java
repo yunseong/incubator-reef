@@ -18,34 +18,26 @@
  */
 package org.apache.reef.vortex.examples.lr.input;
 
-import java.io.Serializable;
+import edu.snu.utils.SVector;
 
 /**
- * Implementation of sparse vector based on Array.
+ * Created by v-yunlee on 12/4/2015.
  */
-public final class SparseVector implements Serializable {
-  private double[] values;
-  private int[] indices;
-  private int dimension;
+public final class Row {
+  final double output;
+  final SVector feature;
 
-  private SparseVector() {
+  public Row(double output, SVector feature) {
+
+    this.output = output;
+    this.feature = feature;
   }
 
-  public SparseVector(final double[] values, final int[] indices, final int dimension) {
-    this.values = values;
-    this.indices = indices;
-    this.dimension = dimension;
+  public double getOutput() {
+    return output;
   }
 
-  public int[] getIndices() {
-    return indices;
-  }
-
-  public double[] getValues() {
-    return values;
-  }
-
-  public int getDimension() {
-    return dimension;
+  public SVector getFeature() {
+    return feature;
   }
 }

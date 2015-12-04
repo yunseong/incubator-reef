@@ -18,7 +18,7 @@
  */
 package org.apache.reef.vortex.examples.lr;
 
-import org.apache.reef.vortex.examples.lr.input.SparseVector;
+import org.apache.reef.vortex.examples.lr.input.DenseVector;
 
 import java.io.Serializable;
 
@@ -26,19 +26,19 @@ import java.io.Serializable;
  * Representation of partial result of the Logistic Regression in each iteration.
  */
 public final class PartialResult implements Serializable {
-  private final SparseVector cumGradient;
+  private final DenseVector cumGradient;
   private double loss;
   private int numPositive;
   private int count;
 
-  public PartialResult(final SparseVector cumGradient) {
+  public PartialResult(final DenseVector cumGradient) {
     this.cumGradient = cumGradient;
     this.loss = 0.0f;
     this.numPositive = 0;
     this.count = 0;
   }
 
-  public void addResult(final SparseVector cumGradient,
+  public void addResult(final DenseVector cumGradient,
                         final double loss,
                         final boolean isPositive) {
     this.cumGradient.set(cumGradient);
@@ -49,7 +49,7 @@ public final class PartialResult implements Serializable {
     }
   }
 
-  public SparseVector getCumGradient() {
+  public DenseVector getCumGradient() {
     return cumGradient;
   }
 

@@ -19,33 +19,26 @@
 package org.apache.reef.vortex.examples.lr.input;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Implementation of sparse vector based on Array.
+ * Implementation of a sparse vector based on the tree map.
  */
-public final class ArrayBasedVector implements Serializable {
-  private float[] values;
-  private int[] indices;
-  private int output;
+public final class DenseVector implements Serializable {
+  private double[] data;
 
-  private ArrayBasedVector() {
+  private DenseVector() {
   }
 
-  public ArrayBasedVector(final float[] values, final int[] indices, final int output) {
-    this.values = values;
-    this.indices = indices;
-    this.output = output;
+  /**
+   * Constructor of the Sparse Vector.
+   **/
+  public DenseVector(final double[] data) {
+    this.data = data;
   }
 
-  public int getOutput() {
-    return output;
-  }
-
-  public int[] getIndices() {
-    return indices;
-  }
-
-  public float[] getValues() {
-    return values;
+  public double[] getData() {
+    return data;
   }
 }

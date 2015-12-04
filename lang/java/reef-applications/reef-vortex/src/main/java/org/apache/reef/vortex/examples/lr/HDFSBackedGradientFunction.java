@@ -19,9 +19,9 @@
 package org.apache.reef.vortex.examples.lr;
 
 import org.apache.reef.vortex.api.VortexFunction;
-import org.apache.reef.vortex.examples.lr.input.ArrayBasedVector;
 import org.apache.reef.vortex.examples.lr.input.HDFSCachedInput;
-import org.apache.reef.vortex.examples.lr.input.SparseVector;
+import org.apache.reef.vortex.examples.lr.input.Row;
+import org.apache.reef.vortex.examples.lr.input.DenseVector;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,16 +40,16 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
   public PartialResult call(final HDFSCachedInput lrInput) throws Exception {
     final long startTime = System.currentTimeMillis();
 
-    final SparseVector parameterVector = lrInput.getParameterVector();
+    final DenseVector parameterVector = lrInput.getParameterVector();
     final long modelLoadedTime = System.currentTimeMillis();
 
-    final List<ArrayBasedVector> trainingData = lrInput.getTrainingData();
+    final List<Row> trainingData = lrInput.getTrainingData();
     final long trainingLoadedTime = System.currentTimeMillis();
 
-    final SparseVector cumGradient = new SparseVector(parameterVector.getDimension());
+    final DenseVector cumGradient = new DenseVector(parameterVector.getDimension());
     final PartialResult partialResult = new PartialResult(cumGradient);
 
-    for (final ArrayBasedVector instance : trainingData) {
+    for (final Row instance : trainingData) {
 
       final double predict = parameterVector.dot(instance);
       final double label = instance.getOutput();

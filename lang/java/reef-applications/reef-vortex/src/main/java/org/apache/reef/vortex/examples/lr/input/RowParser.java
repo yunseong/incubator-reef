@@ -18,6 +18,7 @@
  */
 package org.apache.reef.vortex.examples.lr.input;
 
+import edu.snu.utils.SVector;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.reef.io.data.loading.api.DataSet;
@@ -31,29 +32,32 @@ import java.util.ArrayList;
  * Parses DataSet which was read by RecordReader to Vector list.
  * To be Serializable, made the output type ArrayList.
  */
-public final class ArrayBasedVectorParser
-    implements VortexParser<DataSet<LongWritable, Text>, ArrayList<ArrayBasedVector>> {
-
+public final class RowParser
+    implements VortexParser<DataSet<LongWritable, Text>, ArrayList<Row>> {
+  private static final int MODEL_DIM = 3231961;
   @Override
-  public ArrayList<ArrayBasedVector> parse(final DataSet<LongWritable, Text> dataSet) throws ParseException {
-    final ArrayList<ArrayBasedVector> vectorsList = new ArrayList<>();
+  public ArrayList<Row> parse(final DataSet<LongWritable, Text> dataSet) throws ParseException {
+    final ArrayList<Row> vectorsList = new ArrayList<>();
     try {
       for (final Pair<LongWritable, Text> keyValue : dataSet) {
         final String[] split = keyValue.getSecond().toString().split(" ");
 
         final int output = Integer.parseInt(split[0]);
         final int[] indices = new int[split.length - 1];
-        final float[] values = new float[split.length - 1];
+        final double[] values = new double[split.length - 1];
 
         for (int i = 1; i < split.length; i++) {
           final String[] column = split[i].split(":");
           final int index = Integer.parseInt(column[0]);
-          final float value = Float.parseFloat(column[1]);
+          final double value = Double.parseDouble(column[1]);
 
-          indices[i-1] = index;
+          indices[i-1] = index - 1;
           values[i-1] = value;
         }
-        vectorsList.add(new ArrayBasedVector(values, indices, output));
+
+        final SVector svector = new SVector(indices, values, MODEL_DIM + 1);
+        svector.update(MODEL_DIM, 1); // Constant term?
+        vectorsList.add(new Row(output, svector));
       }
       return vectorsList;
     } catch (final NumberFormatException e) {

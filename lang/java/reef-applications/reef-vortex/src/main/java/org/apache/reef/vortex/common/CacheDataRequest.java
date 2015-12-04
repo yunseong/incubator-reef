@@ -26,7 +26,7 @@ import java.io.Serializable;
  * The message for Worker to request the cache data to Master.
  */
 // TODO: The naming needs to be fixed.
-public class CacheDataRequest<T extends Serializable> implements WorkerReport {
+public class CacheDataRequest<T> implements WorkerReport {
   private MasterCacheKey<T> cacheKey;
   private long traceId;
   private long spanId;

@@ -18,14 +18,11 @@
  */
 package org.apache.reef.vortex.common;
 
-
-import java.io.Serializable;
-
 /**
  * Key used to get the data from the Worker cache
  * Users should assign unique name to distinguish the keys.
  */
-public final class HDFSBackedCacheKey<T extends Serializable> implements CacheKey<T> {
+public final class HDFSBackedCacheKey<T> implements CacheKey<T> {
   private String serializedJobConf;
   private String serializedInputSplit;
   private String path;

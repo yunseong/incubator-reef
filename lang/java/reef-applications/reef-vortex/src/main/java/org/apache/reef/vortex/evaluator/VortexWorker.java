@@ -20,6 +20,8 @@ package org.apache.reef.vortex.evaluator;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import edu.snu.utils.DVector;
+import edu.snu.utils.SVector;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceInfo;
@@ -127,6 +129,8 @@ public final class VortexWorker implements Task, TaskMessageSource {
               try (final TraceScope traceScope =
                        Trace.startSpan("worker_deserialize " + request.length / 1024 / 1024.0 + "mb", traceInfo)) {
                 final Kryo kryo = new Kryo();
+//                kryo.register(DVector.class);
+//                kryo.register(SVector.class);
                 kryo.register(TaskletExecutionRequest.class);
                 kryo.register(CacheSentRequest.class);
                 final Input input = new Input(request);
@@ -169,7 +173,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
                   cache.notifyOnArrival(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
                 }
               } else {
-                throw new RuntimeException("Unknown Command");
+                throw new RuntimeException("Unknown Command: " + vortexRequest.getRequest());
               }
             }
           });

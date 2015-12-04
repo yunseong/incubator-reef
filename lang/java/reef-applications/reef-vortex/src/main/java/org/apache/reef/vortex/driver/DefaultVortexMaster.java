@@ -22,6 +22,8 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import edu.snu.utils.DVector;
+import edu.snu.utils.SVector;
 import net.jcip.annotations.ThreadSafe;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
@@ -138,7 +140,7 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
-  public <T extends Serializable> MasterCacheKey<T> cache(final String keyName, @Nonnull final T data)
+  public <T> MasterCacheKey<T> cache(final String keyName, @Nonnull final T data)
       throws VortexCacheException {
 
     final Kryo kryo = new Kryo();
@@ -148,6 +150,8 @@ final class DefaultVortexMaster implements VortexMaster {
     final MasterCacheKey key = new MasterCacheKey(keyName);
     final CacheSentRequest cacheSentRequest = new CacheSentRequest(key, data);
 
+//    kryo.register(DVector.class);
+//    kryo.register(SVector.class);
     kryo.writeObject(output, new VortexRequest(cacheSentRequest));
     output.close();
     final byte[] requestBytes = byteArrayOutputStream.toByteArray();
@@ -160,9 +164,7 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
-  public <T extends Serializable> HDFSBackedCacheKey<T>[] cache(final String path,
-                                                                final int numSplit,
-                                                                final VortexParser<?, T> parser) {
+  public <T> HDFSBackedCacheKey<T>[] cache(final String path, final int numSplit, final VortexParser<?, T> parser) {
     try {
       // TODO Other type of input formats could be used?
       final ExternalConstructor<JobConf> jobConfConstructor =

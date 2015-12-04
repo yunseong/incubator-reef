@@ -18,13 +18,11 @@
  */
 package org.apache.reef.vortex.common;
 
-import java.io.Serializable;
-
 /**
  * Key used to get the data from the Worker cache
  * Users should assign unique name to distinguish the keys.
  */
-public final class MasterCacheKey<T extends Serializable> implements CacheKey<T> {
+public final class MasterCacheKey<T> implements CacheKey<T> {
   private String name;
 
   public MasterCacheKey(){

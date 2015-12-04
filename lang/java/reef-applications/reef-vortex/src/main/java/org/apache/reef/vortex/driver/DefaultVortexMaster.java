@@ -149,7 +149,7 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
-  public <T extends Serializable> MasterCacheKey<T> cache(final String keyName, @Nonnull final T data)
+  public <T> MasterCacheKey<T> cache(final String keyName, @Nonnull final T data)
       throws VortexCacheException {
 
     final Kryo kryo = new Kryo();
@@ -171,9 +171,7 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
-  public <T extends Serializable> HDFSBackedCacheKey<T>[] cache(final String path,
-                                                                final int numSplit,
-                                                                final VortexParser<?, T> parser) {
+  public <T> HDFSBackedCacheKey<T>[] cache(final String path, final int numSplit, final VortexParser<?, T> parser) {
     try {
       // TODO Other type of input formats could be used?
       final ExternalConstructor<JobConf> jobConfConstructor =

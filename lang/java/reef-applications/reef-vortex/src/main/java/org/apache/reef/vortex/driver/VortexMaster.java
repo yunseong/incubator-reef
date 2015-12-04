@@ -77,11 +77,10 @@ public interface VortexMaster {
    * @return The key with which the data is accessible in the Worker.
    * @throws VortexCacheException If the keyName is registered already in the cache.
    */
-  <T extends Serializable> MasterCacheKey<T> cache(final String keyName, @Nonnull final T data)
+  <T> MasterCacheKey<T> cache(final String keyName, @Nonnull final T data)
       throws VortexCacheException;
 
-  <T extends Serializable> HDFSBackedCacheKey<T>[] cache(final String path, int numSplit,
-                                                         final VortexParser<?, T> parser);
+  <T> HDFSBackedCacheKey<T>[] cache(final String path, int numSplit, final VortexParser<?, T> parser);
 
   /**
    * Call this when a worker requests the cached data.
@@ -91,7 +90,7 @@ public interface VortexMaster {
    * @param parentSpan Span that is owned by its parent.
    * @throws VortexCacheException If the data is not found in the cache.
    */
-  <T extends Serializable> void dataRequested(final String workerId, final MasterCacheKey<T> cacheKey,
+  <T> void dataRequested(final String workerId, final MasterCacheKey<T> cacheKey,
                                               final Span parentSpan)
       throws VortexCacheException;
 

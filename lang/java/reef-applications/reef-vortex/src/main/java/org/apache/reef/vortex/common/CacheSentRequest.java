@@ -18,14 +18,12 @@
  */
 package org.apache.reef.vortex.common;
 
-import java.io.Serializable;
-
 /**
  * Informs that the data was sent to Worker.
  * @param <T> Type of the data.
  */
 // TODO Fix the naming: note that this is not a request actually.
-public final class CacheSentRequest<T extends Serializable> {
+public final class CacheSentRequest<T> {
   private MasterCacheKey<T> cacheKey;
   private T data;
 

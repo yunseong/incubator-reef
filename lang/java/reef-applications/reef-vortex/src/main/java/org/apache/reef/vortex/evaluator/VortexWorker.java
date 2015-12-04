@@ -169,7 +169,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
                   cache.notifyOnArrival(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
                 }
               } else {
-                throw new RuntimeException("Unknown Command");
+                throw new RuntimeException("Unknown Command: " + vortexRequest.getRequest());
               }
             }
           });

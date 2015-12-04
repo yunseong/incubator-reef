@@ -52,7 +52,7 @@ public final class VortexThreadPool {
    * @return Key that is used to access the data in Workers {@link org.apache.reef.vortex.evaluator.VortexCache}.
    * @throws VortexCacheException If the keyName is registered already in the cache.
    */
-  public <T extends Serializable> MasterCacheKey<T> cache(final String name, @Nonnull final T data)
+  public <T> MasterCacheKey<T> cache(final String name, @Nonnull final T data)
       throws VortexCacheException {
     return vortexMaster.cache(name, data);
   }

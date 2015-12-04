@@ -43,7 +43,6 @@ import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 import javax.inject.Inject;
-import java.io.Serializable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -57,7 +56,7 @@ public final class VortexCache {
   private static final Logger LOG = Logger.getLogger(VortexCache.class.getName());
 
   private static VortexCache cacheRef;
-  private final Cache<CacheKey, Serializable> cache = CacheBuilder.newBuilder().build();
+  private final Cache<CacheKey, Object> cache = CacheBuilder.newBuilder().build();
   private final ConcurrentHashMap<MasterCacheKey, CustomCallable> waiters = new ConcurrentHashMap<>();
 
   private final InjectionFuture<VortexWorker> worker;
@@ -74,7 +73,7 @@ public final class VortexCache {
    * @return The data from the cache. If the data does not exist in cache, the thread is blocked until the data arrives.
    * @throws VortexCacheException If it fails to fetch the data.
    */
-  public static <T extends Serializable> T getData(final CacheKey<T> key) throws VortexCacheException {
+  public static <T> T getData(final CacheKey<T> key) throws VortexCacheException {
     final Span currentSpan = Trace.currentSpan();
     try (final TraceScope getDataScope = Trace.startSpan("cache_get_"+key.getId(), currentSpan)) {
       return cacheRef.load(key, getDataScope);
@@ -83,7 +82,7 @@ public final class VortexCache {
     }
   }
 
-  private <T extends Serializable> T load(final CacheKey<T> key, final TraceScope parentScope)
+  private <T> T load(final CacheKey<T> key, final TraceScope parentScope)
       throws VortexCacheException {
     try {
       final Callable<T> callable;
@@ -105,7 +104,7 @@ public final class VortexCache {
     }
   }
 
-  class HdfsCallable<T extends Serializable> implements Callable<T> {
+  class HdfsCallable<T> implements Callable<T> {
     private final HDFSBackedCacheKey<T> hdfsBackedCacheKey;
 
     HdfsCallable(final HDFSBackedCacheKey<T> cacheKey) {
@@ -137,7 +136,7 @@ public final class VortexCache {
    * @param key Key of the data.
    * @param data Data itself.
    */
-  void notifyOnArrival(final MasterCacheKey key, final Serializable data) {
+  <T> void notifyOnArrival(final MasterCacheKey key, final T data) {
     if (!waiters.containsKey(key)) {
       throw new RuntimeException("Not requested key: " + key + "waiters size : " + waiters.size());
     }
@@ -149,7 +148,7 @@ public final class VortexCache {
     }
   }
 
-  final class CustomCallable<T extends Serializable> implements Callable<T> {
+  final class CustomCallable<T> implements Callable<T> {
     private boolean dataArrived = false;
     private T waitingData;
     private final MasterCacheKey<T> cacheKey;

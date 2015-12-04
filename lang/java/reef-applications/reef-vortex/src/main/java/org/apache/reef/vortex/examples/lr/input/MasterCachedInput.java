@@ -32,23 +32,23 @@ import java.util.List;
  * Input used in Logistic Regression which caches the training data only.
  */
 public final class MasterCachedInput implements Serializable, VortexCacheable {
-  private MasterCacheKey<ArrayList<ArrayBasedVector>> trainingDataKey;
-  private MasterCacheKey<SparseVector> parameterVectorKey;
+  private MasterCacheKey<ArrayList<SparseVector>> trainingDataKey;
+  private MasterCacheKey<DenseVector> parameterVectorKey;
 
   private MasterCachedInput() {
   }
 
-  public MasterCachedInput(final MasterCacheKey<SparseVector> parameterVectorKey,
-                           final MasterCacheKey<ArrayList<ArrayBasedVector>> trainingDataKey) {
+  public MasterCachedInput(final MasterCacheKey<DenseVector> parameterVectorKey,
+                           final MasterCacheKey<ArrayList<SparseVector>> trainingDataKey) {
     this.parameterVectorKey = parameterVectorKey;
     this.trainingDataKey = trainingDataKey;
   }
 
-  public SparseVector getParameterVector() throws VortexCacheException {
+  public DenseVector getParameterVector() throws VortexCacheException {
     return VortexCache.getData(parameterVectorKey);
   }
 
-  public ArrayList<ArrayBasedVector> getTrainingData() throws VortexCacheException {
+  public ArrayList<SparseVector> getTrainingData() throws VortexCacheException {
     return VortexCache.getData(trainingDataKey);
   }
 

@@ -33,23 +33,23 @@ import java.util.List;
  * Input used in Logistic Regression which caches the training data only.
  */
 public final class HDFSCachedInput implements Serializable, VortexCacheable {
-  private HDFSBackedCacheKey<ArrayList<ArrayBasedVector>> trainingDataKey;
-  private MasterCacheKey<SparseVector> parameterVectorKey;
+  private HDFSBackedCacheKey<ArrayList<Row>> trainingDataKey;
+  private MasterCacheKey<DenseVector> parameterVectorKey;
 
   private HDFSCachedInput() {
   }
 
-  public HDFSCachedInput(final MasterCacheKey<SparseVector> parameterVectorKey,
+  public HDFSCachedInput(final MasterCacheKey<DenseVector> parameterVectorKey,
                          final HDFSBackedCacheKey trainingDataKey) {
     this.parameterVectorKey = parameterVectorKey;
     this.trainingDataKey = trainingDataKey;
   }
 
-  public SparseVector getParameterVector() throws VortexCacheException {
+  public DenseVector getParameterVector() throws VortexCacheException {
     return VortexCache.getData(parameterVectorKey);
   }
 
-  public ArrayList<ArrayBasedVector> getTrainingData() throws VortexCacheException, ParseException {
+  public ArrayList<Row> getTrainingData() throws VortexCacheException, ParseException {
     return VortexCache.getData(trainingDataKey);
   }
 

@@ -90,7 +90,11 @@ final class HDFSLRUrlReputationStart implements VortexStart {
     final long start = System.currentTimeMillis();
 
     try {
-      final DenseVector model = new DenseVector(modelDim);
+<<<<<<< HEAD
+      final SparseVector model = new SparseVector(modelDim);
+=======
+      DenseVector model = new DenseVector(modelDim);
+>>>>>>> 9a2d741... Applying breeze in vortexLR
 
       final HDFSBackedCacheKey[] partitions = vortexThreadPool.cache(path, divideFactor,
           new RowParser());
@@ -106,10 +110,13 @@ final class HDFSLRUrlReputationStart implements VortexStart {
         final long startMemory = (r.totalMemory() - r.freeMemory())/1048576;
 
         // Process the partial result and update to the cache
-
-
-        final MasterCacheKey<DenseVector> parameterKey = vortexThreadPool.cache("param" + iteration, model);
+<<<<<<< HEAD
+        final MasterCacheKey<SparseVector> parameterKey = vortexThreadPool.cache("param" + iteration, model);
         final long afterCache = (r.totalMemory() - r.freeMemory())/1048576;
+
+=======
+        final MasterCacheKey<DenseVector> parameterKey = vortexThreadPool.cache("param" + iteration, model);
+>>>>>>> 9a2d741... Applying breeze in vortexLR
         // Launch tasklets, each operating on a partition
         futures.clear();
 
@@ -142,8 +149,35 @@ final class HDFSLRUrlReputationStart implements VortexStart {
     }
   }
 
-  private synchronized void processResult(final DenseVector previousModel, final PartialResult result,
-                                          final int iteration, final AccuracyMeasurer measurer) {
+  /**
+   * Aggregate the partial results, compute accuracy, and update model.
+   * @throws ExecutionException
+   * @throws InterruptedException
+   */
+  private void processResult(final DenseVector previousModel, final Collection<VortexFuture<PartialResult>> futures,
+                             final int iteration)
+      throws ExecutionException, InterruptedException {
+
+    final double stepSize = 0.00001;
+    final double thisIterStepSize = stepSize / Math.sqrt(numIter);
+
+    int numTotal = 0;
+    int numPositive = 0;
+    for (final VortexFuture<PartialResult> future : futures) {
+      final PartialResult partialResult = future.get();
+      numTotal += partialResult.getCount();
+      numPositive += partialResult.getNumPositive();
+
+      // SimpleUpdater. No regularization
+      previousModel.add(-thisIterStepSize, partialResult.getCumGradient());
+    }
+
+    final double accuracy = (double) numPositive / numTotal;
+    LOG.log(Level.INFO, "@V@iteration\t{0}\taccuracy\t{1}", new Object[]{iteration, accuracy});
+  }
+
+   private synchronized void processResult(final SparseVector previousModel, final PartialResult result,
+                                           final int iteration, final AccuracyMeasurer measurer) {
     final long startTime = System.currentTimeMillis();
 
     final double stepSize = 0.00001;

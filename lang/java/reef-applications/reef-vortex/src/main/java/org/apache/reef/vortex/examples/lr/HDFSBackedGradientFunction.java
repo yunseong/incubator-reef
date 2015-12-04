@@ -19,9 +19,9 @@
 package org.apache.reef.vortex.examples.lr;
 
 import org.apache.reef.vortex.api.VortexFunction;
-import org.apache.reef.vortex.examples.lr.input.ArrayBasedVector;
 import org.apache.reef.vortex.examples.lr.input.HDFSCachedInput;
-import org.apache.reef.vortex.examples.lr.input.SparseVector;
+import org.apache.reef.vortex.examples.lr.input.Row;
+import org.apache.reef.vortex.examples.lr.input.DenseVector;
 
 import java.net.InetAddress;
 import java.util.Arrays;
@@ -43,11 +43,11 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
     final long startTime = System.currentTimeMillis();
     final long startMemory = (r.totalMemory() - r.freeMemory())/1048576;
 
-    final SparseVector parameterVector = lrInput.getParameterVector();
+    final DenseVector parameterVector = lrInput.getParameterVector();
     final long modelLoadedTime = System.currentTimeMillis();
     final long modelLoadedMemory = (r.totalMemory() - r.freeMemory())/1048576;
 
-    final List<ArrayBasedVector> trainingData = lrInput.getTrainingData();
+    final List<Row> trainingData = lrInput.getTrainingData();
     final long trainingLoadedTime = System.currentTimeMillis();
     final long trainingLoadedMemory = (r.totalMemory() - r.freeMemory())/1048576;
 
@@ -55,14 +55,16 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
         new Object[] {InetAddress.getLocalHost().getHostName(),
             startMemory, modelLoadedMemory, trainingLoadedMemory, r.maxMemory(), r.totalMemory()});
 
-    final SparseVector cumGradient = new SparseVector(parameterVector.getDimension());
-    final PartialResult partialResult = new PartialResult(cumGradient);
+    final DenseVector cumGradient = new DenseVector(parameterVector.getDimension());
 
-    for (final ArrayBasedVector instance : trainingData) {
+    int numPositive = 0;
+    for (final Row instance : trainingData) {
 
-      final double predict = parameterVector.dot(instance);
+      final double predict = parameterVector.dot(instance.getFeature());
       final double label = instance.getOutput();
-      final boolean isPositive = predict * label > 0;
+      if (predict * label > 0) {
+        numPositive++;
+      }
 
       // Update the gradient vector.
       /*
@@ -77,9 +79,7 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
       final double maxExponent = Math.max(exponent, 0);
       final double logSumExp = maxExponent + Math.log(Math.exp(-maxExponent) + Math.exp(exponent - maxExponent));
       final double multiplier = label * (Math.exp(-logSumExp) - 1);
-      cumGradient.axpy(multiplier, instance);
-
-      partialResult.addResult(cumGradient, 0.0, isPositive);
+      cumGradient.axpy(multiplier, instance.getFeature());
     }
 
     final long finishTime = System.currentTimeMillis();
@@ -95,7 +95,7 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
             executionTime, modelOverhead, trainingOverhead, trainingData.size(),
             Arrays.toString(lrInput.getCachedKeys().toArray())});
 
-    return partialResult;
+    return new PartialResult(cumGradient, numPositive, trainingData.size());
   }
 
   /**

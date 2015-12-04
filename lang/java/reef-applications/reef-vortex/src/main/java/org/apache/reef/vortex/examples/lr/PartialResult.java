@@ -26,37 +26,39 @@ import java.io.Serializable;
  * Representation of partial result of the Logistic Regression in each iteration.
  */
 public final class PartialResult implements Serializable {
-  private final SparseVector partialGradient;
+  private final SparseVector cumGradient;
+  private double loss;
   private int numPositive;
-  private int numNegative;
   private int count;
 
-  public PartialResult(final SparseVector partialGradient,
-                       final int numPositive,
-                       final int numNegative) {
-    this.partialGradient = partialGradient;
-    this.numPositive = numPositive;
-    this.numNegative = numNegative;
-    this.count = numNegative + numPositive;
+  public PartialResult(final SparseVector cumGradient) {
+    this.cumGradient = cumGradient;
+    this.loss = 0.0f;
+    this.numPositive = 0;
+    this.count = 0;
   }
 
-  public void addResult(final PartialResult result) {
-    partialGradient.addVector(result.getPartialGradient());
-    numPositive += result.getNumPositive();
-    numNegative += result.getNumNegative();
-    count += result.getCount();
+  public void addResult(final SparseVector cumGradient,
+                        final double loss,
+                        final boolean isPositive) {
+    this.cumGradient.set(cumGradient);
+    this.loss += loss;
+    count++;
+    if (isPositive) {
+      numPositive++;
+    }
   }
 
-  public SparseVector getPartialGradient() {
-    return partialGradient;
+  public SparseVector getCumGradient() {
+    return cumGradient;
+  }
+
+  public float getLoss() {
+    return (float) loss;
   }
 
   public int getNumPositive() {
     return numPositive;
-  }
-
-  public int getNumNegative() {
-    return numNegative;
   }
 
   public int getCount() {

@@ -106,7 +106,7 @@ final class HDFSLRUrlReputationStart implements VortexStart {
               new HDFSBackedGradientFunction(),
               new HDFSCachedInput(parameterKey, partitions[i])));
         }
-        model = processResult(futures, iteration);
+        processResult(model, futures, iteration);
       }
 
       final long duration = System.currentTimeMillis() - start;
@@ -119,29 +119,28 @@ final class HDFSLRUrlReputationStart implements VortexStart {
 
   /**
    * Aggregate the partial results, compute accuracy, and update model.
-   * @return Updated model.
    * @throws ExecutionException
    * @throws InterruptedException
    */
-  private SparseVector processResult(final Collection<VortexFuture<PartialResult>> futures, final int iteration)
+  private void processResult(final SparseVector previousModel, final Collection<VortexFuture<PartialResult>> futures,
+                             final int iteration)
       throws ExecutionException, InterruptedException {
-    PartialResult reducedResult = null;
+
+    final double stepSize = 0.00001;
+    final double thisIterStepSize = stepSize / Math.sqrt(numIter);
+
+    int numTotal = 0;
+    int numPositive = 0;
     for (final VortexFuture<PartialResult> future : futures) {
       final PartialResult partialResult = future.get();
-      if (reducedResult == null) {
-        reducedResult = partialResult;
-      } else {
-        reducedResult.addResult(partialResult);
-      }
+      numTotal += partialResult.getCount();
+      numPositive += partialResult.getNumPositive();
+
+      // SimpleUpdater. No regularization
+      previousModel.axpy(-thisIterStepSize, partialResult.getCumGradient());
     }
 
-    if (reducedResult == null) {
-      LOG.log(Level.WARNING, "The partial result has not been not reduced correctly in iteration {0}", iteration);
-      throw new RuntimeException("Iteration " + iteration + " has failed");
-    } else {
-      final double accuracy = ((double) reducedResult.getNumPositive()) / reducedResult.getCount();
-      LOG.log(Level.INFO, "@V@iteration\t{0}\taccuracy\t{1}", new Object[]{iteration, accuracy});
-      return reducedResult.getPartialGradient().nTimes(1.0f / reducedResult.getCount());
-    }
+    final double accuracy = (double) numPositive / numTotal;
+    LOG.log(Level.INFO, "@V@iteration\t{0}\taccuracy\t{1}", new Object[]{iteration, accuracy});
   }
 }

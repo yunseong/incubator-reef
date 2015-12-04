@@ -63,7 +63,6 @@ public final class LogisticRegression {
           .registerShortNameOfClass(NumRecords.class)
           .registerShortNameOfClass(Path.class)
           .registerShortNameOfClass(ModelDim.class)
-          .registerShortNameOfClass(HdfsCached.class)
           .processCommandLine(args);
 
       final Injector injector = tang.newInjector(cb.build());
@@ -78,8 +77,7 @@ public final class LogisticRegression {
           .log(Level.INFO, "Config: [worker] {0} / [mem] {1} / [cores] {2} / [capacity] {3}",
                   new Object[]{numOfWorkers, workerMemory, workerCores, workerCapacity});
 
-      final boolean hdfsCached = injector.getNamedInstance(HdfsCached.class);
-      final Class startClass = hdfsCached? HDFSLRUrlReputationStart.class : CachedLRUrlReputationStart.class;
+      final Class startClass = HDFSLRUrlReputationStart.class;
       if (isLocal) {
         VortexLauncher.launchLocal("Vortex_LR", startClass,
             numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());
@@ -139,9 +137,5 @@ public final class LogisticRegression {
 
   @NamedParameter(short_name = "model_dim", default_value = "3231961")
   public static final class ModelDim implements Name<Integer> {
-  }
-
-  @NamedParameter(short_name = "hdfs", default_value = "true")
-  public static final class HdfsCached implements Name<Boolean> {
   }
 }

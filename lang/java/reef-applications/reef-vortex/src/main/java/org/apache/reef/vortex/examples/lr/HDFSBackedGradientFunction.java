@@ -46,28 +46,31 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
     final List<ArrayBasedVector> trainingData = lrInput.getTrainingData();
     final long trainingLoadedTime = System.currentTimeMillis();
 
-    final SparseVector gradientResult = new SparseVector(parameterVector.getDimension());
-
-    // For estimating the accuracy.
-    int numPositive = 0;
-    int numNegative = 0;
+    final SparseVector cumGradient = new SparseVector(parameterVector.getDimension());
+    final PartialResult partialResult = new PartialResult(cumGradient);
 
     for (final ArrayBasedVector instance : trainingData) {
-      final double predict = parameterVector.dot(instance);
-      final double y = instance.getOutput();
-      if (predict * y > 0) {
-        numPositive++;
-      } else {
-        numNegative++;
-      }
-      // Update the gradient vector.
-      final double exponent = -predict * y;
-      final double maxExponent = Math.max(exponent, 0);
-      final double lambda = 1.0; // regularization
-      final double logSumExp = maxExponent + Math.log(Math.exp(-maxExponent) + Math.exp(exponent - maxExponent));
 
-      final float stepSize = 1e-2f;
-      gradientResult.addVector((float) (-stepSize * (y * (Math.exp(-logSumExp) - 1) + lambda)), instance);
+      final double predict = parameterVector.dot(instance);
+      final double label = instance.getOutput();
+      final boolean isPositive = predict * label > 0;
+
+      // Update the gradient vector.
+      /*
+      final double margin = - 1.0 * predict;
+      final double multiplier = (1.0 / (1.0 + Math.exp(margin))) - label;
+      cumGradient.axpy(multiplier, instance);
+
+      final double loss = label > 0 ? log1pExp(margin) : log1pExp(margin) - margin;
+
+      */
+      final double exponent = - predict * label;
+      final double maxExponent = Math.max(exponent, 0);
+      final double logSumExp = maxExponent + Math.log(Math.exp(-maxExponent) + Math.exp(exponent - maxExponent));
+      final double multiplier = label * (Math.exp(-logSumExp) - 1);
+      cumGradient.axpy(multiplier, instance);
+
+      partialResult.addResult(cumGradient, 0.0, isPositive);
     }
 
     final long finishTime = System.currentTimeMillis();
@@ -77,15 +80,19 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
     LOG.log(Level.INFO, "!V!\tExecution\t{0}\tModel\t{1}\tTraining\t{2}\tTrainingNum\t{3}\tkey\t{4}",
         new Object[]{executionTime, modelOverhead, trainingOverhead, trainingData.size(),
             Arrays.toString(lrInput.getCachedKeys().toArray())});
-    return new PartialResult(gradientResult, numPositive, numNegative);
+    return partialResult;
   }
 
   /**
-   * @param predict inner product of the gradient and instance.
+   * To avoid overflow computing math.log(1 + math.exp(x)).
+   * @param x
    * @return
    */
-  private double getHypothesis(final double predict) {
-    final double exponent = -1.0 * predict;
-    return 1 / (1 + Math.pow(Math.E, exponent));
+  private double log1pExp(final double x) {
+    if (x > 0) {
+      return x + Math.log1p(Math.exp(-x));
+    } else {
+      return Math.log1p(Math.exp(x));
+    }
   }
 }

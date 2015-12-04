@@ -49,6 +49,10 @@ public final class SparseVector implements Serializable {
     this.dimension = dimension;
   }
 
+  public void set(final SparseVector vec) {
+    this.map = vec.map;
+    this.dimension = vec.dimension;
+  }
   /**
    * Insert a value to the index.
    **/
@@ -153,11 +157,11 @@ public final class SparseVector implements Serializable {
    * In-place addition of two vectors.
    * @param vector
    */
-  public void addVector(final SparseVector vector) {
+  public void axpy(final double coefficient, final SparseVector vector) {
     for (final Map.Entry<Integer, Float> entry : vector.map.entrySet()) {
       final int index = entry.getKey();
-      final float value = getValue(index) + entry.getValue();
-      putValue(index, value);
+      final double value = getValue(index) + coefficient * entry.getValue();
+      putValue(index, (float) value);
     }
   }
 
@@ -166,90 +170,24 @@ public final class SparseVector implements Serializable {
    * @param coefficient
    * @param vector
    */
-  public void addVector(final float coefficient, final ArrayBasedVector vector) {
+  public void axpy(final double coefficient, final ArrayBasedVector vector) {
     for (int i = 0; i < vector.getIndices().length; i++) {
       final int index = vector.getIndices()[i];
-      final float value = getValue(index) + coefficient * vector.getValues()[i];
-      putValue(index, value);
+      final double value = getValue(index) + coefficient * vector.getValues()[i];
+      putValue(index, (float) value);
     }
   }
 
   /**
-   * Multiply the n to all the elements.
+   * In-place scale multiplyting n to all the elements.
    * @param n
    * @return
    */
-  public SparseVector nTimes(final float n) {
-    final SparseVector result = new SparseVector(dimension);
+  public void nTimes(final double n) {
     for (final Map.Entry<Integer, Float> entry : map.entrySet()) {
       final int index = entry.getKey();
-      final float value = n * entry.getValue();
-      result.putValue(index, value);
+      final float value = (float)(n * entry.getValue());
+      putValue(index, value);
     }
-    return result;
-  }
-
-  public String toString() {
-    final StringBuilder builder = new StringBuilder();
-    builder.append('{');
-
-    int count = 0;
-    for (final Map.Entry<Integer, Float> entry : map.entrySet())  {
-      builder.append(entry.getKey()).append(':').append(entry.getValue());
-      if (++count < map.size()) {
-        builder.append(", ");
-      }
-    }
-    builder.append('}');
-
-    builder.length();
-    return builder.toString();
-  }
-
-  public static void main(final String[] args) {
-    System.out.println("Sparse Vector Test\n");
-
-    System.out.println("Enter size of sparse vectors");
-
-    SparseVector v1 = new SparseVector(70000);
-    SparseVector v2 = new SparseVector(70000);
-
-    v1.putValue(3, 1.0f);
-    v1.putValue(2500, 6.3f);
-    v1.putValue(5000, 10.0f);
-    v1.putValue(60000, -6.3f);
-
-    v2.putValue(1, 7.5f);
-    v2.putValue(3, 5.7f);
-    v2.putValue(2500, -6.3f);
-
-    System.out.println("\n");
-    System.out.println("Vector v1 = " + v1);
-    System.out.println("Vector v2 = " + v2);
-    System.out.println("\nv1 dot v2 = " + v1.dot(v2));
-    System.out.println("v1  +  v2   = " + v1.plus(v2));
-    System.out.println("2 * v2   = " + v2.nTimes(2.0f));
-
-    v1.addVector(v2);
-    System.out.println("v1 = v1 + v2 = " + v1);
-
-    SparseVector v3 = new SparseVector(10);
-    SparseVector v4 = new SparseVector(10);
-    v3.putValue(0, 10.0f);
-    v3.putValue(1, 1.0f);
-    v3.putValue(2, 3.0f);
-    v3.putValue(9, 10.0f);
-
-    v4.putValue(0, 0.0f);
-    v4.putValue(1, 4.0f);
-    v4.putValue(2, 10.0f);
-    v4.putValue(9, 0.0f);
-
-    System.out.println("Vector v3 = " + v3);
-    System.out.println("Vector v4 = " + v4);
-    System.out.println("v3 + v4 = " + v3.plus(v4));
-    System.out.println("4 * v3 = " + v3.nTimes(4));
-    System.out.println("v3 dot v4 = " + v3.dot(v4));
-    System.out.println("v4 dot v3 = " + v4.dot(v3));
   }
 }

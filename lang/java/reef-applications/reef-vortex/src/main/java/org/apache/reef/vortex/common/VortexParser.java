@@ -18,19 +18,15 @@
  */
 package org.apache.reef.vortex.common;
 
+import org.apache.reef.vortex.examples.lr.input.ParseException;
+
 import java.io.Serializable;
 
 /**
- * CacheKey is issued in Master's user code. Tasklets use this key to access
- * the data from Worker cache. Each data is distinguished by cache key's identifier.
+ * Parses data from one format to another. Users can specify how to parse the input.
+ * @param <INPUT> Type of input.
+ * @param <OUTPUT> Type of output.
  */
-public interface CacheKey<T> extends Serializable {
-  enum CacheKeyType {
-    MASTER,
-    HDFS
-  }
-
-  String getId();
-
-  CacheKeyType getType();
+public interface VortexParser<INPUT, OUTPUT> extends Serializable {
+  OUTPUT parse(INPUT input) throws ParseException;
 }

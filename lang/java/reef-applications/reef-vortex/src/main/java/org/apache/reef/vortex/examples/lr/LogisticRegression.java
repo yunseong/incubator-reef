@@ -63,13 +63,12 @@ public final class LogisticRegression {
           .registerShortNameOfClass(NumRecords.class)
           .registerShortNameOfClass(Path.class)
           .registerShortNameOfClass(ModelDim.class)
-          .registerShortNameOfClass(Cache.class)
+          .registerShortNameOfClass(HdfsCached.class)
           .processCommandLine(args);
 
       final Injector injector = tang.newInjector(cb.build());
 
       final boolean isLocal = injector.getNamedInstance(Local.class);
-      final boolean isCached = injector.getNamedInstance(Cache.class);
       final int numOfWorkers = injector.getNamedInstance(NumWorkers.class);
       final int workerCores = injector.getNamedInstance(WorkerCores.class);
       final int workerCapacity = injector.getNamedInstance(WorkerCapacity.class);
@@ -77,9 +76,10 @@ public final class LogisticRegression {
 
       Logger.getLogger(LogisticRegression.class.getName())
           .log(Level.INFO, "Config: [worker] {0} / [mem] {1} / [cores] {2} / [capacity] {3}",
-              new Object[]{numOfWorkers, workerMemory, workerCores, workerCapacity});
+                  new Object[]{numOfWorkers, workerMemory, workerCores, workerCapacity});
 
-      final Class startClass = isCached ? CachedLRUrlReputationStart.class : LRUrlReputationStart.class;
+      final boolean hdfsCached = injector.getNamedInstance(HdfsCached.class);
+      final Class startClass = hdfsCached? HDFSLRUrlReputationStart.class : CachedLRUrlReputationStart.class;
       if (isLocal) {
         VortexLauncher.launchLocal("Vortex_LR", startClass,
             numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());
@@ -141,7 +141,7 @@ public final class LogisticRegression {
   public static final class ModelDim implements Name<Integer> {
   }
 
-  @NamedParameter(short_name = "cache", default_value = "true")
-  public static final class Cache implements Name<Boolean> {
+  @NamedParameter(short_name = "hdfs", default_value = "true")
+  public static final class HdfsCached implements Name<Boolean> {
   }
 }

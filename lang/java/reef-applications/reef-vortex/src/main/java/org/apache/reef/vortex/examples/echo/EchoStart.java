@@ -21,7 +21,7 @@ package org.apache.reef.vortex.examples.echo;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.api.VortexThreadPool;
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 import javax.inject.Inject;
@@ -45,7 +45,7 @@ public final class EchoStart implements VortexStart {
     final List<VortexFuture<String>> futures = new ArrayList<>();
 
     try {
-      final CacheKey<String> quoteKey = vortexThreadPool.cache("quote", "echo");
+      final MasterCacheKey<String> quoteKey = vortexThreadPool.cache("quote", "echo");
       final EchoInput input = new EchoInput(quoteKey);
       final EchoFunction echoFunction = new EchoFunction();
       for (int i = 0; i < NUM_TASKLETS; i++) {

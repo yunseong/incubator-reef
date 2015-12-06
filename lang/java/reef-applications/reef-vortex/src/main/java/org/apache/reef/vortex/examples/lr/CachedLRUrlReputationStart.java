@@ -22,10 +22,10 @@ import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.api.VortexThreadPool;
-import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.examples.lr.input.ArrayBasedVector;
-import org.apache.reef.vortex.examples.lr.input.LRInputCached;
+import org.apache.reef.vortex.examples.lr.input.MasterCachedInput;
 import org.apache.reef.vortex.examples.lr.input.ParseException;
 import org.apache.reef.vortex.examples.lr.input.SparseVector;
 import org.apache.reef.vortex.failure.parameters.IntervalMs;
@@ -62,7 +62,7 @@ final class CachedLRUrlReputationStart implements VortexStart {
   private final double probability;
   private final int interval;
 
-  private final List<CacheKey<ArrayList<ArrayBasedVector>>> partitions;
+  private final List<MasterCacheKey<ArrayList<ArrayBasedVector>>> partitions;
 
   @Inject
   private CachedLRUrlReputationStart(@Parameter(LogisticRegression.DivideFactor.class) final int divideFactor,
@@ -97,7 +97,7 @@ final class CachedLRUrlReputationStart implements VortexStart {
     try {
       int iteration = 0;
       SparseVector model = new SparseVector(modelDim);
-      final CacheKey<SparseVector> initialModelKey = vortexThreadPool.cache("param" + iteration, model);
+      final MasterCacheKey<SparseVector> initialModelKey = vortexThreadPool.cache("param" + iteration, model);
       iteration++;
 
       final List<VortexFuture<PartialResult>> initialResult = submitInitialTasklets(vortexThreadPool, initialModelKey);
@@ -110,13 +110,13 @@ final class CachedLRUrlReputationStart implements VortexStart {
         // Process the partial result and update to the cache
         model = processResult(futures, iteration);
 
-        final CacheKey<SparseVector> parameterKey = vortexThreadPool.cache("param" + iteration, model);
+        final MasterCacheKey<SparseVector> parameterKey = vortexThreadPool.cache("param" + iteration, model);
         // Launch tasklets, each operating on a partition
         futures.clear();
-        for (final CacheKey<ArrayList<ArrayBasedVector>> partition : partitions) {
+        for (final MasterCacheKey<ArrayList<ArrayBasedVector>> partition : partitions) {
           futures.add(vortexThreadPool.submit(
               new CachedGradientFunction(),
-              new LRInputCached(parameterKey, partition, modelDim)));
+              new MasterCachedInput(parameterKey, partition)));
         }
       }
 
@@ -125,8 +125,7 @@ final class CachedLRUrlReputationStart implements VortexStart {
       }
 
       final long duration = System.currentTimeMillis() - start;
-      final JobSummary summary = new JobSummary(duration, parseOverhead);
-      LOG.log(Level.INFO, "#V#finish\t{0}", summary);
+      LOG.log(Level.INFO, "#V#finish\t{0}\tparse\t{1}", new Object[] {duration, parseOverhead});
     } catch (final Exception e) {
       final long duration = System.currentTimeMillis() - start;
       LOG.log(Level.WARNING, "#V#failed after " + duration, e);
@@ -166,7 +165,7 @@ final class CachedLRUrlReputationStart implements VortexStart {
    * @return Futures that will return results.
    */
   private List<VortexFuture<PartialResult>> submitInitialTasklets(final VortexThreadPool threadPool,
-                                                                  final CacheKey modelKey)
+                                                                  final MasterCacheKey modelKey)
       throws IOException, VortexCacheException {
 
     final List<VortexFuture<PartialResult>> futures = new ArrayList<>(divideFactor);
@@ -199,16 +198,16 @@ final class CachedLRUrlReputationStart implements VortexStart {
    * @return Result of gradient function.
    * @throws VortexCacheException
    */
-  private VortexFuture<PartialResult> cacheAndSubmit(final CacheKey modelKey,
+  private VortexFuture<PartialResult> cacheAndSubmit(final MasterCacheKey modelKey,
                                                      final ArrayList<ArrayBasedVector> vectors,
                                                      final VortexThreadPool threadPool) throws VortexCacheException {
     // Cache the partition
-    final CacheKey<ArrayList<ArrayBasedVector>> key =
+    final MasterCacheKey<ArrayList<ArrayBasedVector>> key =
         threadPool.cache("partition" + Integer.toString(partitions.size()), vectors);
     partitions.add(key);
 
     // Submit the tasklet
-    final LRInputCached input = new LRInputCached(modelKey, key, modelDim);
+    final MasterCachedInput input = new MasterCachedInput(modelKey, key);
     return threadPool.submit(new CachedGradientFunction(), input);
   }
 

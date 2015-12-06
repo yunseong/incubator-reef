@@ -20,30 +20,30 @@ package org.apache.reef.vortex.examples.lr;
 
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.examples.lr.input.ArrayBasedVector;
-import org.apache.reef.vortex.examples.lr.input.MasterCachedInput;
+import org.apache.reef.vortex.examples.lr.input.HDFSCachedInput;
 import org.apache.reef.vortex.examples.lr.input.SparseVector;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Outputs the gradient.
  */
-final class CachedGradientFunction implements VortexFunction<MasterCachedInput, PartialResult> {
-  private static final Logger LOG = Logger.getLogger(CachedGradientFunction.class.getName());
+final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput, PartialResult> {
+  private static final Logger LOG = Logger.getLogger(HDFSBackedGradientFunction.class.getName());
   /**
    * Outputs the gradient.
    */
   @Override
-  public PartialResult call(final MasterCachedInput lrInput) throws Exception {
+  public PartialResult call(final HDFSCachedInput lrInput) throws Exception {
     final long startTime = System.currentTimeMillis();
 
     final SparseVector parameterVector = lrInput.getParameterVector();
     final long modelLoadedTime = System.currentTimeMillis();
 
-    final ArrayList<ArrayBasedVector> trainingData = lrInput.getTrainingData();
+    final List<ArrayBasedVector> trainingData = lrInput.getTrainingData();
     final long trainingLoadedTime = System.currentTimeMillis();
 
     final SparseVector gradientResult = new SparseVector(parameterVector.getDimension());
@@ -74,8 +74,8 @@ final class CachedGradientFunction implements VortexFunction<MasterCachedInput, 
     final long executionTime = finishTime - trainingLoadedTime;
     final long modelOverhead = modelLoadedTime - startTime;
     final long trainingOverhead = trainingLoadedTime - modelLoadedTime;
-    LOG.log(Level.INFO, "!V!\tExecution\t{0}\tModel\t{1}\tTraining\t{2}\t\tkey\t{3}",
-        new Object[]{executionTime, modelOverhead, trainingOverhead,
+    LOG.log(Level.INFO, "!V!\tExecution\t{0}\tModel\t{1}\tTraining\t{2}\tTrainingNum\t{3}\tkey\t{4}",
+        new Object[]{executionTime, modelOverhead, trainingOverhead, trainingData.size(),
             Arrays.toString(lrInput.getCachedKeys().toArray())});
     return new PartialResult(gradientResult, numPositive, numNegative);
   }

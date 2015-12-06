@@ -23,6 +23,7 @@ import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.MasterCacheKey;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -62,7 +63,7 @@ public class TestUtil {
   public Tasklet newTaskletWithCache(final String ... keys) {
     final List<CacheKey> keyList = new ArrayList<>(keys.length);
     for (final String key : keys) {
-      keyList.add(new CacheKey(key));
+      keyList.add(new MasterCacheKey(key));
     }
     final VortexCacheable cacheable = mock(VortexCacheable.class);
     when(cacheable.getCachedKeys()).thenReturn(keyList);

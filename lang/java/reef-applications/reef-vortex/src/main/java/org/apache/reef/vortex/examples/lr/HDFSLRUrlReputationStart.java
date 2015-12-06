@@ -29,11 +29,13 @@ import org.apache.reef.vortex.examples.lr.input.HDFSCachedInput;
 import org.apache.reef.vortex.examples.lr.input.SparseVector;
 import org.apache.reef.vortex.failure.parameters.IntervalMs;
 import org.apache.reef.vortex.failure.parameters.Probability;
+import org.apache.reef.wake.EventHandler;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -84,7 +86,7 @@ final class HDFSLRUrlReputationStart implements VortexStart {
     final long start = System.currentTimeMillis();
 
     try {
-      SparseVector model = new SparseVector(modelDim);
+      final SparseVector model = new SparseVector(modelDim);
 
       final HDFSBackedCacheKey[] partitions = vortexThreadPool.cache(path, divideFactor,
           new ArrayBasedVectorParser());
@@ -101,12 +103,22 @@ final class HDFSLRUrlReputationStart implements VortexStart {
         // Launch tasklets, each operating on a partition
         futures.clear();
 
+        final CountDownLatch latch = new CountDownLatch(partitions.length);
+        final AccuracyMeasurer measurer = new AccuracyMeasurer();
         for (int i = 0; i < partitions.length; i++) {
-          futures.add(vortexThreadPool.submit(
-              new HDFSBackedGradientFunction(),
-              new HDFSCachedInput(parameterKey, partitions[i])));
+          final int finalIteration = iteration;
+          vortexThreadPool.submit(new HDFSBackedGradientFunction(),
+              new HDFSCachedInput(parameterKey, partitions[i]),
+              new EventHandler<PartialResult>() {
+                @Override
+                public void onNext(final PartialResult result) {
+                  processResult(model, result, finalIteration, measurer);
+                  latch.countDown();
+                }
+              });
         }
-        processResult(model, futures, iteration);
+        latch.await();
+        LOG.log(Level.INFO, "@V@iteration\t{0}\taccuracy\t{1}", new Object[]{iteration, measurer.getAccuracy()});
       }
 
       final long duration = System.currentTimeMillis() - start;
@@ -142,5 +154,40 @@ final class HDFSLRUrlReputationStart implements VortexStart {
 
     final double accuracy = (double) numPositive / numTotal;
     LOG.log(Level.INFO, "@V@iteration\t{0}\taccuracy\t{1}", new Object[]{iteration, accuracy});
+  }
+
+   private synchronized void processResult(final SparseVector previousModel, final PartialResult result,
+                                           final int iteration, final AccuracyMeasurer measurer) {
+    final long startTime = System.currentTimeMillis();
+
+    final double stepSize = 0.00001;
+    final double thisIterStepSize = stepSize / Math.sqrt(numIter);
+
+     measurer.add(result.getCount(), result.getNumPositive());
+
+     // SimpleUpdater. No regularization
+     previousModel.axpy(-thisIterStepSize, result.getCumGradient());
+
+     final long endTime = System.currentTimeMillis();
+     LOG.log(Level.INFO, "Processing time {0} in iteration{1}", new Object[] {endTime - startTime, iteration});
+  }
+
+  static class AccuracyMeasurer {
+    int numTotal;
+    int numPositive;
+
+    AccuracyMeasurer() {
+      this.numTotal = 0;
+      this.numPositive = 0;
+    }
+
+    void add(final int numTotal, final int numPositive) {
+      this.numTotal += numTotal;
+      this.numPositive += numPositive;
+    }
+
+    double getAccuracy() {
+      return (double) numPositive / numTotal;
+    }
   }
 }

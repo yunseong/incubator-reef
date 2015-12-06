@@ -47,9 +47,21 @@ public final class VortexWorkerConf extends ConfigurationModuleBuilder {
   }
 
   /**
+   * Slack Threads for handling messages when all threads are blocked due to the cache miss.
+   */
+  @NamedParameter(doc = "Number of slack Threads", default_value = "2")
+  public final class NumOfSlackThreads implements Name<Integer> {
+  }
+
+  /**
    * Worker Threads.
    */
   public static final RequiredParameter<Integer> NUM_OF_THREADS = new RequiredParameter<>();
+
+  /**
+   * Slack Threads.
+   */
+  public static final OptionalParameter<Integer> NUM_OF_SLACK_THREADS = new OptionalParameter<>();
 
   public static final OptionalParameter<String> RECEIVER_TYPE = new OptionalParameter<>();
   public static final OptionalParameter<String> RECEIVER_HOST = new OptionalParameter<>();
@@ -60,6 +72,7 @@ public final class VortexWorkerConf extends ConfigurationModuleBuilder {
    */
   public static final ConfigurationModule CONF = new VortexWorkerConf()
       .bindNamedParameter(NumOfThreads.class, NUM_OF_THREADS)
+      .bindNamedParameter(NumOfSlackThreads.class, NUM_OF_SLACK_THREADS)
       .bindNamedParameter(ProcessName.class, "vWorker")
       .bindNamedParameter(ReceiverType.class, RECEIVER_TYPE)
       .bindNamedParameter(ReceiverHost.class, RECEIVER_HOST)

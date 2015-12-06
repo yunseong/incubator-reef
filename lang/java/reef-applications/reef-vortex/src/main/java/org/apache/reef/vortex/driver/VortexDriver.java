@@ -19,6 +19,8 @@
 package org.apache.reef.vortex.driver;
 
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.evaluator.*;
 import org.apache.reef.driver.task.RunningTask;
@@ -29,9 +31,11 @@ import org.apache.reef.tang.Configurations;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.tang.annotations.Unit;
 import org.apache.reef.vortex.api.VortexStart;
+import org.apache.reef.vortex.common.CacheDataRequest;
 import org.apache.reef.vortex.common.TaskletFailureReport;
 import org.apache.reef.vortex.common.TaskletResultReport;
 import org.apache.reef.vortex.common.WorkerReport;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexWorker;
 import org.apache.reef.vortex.trace.parameters.ReceiverHost;
 import org.apache.reef.vortex.trace.parameters.ReceiverPort;
@@ -186,6 +190,16 @@ final class VortexDriver {
       case TaskletFailure:
         final TaskletFailureReport taskletFailureReport = (TaskletFailureReport)workerReport;
         vortexMaster.taskletErrored(workerId, taskletFailureReport.getTaskletId(), taskletFailureReport.getException());
+        break;
+      case CacheRequest:
+        final CacheDataRequest cacheDataRequest = (CacheDataRequest)workerReport;
+        try (final TraceScope dataRequestScope =
+                 Trace.startSpan("master_data_requested", cacheDataRequest.getTraceInfo())){
+          vortexMaster.dataRequested(workerId, cacheDataRequest.getCacheKey(), dataRequestScope.getSpan());
+        } catch (VortexCacheException e) {
+          LOG.log(Level.SEVERE, "Failed to load the data that worker {0} requested with key name {1}.",
+              new Object[] {workerId, cacheDataRequest.getCacheKey().getName()});
+        }
         break;
       default:
         throw new RuntimeException("Unknown Report");

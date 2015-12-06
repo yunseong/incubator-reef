@@ -18,6 +18,8 @@
  */
 package org.apache.reef.vortex.driver;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
 import net.jcip.annotations.ThreadSafe;
 import org.apache.htrace.*;
 import org.apache.reef.annotations.audience.DriverSide;
@@ -25,12 +27,23 @@ import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.wake.EventHandler;
+import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.CacheSentRequest;
+import org.apache.reef.vortex.common.VortexRequest;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.trace.HTrace;
 
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
+import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 /**
  * Default implementation of VortexMaster.
@@ -45,6 +58,8 @@ final class DefaultVortexMaster implements VortexMaster {
   private final AtomicInteger taskletIdCounter = new AtomicInteger();
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
+  // TODO This should be replaced by Guava
+  private final ConcurrentMap<String, byte[]> cacheMap = new ConcurrentHashMap<>();
 
   /**
    * @param runningWorkers for managing all running workers.
@@ -63,7 +78,7 @@ final class DefaultVortexMaster implements VortexMaster {
    * Add a new tasklet to pendingTasklets.
    */
   @Override
-  public <TInput extends Serializable, TOutput extends Serializable> VortexFuture<TOutput>
+  public <TInput, TOutput extends Serializable> VortexFuture<TOutput>
       enqueueTasklet(final VortexFunction<TInput, TOutput> function, final TInput input,
                      final Optional<EventHandler<TOutput>> callback) {
     // TODO[REEF-500]: Simple duplicate Vortex Tasklet launch.
@@ -121,6 +136,45 @@ final class DefaultVortexMaster implements VortexMaster {
   @Override
   public void taskletErrored(final String workerId, final int taskletId, final Exception exception) {
     runningWorkers.errorTasklet(workerId, taskletId, exception);
+  }
+
+  @Override
+  public <T extends Serializable> CacheKey cache(final String keyName, @Nonnull final T data)
+      throws VortexCacheException {
+    if (cacheMap.containsKey(keyName)) {
+      throw new VortexCacheException("The keyName " + keyName + "is already used.");
+    }
+
+    final Kryo kryo = new Kryo();
+
+    final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    final Output output = new Output(byteArrayOutputStream);
+
+    final CacheKey key = new CacheKey(keyName);
+    final CacheSentRequest cacheSentRequest = new CacheSentRequest(key, data);
+
+    kryo.writeObject(output, new VortexRequest(cacheSentRequest));
+    output.close();
+    final byte[] requestBytes = byteArrayOutputStream.toByteArray();
+
+    cacheMap.put(keyName, requestBytes);
+    return key;
+  }
+
+  @Override
+  public void dataRequested(final String workerId, final CacheKey cacheKey, final Span parentSpan)
+      throws VortexCacheException {
+    synchronized (cacheMap) {
+      final String keyName = cacheKey.getName();
+      if (!cacheMap.containsKey(keyName)) {
+        throw new VortexCacheException("The entity does not exist for the key : " + cacheKey);
+      }
+      final byte[] serializedData = cacheMap.get(keyName);
+      Logger.getLogger(DefaultVortexMaster.class.getName())
+          .log(Level.INFO, "*V*fetch\t{0}\tkey\t{1}\tworker\t{2}",
+              new Object[]{serializedData.length, keyName, workerId});
+      runningWorkers.sendCacheData(workerId, serializedData, TraceInfo.fromSpan(parentSpan));
+    }
   }
 
   /**

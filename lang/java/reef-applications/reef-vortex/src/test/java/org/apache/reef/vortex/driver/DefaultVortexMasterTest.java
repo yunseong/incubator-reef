@@ -22,7 +22,9 @@ import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.wake.EventHandler;
+import org.apache.reef.vortex.trace.HTrace;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -45,7 +47,8 @@ public class DefaultVortexMasterTest {
     final VortexWorkerManager vortexWorkerManager1 = testUtil.newWorker();
     final RunningWorkers runningWorkers = new RunningWorkers(new RandomSchedulingPolicy());
     final PendingTasklets pendingTasklets = new PendingTasklets();
-    final DefaultVortexMaster vortexMaster = new DefaultVortexMaster(runningWorkers, pendingTasklets);
+    final DefaultVortexMaster vortexMaster =
+        new DefaultVortexMaster(runningWorkers, pendingTasklets, Mockito.mock(HTrace.class));
 
     final AtomicBoolean callbackReceived = new AtomicBoolean(false);
     final CountDownLatch latch = new CountDownLatch(1);
@@ -81,7 +84,8 @@ public class DefaultVortexMasterTest {
     final VortexWorkerManager vortexWorkerManager2 = testUtil.newWorker();
     final RunningWorkers runningWorkers = new RunningWorkers(new RandomSchedulingPolicy());
     final PendingTasklets pendingTasklets = new PendingTasklets();
-    final DefaultVortexMaster vortexMaster = new DefaultVortexMaster(runningWorkers, pendingTasklets);
+    final DefaultVortexMaster vortexMaster =
+        new DefaultVortexMaster(runningWorkers, pendingTasklets, Mockito.mock(HTrace.class));
 
     // Allocate worker & tasklet and schedule
     vortexMaster.workerAllocated(vortexWorkerManager1);
@@ -114,7 +118,8 @@ public class DefaultVortexMasterTest {
     final ArrayList<VortexFuture> vortexFutures = new ArrayList<>();
     final RunningWorkers runningWorkers = new RunningWorkers(new RandomSchedulingPolicy());
     final PendingTasklets pendingTasklets = new PendingTasklets();
-    final DefaultVortexMaster vortexMaster = new DefaultVortexMaster(runningWorkers, pendingTasklets);
+    final DefaultVortexMaster vortexMaster =
+        new DefaultVortexMaster(runningWorkers, pendingTasklets, Mockito.mock(HTrace.class));
 
     // Allocate iniital evaluators (will all be preempted later...)
     final List<VortexWorkerManager> initialWorkers = new ArrayList<>();

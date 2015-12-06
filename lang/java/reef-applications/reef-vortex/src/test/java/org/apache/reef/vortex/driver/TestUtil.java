@@ -49,7 +49,7 @@ public class TestUtil {
    * @return a new dummy tasklet.
    */
   public Tasklet newTasklet() {
-    return new Tasklet(taskletId.getAndIncrement(), null, null, new VortexFuture());
+    return new Tasklet(taskletId.getAndIncrement(), null, null, new VortexFuture(), null);
   }
 
   /**

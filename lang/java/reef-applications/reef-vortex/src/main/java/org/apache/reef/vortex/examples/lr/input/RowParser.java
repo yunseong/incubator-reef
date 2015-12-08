@@ -55,8 +55,8 @@ public final class RowParser
           values[i-1] = value;
         }
 
-        final SVector svector = new SVector(indices, values, MODEL_DIM + 1);
-        svector.update(MODEL_DIM, 1); // Constant term?
+        final SVector svector = new SVector(indices, values, MODEL_DIM);
+//        svector.update(MODEL_DIM, 1); // Constant term?
         vectorsList.add(new Row(output, svector));
       }
       return vectorsList;

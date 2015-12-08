@@ -18,6 +18,7 @@
  */
 package org.apache.reef.vortex.examples.lr;
 
+import edu.snu.utils.DVector;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexStart;
@@ -27,6 +28,7 @@ import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.examples.lr.input.HDFSCachedInput;
 import org.apache.reef.vortex.examples.lr.input.RowParser;
 import org.apache.reef.vortex.examples.lr.input.DenseVector;
+import org.apache.reef.vortex.examples.lr.input.VectorUtil;
 import org.apache.reef.vortex.failure.parameters.IntervalMs;
 import org.apache.reef.vortex.failure.parameters.Probability;
 
@@ -34,6 +36,7 @@ import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -84,7 +87,7 @@ final class HDFSLRUrlReputationStart implements VortexStart {
     final long start = System.currentTimeMillis();
 
     try {
-      DenseVector model = new DenseVector(modelDim);
+      DVector model = VectorUtil.toBreezeDense(new DenseVector(new double[modelDim]));
 
       final HDFSBackedCacheKey[] partitions = vortexThreadPool.cache(path, divideFactor,
           new RowParser());
@@ -97,7 +100,8 @@ final class HDFSLRUrlReputationStart implements VortexStart {
       // For each iteration...
       for (int iteration = 0; iteration < numIter; iteration++) {
         // Process the partial result and update to the cache
-        final MasterCacheKey<DenseVector> parameterKey = vortexThreadPool.cache("param" + iteration, model);
+        final MasterCacheKey<DenseVector> parameterKey = vortexThreadPool.cache("param" + iteration,
+            VectorUtil.fromBreeze(model));
         // Launch tasklets, each operating on a partition
         futures.clear();
 
@@ -122,7 +126,7 @@ final class HDFSLRUrlReputationStart implements VortexStart {
    * @throws ExecutionException
    * @throws InterruptedException
    */
-  private void processResult(final DenseVector previousModel, final Collection<VortexFuture<PartialResult>> futures,
+  private void processResult(final DVector previousModel, final Collection<VortexFuture<PartialResult>> futures,
                              final int iteration)
       throws ExecutionException, InterruptedException {
 
@@ -137,7 +141,7 @@ final class HDFSLRUrlReputationStart implements VortexStart {
       numPositive += partialResult.getNumPositive();
 
       // SimpleUpdater. No regularization
-      previousModel.add(-thisIterStepSize, partialResult.getCumGradient());
+      previousModel.add(-thisIterStepSize, VectorUtil.toBreezeDense(partialResult.getCumGradient()));
     }
 
     final double accuracy = (double) numPositive / numTotal;

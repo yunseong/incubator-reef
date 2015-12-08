@@ -31,22 +31,11 @@ public final class PartialResult implements Serializable {
   private int numPositive;
   private int count;
 
-  public PartialResult(final DenseVector cumGradient) {
+  public PartialResult(final DenseVector cumGradient, final int numPositive, final int count) {
     this.cumGradient = cumGradient;
     this.loss = 0.0f;
     this.numPositive = 0;
     this.count = 0;
-  }
-
-  public void addResult(final DenseVector cumGradient,
-                        final double loss,
-                        final boolean isPositive) {
-    this.cumGradient.set(cumGradient);
-    this.loss += loss;
-    count++;
-    if (isPositive) {
-      numPositive++;
-    }
   }
 
   public DenseVector getCumGradient() {

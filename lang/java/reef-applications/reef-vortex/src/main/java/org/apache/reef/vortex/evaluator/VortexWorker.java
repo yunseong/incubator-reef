@@ -45,6 +45,7 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.*;
+import java.util.logging.Logger;
 
 /**
  * Receives commands from VortexMaster, executes them, and returns the results.
@@ -54,6 +55,7 @@ import java.util.concurrent.*;
 @Unit
 @TaskSide
 public final class VortexWorker implements Task, TaskMessageSource {
+  private static final Logger LOG = Logger.getLogger(VortexWorker.class.getName());
   private static final String TASKLET_EXECUTE_SPAN = "worker_execute";
   private static final String RESULT_SERIALIZE_SPAN = "worker_serialize";
   private static final String RECEIVE_CACHE_SPAN = "receive_cache";

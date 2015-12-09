@@ -32,6 +32,10 @@ import org.apache.reef.vortex.failure.parameters.Probability;
 import org.apache.reef.wake.EventHandler;
 
 import javax.inject.Inject;
+import javax.management.MXBean;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryManagerMXBean;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -98,8 +102,13 @@ final class HDFSLRUrlReputationStart implements VortexStart {
 
       // For each iteration...
       for (int iteration = 0; iteration < numIter; iteration++) {
+        final Runtime r = Runtime.getRuntime();
+        final long startMemory = (r.totalMemory() - r.freeMemory())/1048576;
+
         // Process the partial result and update to the cache
         final MasterCacheKey<SparseVector> parameterKey = vortexThreadPool.cache("param" + iteration, model);
+        final long afterCache = (r.totalMemory() - r.freeMemory())/1048576;
+
         // Launch tasklets, each operating on a partition
         futures.clear();
 
@@ -118,9 +127,12 @@ final class HDFSLRUrlReputationStart implements VortexStart {
               });
         }
         latch.await();
-        LOG.log(Level.INFO, "@V@iteration\t{0}\taccuracy\t{1}", new Object[]{iteration, measurer.getAccuracy()});
+        LOG.log(Level.INFO, "@V@iteration\t{0}\taccuracy\t{1}\tHost\t{2}\tUsed\t{3}->{4}->{5}\tMax\t{6}\tTotal\t{7}",
+            new Object[]{
+                iteration, measurer.getAccuracy(),
+                InetAddress.getLocalHost().getHostName(), startMemory, afterCache,
+                (r.totalMemory() - r.freeMemory())/1048576, r.maxMemory()/1048576, r.totalMemory()/1048576});
       }
-
       final long duration = System.currentTimeMillis() - start;
       LOG.log(Level.INFO, "#V#finish\t{0}", duration);
     } catch (final Exception e) {

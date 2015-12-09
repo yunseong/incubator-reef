@@ -23,6 +23,7 @@ import org.apache.reef.vortex.examples.lr.input.ArrayBasedVector;
 import org.apache.reef.vortex.examples.lr.input.HDFSCachedInput;
 import org.apache.reef.vortex.examples.lr.input.SparseVector;
 
+import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
@@ -38,13 +39,21 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
    */
   @Override
   public PartialResult call(final HDFSCachedInput lrInput) throws Exception {
+    final Runtime r = Runtime.getRuntime();
     final long startTime = System.currentTimeMillis();
+    final long startMemory = (r.totalMemory() - r.freeMemory())/1048576;
 
     final SparseVector parameterVector = lrInput.getParameterVector();
     final long modelLoadedTime = System.currentTimeMillis();
+    final long modelLoadedMemory = (r.totalMemory() - r.freeMemory())/1048576;
 
     final List<ArrayBasedVector> trainingData = lrInput.getTrainingData();
     final long trainingLoadedTime = System.currentTimeMillis();
+    final long trainingLoadedMemory = (r.totalMemory() - r.freeMemory())/1048576;
+
+    LOG.log(Level.INFO, "!V!Init\t{0}\tUsed\t{1}->{2}->{3}\tMax\t{4}\tTotal\t{5}",
+        new Object[] {InetAddress.getLocalHost().getHostName(),
+            startMemory, modelLoadedMemory, trainingLoadedMemory, r.maxMemory(), r.totalMemory()});
 
     final SparseVector cumGradient = new SparseVector(parameterVector.getDimension());
     final PartialResult partialResult = new PartialResult(cumGradient);
@@ -77,9 +86,15 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
     final long executionTime = finishTime - trainingLoadedTime;
     final long modelOverhead = modelLoadedTime - startTime;
     final long trainingOverhead = trainingLoadedTime - modelLoadedTime;
-    LOG.log(Level.INFO, "!V!\tExecution\t{0}\tModel\t{1}\tTraining\t{2}\tTrainingNum\t{3}\tkey\t{4}",
-        new Object[]{executionTime, modelOverhead, trainingOverhead, trainingData.size(),
+
+    LOG.log(Level.INFO, "!V!\t{0}\tUsed\t{1}->{2}\tMax\t{3}\tTotal\t{4}" +
+        "\tExecution\t{5}\tModel\t{6}\tTraining\t{7}\tTrainingNum\t{8}\tkey\t{9}",
+        new Object[]{
+            InetAddress.getLocalHost().getHostName(), startMemory, (r.totalMemory() - r.freeMemory())/1048576,
+            r.maxMemory()/1048576, r.totalMemory()/1048576,
+            executionTime, modelOverhead, trainingOverhead, trainingData.size(),
             Arrays.toString(lrInput.getCachedKeys().toArray())});
+
     return partialResult;
   }
 

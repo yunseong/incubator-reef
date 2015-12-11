@@ -129,7 +129,8 @@ public final class JavaLaunchCommandBuilder implements LaunchCommandBuilder {
   @Override
   @SuppressWarnings("checkstyle:hiddenfield")
   public JavaLaunchCommandBuilder setMemory(final int megaBytes) {
-    return addOption(JVMOption.parse("-Xmx" + megaBytes + "m"));
+    return addOption(JVMOption.parse("-Xmx" + (int) (0.85 * megaBytes) + "m"))
+        .addOption(JVMOption.parse("-Xms" + (int) (0.85 * megaBytes) + "m"));
   }
 
   @Override

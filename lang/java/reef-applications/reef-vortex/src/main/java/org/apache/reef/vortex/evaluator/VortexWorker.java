@@ -104,13 +104,6 @@ public final class VortexWorker implements Task, TaskMessageSource {
             throw new RuntimeException(e);
           }
 
-          final long traceId = ByteBuffer.wrap(Arrays.copyOfRange(message, 0, Long.SIZE / Byte.SIZE)).getLong();
-          final long spanId =
-              ByteBuffer.wrap(Arrays.copyOfRange(message, Long.SIZE / Byte.SIZE, 2 * (Long.SIZE / Byte.SIZE)))
-                  .getLong();
-          final TraceInfo traceInfo = new TraceInfo(traceId, spanId);
-
-
           // Scheduler Thread: Pass the command to the worker thread pool to be executed
           commandExecutor.execute(new Runnable() {
             @Override
@@ -119,22 +112,12 @@ public final class VortexWorker implements Task, TaskMessageSource {
 
               final VortexRequest vortexRequest;
 
-              final byte[] request;
-              try (final TraceScope traceScope =
-                       Trace.startSpan("worker_arrayCopy", traceInfo)) {
-                request = Arrays.copyOfRange(message, 2 * (Long.SIZE / Byte.SIZE), message.length);
-              }
-
-
-              try (final TraceScope traceScope =
-                       Trace.startSpan("worker_deserialize " + request.length / 1024 / 1024.0 + "mb", traceInfo)) {
                 final Kryo kryo = new Kryo();
                 kryo.register(TaskletExecutionRequest.class);
                 kryo.register(CacheSentRequest.class);
-                final Input input = new Input(request);
+                final Input input = new Input(message);
                 vortexRequest = kryo.readObject(input, VortexRequest.class);
                 input.close();
-              }
 
 
               if (vortexRequest.getRequest() instanceof TaskletExecutionRequest) {
@@ -143,19 +126,13 @@ public final class VortexWorker implements Task, TaskMessageSource {
                 try {
                   // Command Executor: Execute the command
                   final Serializable result;
-                  try (final TraceScope traceScope =
-                           Trace.startSpan(TASKLET_EXECUTE_SPAN, traceInfo)) {
                     result = taskletExecutionRequest.execute();
-                  }
 
                   // Command Executor: Tasklet successfully returns result
                   final WorkerReport report =
                       new TaskletResultReport<>(taskletExecutionRequest.getTaskletId(), result);
                   final byte[] reportBytes;
-                  try (final TraceScope traceScope =
-                           Trace.startSpan(RESULT_SERIALIZE_SPAN, traceInfo)) {
                     reportBytes = SerializationUtils.serialize(report);
-                  }
                   workerReports.addLast(reportBytes);
                 } catch (Exception e) {
                   // Command Executor: Tasklet throws an exception
@@ -166,10 +143,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
                 heartBeatTriggerManager.triggerHeartBeat();
               } else if (vortexRequest.getRequest() instanceof CacheSentRequest) {
                 final CacheSentRequest cacheSentRequest = (CacheSentRequest) vortexRequest.getRequest();
-                try (final TraceScope traceScope =
-                         Trace.startSpan(RECEIVE_CACHE_SPAN, traceInfo)) {
                   cache.notifyOnArrival(cacheSentRequest.getCacheKey(), cacheSentRequest.getData());
-                }
               } else {
                 throw new RuntimeException("Unknown Command: " + vortexRequest.getRequest());
               }
@@ -214,14 +188,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
     @Override
     public void onNext(final DriverMessage message) {
       if (message.get().isPresent()) {
-        final byte[] bytes = message.get().get();
-        final long traceId = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 0, Long.SIZE / Byte.SIZE)).getLong();
-        final long spanId =
-            ByteBuffer.wrap(Arrays.copyOfRange(bytes, Long.SIZE / Byte.SIZE, 2 * (Long.SIZE / Byte.SIZE))).getLong();
-        try (final TraceScope traceScope =
-                 Trace.startSpan("worker_enqueued", new TraceInfo(traceId, spanId))) {
-          pendingRequests.addLast(message.get().get());
-        }
+        pendingRequests.addLast(message.get().get());
       }
     }
   }

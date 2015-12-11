@@ -50,30 +50,18 @@ class VortexRequestor {
       @Override
       public void run() {
         final byte[] requestBytes;
-        final byte[] sendingBytes;
 
-        try (final TraceScope traceScope = Trace.startSpan("master_serialize", traceInfo)) {
-          //  Possible race condition with VortexWorkerManager#terminate is addressed by the global lock in VortexMaster
-          final Kryo kryo = new Kryo();
-          final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-          final Output output = new Output(byteArrayOutputStream);
-          kryo.register(TaskletExecutionRequest.class);
-          kryo.register(VortexRequest.class);
-          kryo.writeObject(output, vortexRequest);
-          output.close();
-          requestBytes = byteArrayOutputStream.toByteArray();
-        }
+        //  Possible race condition with VortexWorkerManager#terminate is addressed by the global lock in VortexMaster
+        final Kryo kryo = new Kryo();
+        final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        final Output output = new Output(byteArrayOutputStream);
+        kryo.register(TaskletExecutionRequest.class);
+        kryo.register(VortexRequest.class);
+        kryo.writeObject(output, vortexRequest);
+        output.close();
+        requestBytes = byteArrayOutputStream.toByteArray();
 
-        try (final TraceScope traceScope =
-                 Trace.startSpan("master_append_" + (requestBytes.length / 1024 / 1024.0) + "mb", traceInfo)) {
-          sendingBytes = ByteBuffer.allocate(2 * (Long.SIZE / Byte.SIZE) + requestBytes.length)
-              .putLong(traceInfo.traceId)
-              .putLong(traceInfo.spanId)
-              .put(requestBytes)
-              .array();
-        }
-
-        reefTask.send(sendingBytes);
+        reefTask.send(requestBytes);
       }
     });
   }
@@ -82,18 +70,7 @@ class VortexRequestor {
     executorService.execute(new Runnable() {
       @Override
       public void run() {
-        final byte[] sendingBytes;
-
-        try (final TraceScope traceScope =
-                 Trace.startSpan("master_append_" + (serializedRequest.length / 1024 / 1024.0) + "mb", traceInfo)) {
-          sendingBytes = ByteBuffer.allocate(2 * (Long.SIZE / Byte.SIZE) + serializedRequest.length)
-              .putLong(traceInfo.traceId)
-              .putLong(traceInfo.spanId)
-              .put(serializedRequest)
-              .array();
-        }
-
-        reefTask.send(sendingBytes);
+        reefTask.send(serializedRequest);
       }
     });
   }

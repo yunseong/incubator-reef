@@ -87,11 +87,9 @@ public interface VortexMaster {
    * Retrieve the data from the Cache, and send it to the Worker who requested.
    * @param workerId Worker id to send the data.
    * @param cacheKey Key to retrieve the data.
-   * @param parentSpan Span that is owned by its parent.
    * @throws VortexCacheException If the data is not found in the cache.
    */
-  <T> void dataRequested(final String workerId, final MasterCacheKey<T> cacheKey,
-                                              final Span parentSpan)
+  <T> void dataRequested(final String workerId, final MasterCacheKey<T> cacheKey)
       throws VortexCacheException;
 
   /**

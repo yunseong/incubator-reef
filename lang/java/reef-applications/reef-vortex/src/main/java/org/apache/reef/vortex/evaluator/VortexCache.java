@@ -75,14 +75,14 @@ public final class VortexCache {
    */
   public static <T> T getData(final CacheKey<T> key) throws VortexCacheException {
     final Span currentSpan = Trace.currentSpan();
-    try (final TraceScope getDataScope = Trace.startSpan("cache_get_"+key.getId(), currentSpan)) {
-      return cacheRef.load(key, getDataScope);
-    } finally {
-      Trace.continueSpan(currentSpan);
-    }
+//    try (final TraceScope getDataScope = Trace.startSpan("cache_get_"+key.getId(), currentSpan)) {
+      return cacheRef.load(key);
+//    } finally {
+//      Trace.continueSpan(currentSpan);
+//    }
   }
 
-  private <T> T load(final CacheKey<T> key, final TraceScope parentScope)
+  private <T> T load(final CacheKey<T> key)
       throws VortexCacheException {
     try {
       final Callable<T> callable;
@@ -93,7 +93,7 @@ public final class VortexCache {
         break;
       case MASTER:
         final MasterCacheKey<T> masterCacheKey = (MasterCacheKey<T>)key;
-        callable = new CustomCallable<T>(masterCacheKey, parentScope);
+        callable = new CustomCallable<T>(masterCacheKey);
         break;
       default:
         throw new RuntimeException("Undefined type" + key.getType());
@@ -152,11 +152,9 @@ public final class VortexCache {
     private boolean dataArrived = false;
     private T waitingData;
     private final MasterCacheKey<T> cacheKey;
-    private final Span callableSpan;
 
-    CustomCallable(final MasterCacheKey<T> cacheKey, final TraceScope parentScope) {
+    CustomCallable(final MasterCacheKey<T> cacheKey) {
       this.cacheKey = cacheKey;
-      this.callableSpan = parentScope.detach();
     }
 
     void onDataArrived(final T data) {
@@ -173,18 +171,14 @@ public final class VortexCache {
 
     @Override
     public T call() throws Exception {
-      final TraceInfo traceInfo = TraceInfo.fromSpan(callableSpan);
-      try (final TraceScope scope = Trace.startSpan("send_data_request", traceInfo)) {
         waiters.put(cacheKey, this);
-        worker.get().sendDataRequest(cacheKey, traceInfo);
-      }
+        worker.get().sendDataRequest(cacheKey, new TraceInfo(0, 0));
 
       synchronized (this) {
         while (!dataArrived) {
           this.wait();
         }
       }
-      Trace.continueSpan(callableSpan).close();
       return waitingData;
     }
   }

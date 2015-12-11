@@ -221,9 +221,8 @@ final class VortexDriver {
         break;
       case CacheRequest:
         final CacheDataRequest cacheDataRequest = (CacheDataRequest)workerReport;
-        try (final TraceScope dataRequestScope =
-                 Trace.startSpan("master_data_requested", cacheDataRequest.getTraceInfo())){
-          vortexMaster.dataRequested(workerId, cacheDataRequest.getCacheKey(), dataRequestScope.getSpan());
+        try {
+          vortexMaster.dataRequested(workerId, cacheDataRequest.getCacheKey());
         } catch (VortexCacheException e) {
           LOG.log(Level.SEVERE, "Failed to load the data that worker {0} requested with key name {1}.",
               new Object[] {workerId, cacheDataRequest.getCacheKey().getName()});

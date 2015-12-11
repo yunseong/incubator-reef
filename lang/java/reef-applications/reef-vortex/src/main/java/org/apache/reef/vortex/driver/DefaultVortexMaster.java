@@ -193,7 +193,7 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
-  public void dataRequested(final String workerId, final MasterCacheKey cacheKey, final Span parentSpan)
+  public void dataRequested(final String workerId, final MasterCacheKey cacheKey)
       throws VortexCacheException {
     final String keyName = cacheKey.getName();
     final byte[] serializedData = cacheMap.getIfPresent(keyName);
@@ -203,7 +203,7 @@ final class DefaultVortexMaster implements VortexMaster {
     Logger.getLogger(DefaultVortexMaster.class.getName())
         .log(Level.INFO, "*V*fetch\t{0}\tkey\t{1}\tworker\t{2}",
             new Object[]{serializedData.length, keyName, workerId});
-    runningWorkers.sendCacheData(workerId, serializedData, TraceInfo.fromSpan(parentSpan));
+    runningWorkers.sendCacheData(workerId, serializedData, new TraceInfo(0, 0));
   }
 
   /**

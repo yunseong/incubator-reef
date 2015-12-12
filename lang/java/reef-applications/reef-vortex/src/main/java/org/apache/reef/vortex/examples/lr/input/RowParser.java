@@ -43,12 +43,12 @@ public final class RowParser
 
         final int output = Integer.parseInt(split[0]);
         final int[] indices = new int[split.length - 1];
-        final double[] values = new double[split.length - 1];
+        final float[] values = new float[split.length - 1];
 
         for (int i = 1; i < split.length; i++) {
           final String[] column = split[i].split(":");
           final int index = Integer.parseInt(column[0]);
-          final double value = Double.parseDouble(column[1]);
+          final float value = Float.parseFloat(column[1]);
 
           indices[i-1] = index - 1;
           values[i-1] = value;

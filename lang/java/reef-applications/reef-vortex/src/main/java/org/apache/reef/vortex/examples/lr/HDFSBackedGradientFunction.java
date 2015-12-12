@@ -78,7 +78,7 @@ final class HDFSBackedGradientFunction implements VortexFunction<HDFSCachedInput
       final double exponent = - predict * label;
       final double maxExponent = Math.max(exponent, 0);
       final double logSumExp = maxExponent + Math.log(Math.exp(-maxExponent) + Math.exp(exponent - maxExponent));
-      final double multiplier = label * (Math.exp(-logSumExp) - 1);
+      final float multiplier = (float) (label * (Math.exp(-logSumExp) - 1));
       cumGradient.axpy(multiplier, instance.getFeature());
     }
 

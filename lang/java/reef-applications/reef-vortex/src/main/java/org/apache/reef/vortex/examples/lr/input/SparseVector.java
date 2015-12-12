@@ -24,14 +24,14 @@ import java.io.Serializable;
  * Implementation of sparse vector based on Array.
  */
 public final class SparseVector implements Serializable {
-  private double[] values;
+  private float[] values;
   private int[] indices;
   private int dimension;
 
   private SparseVector() {
   }
 
-  public SparseVector(final double[] values, final int[] indices, final int dimension) {
+  public SparseVector(final float[] values, final int[] indices, final int dimension) {
     this.values = values;
     this.indices = indices;
     this.dimension = dimension;
@@ -41,7 +41,7 @@ public final class SparseVector implements Serializable {
     return indices;
   }
 
-  public double[] getValues() {
+  public float[] getValues() {
     return values;
   }
 

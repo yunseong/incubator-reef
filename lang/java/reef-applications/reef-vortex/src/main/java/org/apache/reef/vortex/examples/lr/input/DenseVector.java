@@ -54,25 +54,25 @@ public final class DenseVector implements Serializable {
     double result = 0;
     for (int i = 0; i < vec.getIndices().length; i++) {
       final int index = vec.getIndices()[i];
-      final double value = vec.getValues()[i];
+      final float value = vec.getValues()[i];
       result += value * data[index];
     }
     return result;
   }
 
-  public void axpy(final double a, final SparseVector x) {
+  public void axpy(final float a, final SparseVector x) {
     if (a == 1.0) {
       add(x);
     } else {
       for (int i = 0; i < x.getIndices().length; i++) {
         final int index = x.getIndices()[i];
-        final double value = x.getValues()[i];
-        data[index] += (float) a * value;
+        final float value = x.getValues()[i];
+        data[index] += a * value;
       }
     }
   }
 
-  public void axpy(final double a, final DenseVector x) {
+  public void axpy(final float a, final DenseVector x) {
     if (a == 1.0) {
       add(x);
     } else {

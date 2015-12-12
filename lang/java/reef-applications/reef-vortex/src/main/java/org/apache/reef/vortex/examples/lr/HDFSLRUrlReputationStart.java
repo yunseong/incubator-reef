@@ -147,7 +147,7 @@ final class HDFSLRUrlReputationStart implements VortexStart {
     final long startTime = System.currentTimeMillis();
 
     final double stepSize = 0.00001;
-    final double thisIterStepSize = stepSize / Math.sqrt(numIter);
+    final float thisIterStepSize = (float) (stepSize / Math.sqrt(numIter));
 
      measurer.add(result.getCount(), result.getNumPositive());
 

@@ -26,23 +26,23 @@ import java.util.Map;
  * Implementation of a sparse vector based on the tree map.
  */
 public final class DenseVector implements Serializable {
-  private double[] data;
+  private float[] data;
 
   private DenseVector() {
   }
 
   public DenseVector(final int dimension) {
-    this.data = new double[dimension];
+    this.data = new float[dimension];
   }
 
   /**
    * Constructor of the Sparse Vector.
    **/
-  public DenseVector(final double[] data) {
+  public DenseVector(final float[] data) {
     this.data = data;
   }
 
-  public double[] getData() {
+  public float[] getData() {
     return data;
   }
 
@@ -67,7 +67,7 @@ public final class DenseVector implements Serializable {
       for (int i = 0; i < x.getIndices().length; i++) {
         final int index = x.getIndices()[i];
         final double value = x.getValues()[i];
-        data[index] += a * value;
+        data[index] += (float) a * value;
       }
     }
   }
@@ -77,7 +77,7 @@ public final class DenseVector implements Serializable {
       add(x);
     } else {
       for (int i = 0; i < x.getData().length; i++) {
-        data[i] += a * x.getData()[i];
+        data[i] += (float) a * x.getData()[i];
       }
     }
   }
@@ -86,7 +86,7 @@ public final class DenseVector implements Serializable {
     for (int i = 0; i < vec.getIndices().length; i++) {
       final int index = vec.getIndices()[i];
       final double value = vec.getValues()[i];
-      data[index] += value;
+      data[index] += (float) value;
     }
   }
 

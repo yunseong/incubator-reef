@@ -27,20 +27,14 @@ import org.apache.reef.vortex.common.HDFSBackedCacheKey;
 import org.apache.reef.vortex.examples.lr.input.HDFSCachedInput;
 import org.apache.reef.vortex.examples.lr.input.RowParser;
 import org.apache.reef.vortex.examples.lr.input.DenseVector;
-import org.apache.reef.vortex.failure.parameters.IntervalMs;
-import org.apache.reef.vortex.failure.parameters.Probability;
+import org.apache.reef.vortex.failure.parameters.Delay;
 import org.apache.reef.wake.EventHandler;
 
 import javax.inject.Inject;
-import javax.management.MXBean;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryManagerMXBean;
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -60,8 +54,7 @@ final class HDFSLRUrlReputationStart implements VortexStart {
   private final int numRecords;
 
   // For printing purpose actually.
-  private final double probability;
-  private final int interval;
+  private final int delay;
 
   @Inject
   private HDFSLRUrlReputationStart(@Parameter(LogisticRegression.DivideFactor.class) final int divideFactor,
@@ -69,15 +62,13 @@ final class HDFSLRUrlReputationStart implements VortexStart {
                                    @Parameter(LogisticRegression.Path.class) final String path,
                                    @Parameter(LogisticRegression.ModelDim.class) final int modelDim,
                                    @Parameter(LogisticRegression.NumRecords.class) final int numRecords,
-                                   @Parameter(Probability.class) final double probability,
-                                   @Parameter(IntervalMs.class) final int interval) {
+                                   @Parameter(Delay.class) final int delay) {
     this.divideFactor = divideFactor;
     this.numIter = numIter;
     this.path = path;
     this.modelDim = modelDim;
     this.numRecords = numRecords;
-    this.probability = probability;
-    this.interval = interval;
+    this.delay = delay;
   }
 
   /**
@@ -97,8 +88,8 @@ final class HDFSLRUrlReputationStart implements VortexStart {
       final List<VortexFuture<PartialResult>> futures = new ArrayList<>(partitions.length);
 
       LOG.log(Level.INFO,
-          "#V#startCached\tDIVIDE_FACTOR\t{0}\tCRASH_PROB\t{1}\tCRASH_INTERVAL\t{2}\tNUM_ITER\t{3}\tSPLITS\t{4}",
-          new Object[]{divideFactor, probability, interval, numIter, partitions.length});
+          "#V#startCached\tDIVIDE_FACTOR\t{0}\tDELAY\t{1}\tNUM_ITER\t{2}\tSPLITS\t{4}",
+          new Object[]{divideFactor, delay, numIter, partitions.length});
 
       // For each iteration...
       for (int iteration = 0; iteration < numIter; iteration++) {

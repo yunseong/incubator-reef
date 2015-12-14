@@ -27,6 +27,7 @@ import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.tang.formats.CommandLine;
 import org.apache.reef.vortex.driver.VortexLauncher;
 import org.apache.reef.vortex.failure.FailureParameters;
+import org.apache.reef.vortex.failure.parameters.Delay;
 import org.apache.reef.vortex.trace.HTraceParameters;
 
 import java.io.IOException;

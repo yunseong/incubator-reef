@@ -21,6 +21,6 @@ package org.apache.reef.vortex.failure.parameters;
 import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.tang.annotations.NamedParameter;
 
-@NamedParameter(doc = "Time interval in miliseconds", default_value = "500", short_name = "failure_interval_ms")
-public class IntervalMs implements Name<Integer> {
+@NamedParameter(doc = "Time delay by preemption in seconds", default_value = "10", short_name = "delay")
+public class Delay implements Name<Integer> {
 }

@@ -19,8 +19,6 @@
 package org.apache.reef.vortex.driver;
 
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.context.ContextConfiguration;
 import org.apache.reef.driver.evaluator.*;
@@ -39,9 +37,7 @@ import org.apache.reef.vortex.common.TaskletResultReport;
 import org.apache.reef.vortex.common.WorkerReport;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexWorker;
-import org.apache.reef.vortex.failure.VortexPoisonedContextStartHandler;
-import org.apache.reef.vortex.failure.parameters.IntervalMs;
-import org.apache.reef.vortex.failure.parameters.Probability;
+import org.apache.reef.vortex.failure.parameters.Delay;
 import org.apache.reef.vortex.trace.parameters.ReceiverHost;
 import org.apache.reef.vortex.trace.parameters.ReceiverPort;
 import org.apache.reef.vortex.trace.parameters.ReceiverType;
@@ -65,7 +61,7 @@ import java.util.logging.Logger;
 @DriverSide
 final class VortexDriver {
   private static final Logger LOG = Logger.getLogger(VortexDriver.class.getName());
-  private static final int MAX_NUM_OF_FAILURES = 5;
+  private static final int MAX_NUM_OF_FAILURES = 100000;
   private static final int SCHEDULER_EVENT = 0; // Dummy number to comply with onNext() interface
 
   private final AtomicInteger numberOfFailures = new AtomicInteger(0);
@@ -87,8 +83,7 @@ final class VortexDriver {
   private final EStage<Integer> pendingTaskletSchedulerEStage;
 
   private final AtomicInteger barrier;
-  private final double failureProbability;
-  private final int failureInterval;
+  private final int delay;
   private final Clock clock;
 
   @Inject
@@ -106,8 +101,7 @@ final class VortexDriver {
                        @Parameter(ReceiverType.class) final String receiverType,
                        @Parameter(ReceiverHost.class) final String receiverHost,
                        @Parameter(ReceiverPort.class) final int receiverPort,
-                       @Parameter(Probability.class) final double failureProbability,
-                       @Parameter(IntervalMs.class) final int failureInterval) {
+                       @Parameter(Delay.class) final int delay) {
     this.vortexStartEStage = new ThreadPoolStage<>(vortexStartExecutor, numOfStartThreads);
     this.vortexStart = vortexStart;
     this.pendingTaskletSchedulerEStage = new SingleThreadStage<>(pendingTaskletLauncher, 1);
@@ -122,8 +116,7 @@ final class VortexDriver {
     this.receiverType = receiverType;
     this.receiverHost = receiverHost;
     this.receiverPort = receiverPort;
-    this.failureProbability = failureProbability;
-    this.failureInterval = failureInterval;
+    this.delay = delay;
   }
 
   /**
@@ -160,12 +153,10 @@ final class VortexDriver {
       final Configuration contextConfiguration =
           Configurations.merge(
               Tang.Factory.getTang().newConfigurationBuilder()
-                  .bindNamedParameter(Probability.class, Double.toString(failureProbability))
-                  .bindNamedParameter(IntervalMs.class, Integer.toString(failureInterval))
+                  .bindNamedParameter(Delay.class, Integer.toString(delay))
                   .build(),
               ContextConfiguration.CONF
                   .set(ContextConfiguration.IDENTIFIER, "vortex_worker")
-                  .set(ContextConfiguration.ON_CONTEXT_STARTED, VortexPoisonedContextStartHandler.class)
                   .build());
 
       final Configuration taskConfiguration = TaskConfiguration.CONF
@@ -245,8 +236,14 @@ final class VortexDriver {
       if (numberOfFailures.incrementAndGet() >= MAX_NUM_OF_FAILURES) {
         throw new RuntimeException("Exceeded max number of failures");
       } else {
-        LOG.log(Level.INFO, "#S#simulate preemption: sleep for interval {0} ms", failureInterval);
-        clock.scheduleAlarm(failureInterval, new EventHandler<Alarm>() {
+        if (failedEvaluator.getFailedTask().isPresent()) {
+          vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
+        } else {
+          LOG.log(Level.WARNING, "Worker preempted, but not recoverable. Should not happen");
+        }
+
+        // Delay resource request, which implies the resource unavailability.
+        clock.scheduleAlarm(delay * 1000, new EventHandler<Alarm>() {
           @Override
           public void onNext(final Alarm value) {
             // We request a new evaluator to take the place of the preempted one
@@ -255,12 +252,6 @@ final class VortexDriver {
                 .setMemory(evalMem)
                 .setNumberOfCores(evalCores)
                 .build());
-
-            if (failedEvaluator.getFailedTask().isPresent()) {
-              vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
-            } else {
-              LOG.log(Level.WARNING, "Worker preempted, but not recoverable.");
-            }
           }
         });
       }

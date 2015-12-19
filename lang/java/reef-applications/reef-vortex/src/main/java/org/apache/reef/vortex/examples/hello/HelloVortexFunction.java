@@ -25,7 +25,7 @@ import java.io.Serializable;
 /**
  * Prints to stdout.
  */
-final class HelloVortexFunction implements VortexFunction {
+public final class HelloVortexFunction implements VortexFunction {
   /**
    * Prints to stdout.
    */

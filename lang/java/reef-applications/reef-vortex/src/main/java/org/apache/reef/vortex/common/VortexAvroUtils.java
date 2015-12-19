@@ -52,15 +52,13 @@ public final class VortexAvroUtils {
       // Temporarily those are left as TODOs, but will be addressed in separate PRs.
       // TODO[REEF-1005]: Allow custom codecs for input/output data in Vortex.
       final byte[] serializedInput = SerializationUtils.serialize(taskletExecutionRequest.getInput());
-      // TODO[REEF-1003]: Use reflection instead of serialization when launching VortexFunction
-      final byte[] serializedFunction = SerializationUtils.serialize(taskletExecutionRequest.getFunction());
       avroVortexRequest = AvroVortexRequest.newBuilder()
           .setRequestType(AvroRequestType.ExecuteTasklet)
           .setTaskletRequest(
               AvroTaskletExecutionRequest.newBuilder()
                   .setTaskletId(taskletExecutionRequest.getTaskletId())
                   .setSerializedInput(ByteBuffer.wrap(serializedInput))
-                  .setSerializedUserFunction(ByteBuffer.wrap(serializedFunction))
+                  .setSerializedUserFunction(taskletExecutionRequest.getFunction().getClass().getName())
                   .build())
           .build();
       break;
@@ -158,13 +156,16 @@ public final class VortexAvroUtils {
       final AvroTaskletExecutionRequest taskletExecutionRequest =
           (AvroTaskletExecutionRequest)avroVortexRequest.getTaskletRequest();
       // TODO[REEF-1003]: Use reflection instead of serialization when launching VortexFunction
-      final VortexFunction function =
-          (VortexFunction) SerializationUtils.deserialize(
-              taskletExecutionRequest.getSerializedUserFunction().array());
+      final VortexFunction function;
+      try {
+        function = (VortexFunction) Class.forName(taskletExecutionRequest.getSerializedUserFunction().toString())
+            .newInstance();
+      } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+        throw new RuntimeException(e);
+      }
       // TODO[REEF-1005]: Allow custom codecs for input/output data in Vortex.
       final Serializable input =
-          (Serializable) SerializationUtils.deserialize(
-              taskletExecutionRequest.getSerializedInput().array());
+          (Serializable) SerializationUtils.deserialize(taskletExecutionRequest.getSerializedInput().array());
       vortexRequest = new TaskletExecutionRequest(taskletExecutionRequest.getTaskletId(), function, input);
       break;
     case CancelTasklet:

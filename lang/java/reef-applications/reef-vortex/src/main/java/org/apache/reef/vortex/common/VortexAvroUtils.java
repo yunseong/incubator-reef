@@ -56,18 +56,23 @@ public final class VortexAvroUtils {
       // The purpose is to reduce serialization cost, which leads to bottleneck in Master.
       // Temporarily those are left as TODOs, but will be addressed in separate PRs.
       final VortexFunction vortexFunction = taskletExecutionRequest.getFunction();
-      final byte[] serializedInput = vortexFunction.getInputCodec().encode(taskletExecutionRequest.getInput());
-      // TODO[REEF-1003]: Use reflection instead of serialization when launching VortexFunction
-      final byte[] serializedFunction = SerializationUtils.serialize(vortexFunction);
-      avroVortexRequest = AvroVortexRequest.newBuilder()
-          .setRequestType(AvroRequestType.ExecuteTasklet)
-          .setTaskletRequest(
-              AvroTaskletExecutionRequest.newBuilder()
-                  .setTaskletId(taskletExecutionRequest.getTaskletId())
-                  .setSerializedInput(ByteBuffer.wrap(serializedInput))
-                  .setSerializedUserFunction(ByteBuffer.wrap(serializedFunction))
-                  .build())
-          .build();
+      try {
+        final byte[] serializedInput = vortexFunction.getInputCodec().encode(taskletExecutionRequest.getInput());
+
+        // TODO[REEF-1003]: Use reflection instead of serialization when launching VortexFunction
+        final byte[] serializedFunction = SerializationUtils.serialize(vortexFunction);
+        avroVortexRequest = AvroVortexRequest.newBuilder()
+            .setRequestType(AvroRequestType.ExecuteTasklet)
+            .setTaskletRequest(
+                AvroTaskletExecutionRequest.newBuilder()
+                    .setTaskletId(taskletExecutionRequest.getTaskletId())
+                    .setSerializedInput(ByteBuffer.wrap(serializedInput))
+                    .setSerializedUserFunction(ByteBuffer.wrap(serializedFunction))
+                    .build())
+            .build();
+      } catch (final IOException e) {
+        throw new RuntimeException("Could not serialize JobConf", e);
+      }
       break;
     case CancelTasklet:
       final TaskletCancellationRequest taskletCancellationRequest = (TaskletCancellationRequest) vortexRequest;
@@ -181,27 +186,31 @@ public final class VortexAvroUtils {
   public static VortexRequest toVortexRequest(final byte[] bytes) {
     final AvroVortexRequest avroVortexRequest = toAvroObject(bytes, AvroVortexRequest.class);
 
-    final VortexRequest vortexRequest;
-    switch (avroVortexRequest.getRequestType()) {
-    case ExecuteTasklet:
-      final AvroTaskletExecutionRequest taskletExecutionRequest =
-          (AvroTaskletExecutionRequest)avroVortexRequest.getTaskletRequest();
-      // TODO[REEF-1003]: Use reflection instead of serialization when launching VortexFunction
-      final VortexFunction function =
-          (VortexFunction) SerializationUtils.deserialize(
-              taskletExecutionRequest.getSerializedUserFunction().array());
-      vortexRequest = new TaskletExecutionRequest(taskletExecutionRequest.getTaskletId(), function,
-         function.getInputCodec().decode(taskletExecutionRequest.getSerializedInput().array()));
-      break;
-    case CancelTasklet:
-      final AvroTaskletCancellationRequest taskletCancellationRequest =
-          (AvroTaskletCancellationRequest)avroVortexRequest.getTaskletRequest();
-      vortexRequest = new TaskletCancellationRequest(taskletCancellationRequest.getTaskletId());
-      break;
-    default:
-      throw new RuntimeException("Undefined VortexRequest type");
+    try {
+      final VortexRequest vortexRequest;
+      switch (avroVortexRequest.getRequestType()) {
+      case ExecuteTasklet:
+        final AvroTaskletExecutionRequest taskletExecutionRequest =
+            (AvroTaskletExecutionRequest)avroVortexRequest.getTaskletRequest();
+        // TODO[REEF-1003]: Use reflection instead of serialization when launching VortexFunction
+        final VortexFunction function =
+            (VortexFunction) SerializationUtils.deserialize(
+                taskletExecutionRequest.getSerializedUserFunction().array());
+        vortexRequest = new TaskletExecutionRequest(taskletExecutionRequest.getTaskletId(), function,
+            function.getInputCodec().decode(taskletExecutionRequest.getSerializedInput().array()));
+        break;
+      case CancelTasklet:
+        final AvroTaskletCancellationRequest taskletCancellationRequest =
+            (AvroTaskletCancellationRequest)avroVortexRequest.getTaskletRequest();
+        vortexRequest = new TaskletCancellationRequest(taskletCancellationRequest.getTaskletId());
+        break;
+      default:
+        throw new RuntimeException("Undefined VortexRequest type");
+      }
+      return vortexRequest;
+    } catch (final IOException e) {
+      throw new RuntimeException(e);
     }
-    return vortexRequest;
   }
 
   /**

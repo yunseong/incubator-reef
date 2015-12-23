@@ -31,7 +31,7 @@ import java.util.List;
 final class MatMulOutputCodec implements Codec<MatMulOutput> {
 
   @Override
-  public byte[] encode(final MatMulOutput matMulOutput) {
+  public byte[] encode(final MatMulOutput matMulOutput) throws IOException {
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
       try (DataOutputStream daos = new DataOutputStream(baos)) {
         final int index = matMulOutput.getIndex();
@@ -42,21 +42,17 @@ final class MatMulOutputCodec implements Codec<MatMulOutput> {
 
         return baos.toByteArray();
       }
-    } catch (final IOException e) {
-      throw new RuntimeException(e);
     }
   }
 
   @Override
-  public MatMulOutput decode(final byte[] buf) {
+  public MatMulOutput decode(final byte[] buf) throws IOException {
     try (ByteArrayInputStream bais = new ByteArrayInputStream(buf)) {
       try (DataInputStream dais = new DataInputStream(bais)) {
         final int index = dais.readInt();
         final Matrix result = decodeMatrixFromStream(dais);
         return new MatMulOutput(index, result);
       }
-    } catch (final IOException e) {
-      throw new RuntimeException(e);
     }
   }
 

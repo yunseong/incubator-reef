@@ -46,6 +46,7 @@ import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.impl.SingleThreadStage;
 
 import javax.inject.Inject;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -331,9 +332,13 @@ public class FlatTopology implements Topology {
     }
     final GroupChanges changes = new GroupChangesImpl(hasTopologyChanged);
     final Codec<GroupChanges> changesCodec = new GroupChangesCodec();
-    senderStage.onNext(Utils.bldVersionedGCM(groupName, operName,
-        ReefNetworkGroupCommProtos.GroupCommMessage.Type.TopologyChanges, driverId, 0, dstId, getNodeVersion(dstId),
-        changesCodec.encode(changes)));
+    try {
+      senderStage.onNext(Utils.bldVersionedGCM(groupName, operName,
+          ReefNetworkGroupCommProtos.GroupCommMessage.Type.TopologyChanges, driverId, 0, dstId, getNodeVersion(dstId),
+          changesCodec.encode(changes)));
+    } catch (final IOException e) {
+      throw new RuntimeException("SerializationException", e);
+    }
   }
 
   private String getQualifiedName() {

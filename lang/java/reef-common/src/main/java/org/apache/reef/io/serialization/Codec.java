@@ -18,6 +18,8 @@
  */
 package org.apache.reef.io.serialization;
 
+import java.io.IOException;
+
 /**
  * Interface for serialization routines that translate back and forth between
  * byte arrays with low latency. (Contrast to Serializer, Deserializer, which
@@ -33,7 +35,7 @@ public interface Codec<T> {
    * @param obj
    * @return a byte[] representation of the object
    */
-  byte[] encode(T obj);
+  byte[] encode(T obj) throws IOException;
 
   /**
    * Decodes the given byte array into an object.
@@ -41,5 +43,5 @@ public interface Codec<T> {
    * @param buf
    * @return the decoded object
    */
-  T decode(byte[] buf);
+  T decode(byte[] buf) throws IOException;
 }

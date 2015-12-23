@@ -25,6 +25,7 @@ import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.common.VortexFutureDelegate;
 import org.apache.reef.vortex.driver.VortexMaster;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -188,17 +189,24 @@ public final class VortexFuture<TOutput>
   public void completed(final int pTaskletId, final byte[] serializedResult) {
     assert taskletId == pTaskletId;
 
-    final TOutput result = outputCodec.decode(serializedResult);
-    this.userResult = Optional.ofNullable(result);
-    if (callbackHandler != null) {
-      executor.execute(new Runnable() {
-        @Override
-        public void run() {
-          callbackHandler.onSuccess(userResult.get());
-        }
-      });
+    // TODO [REEF-1005] try-catch and call threwException
+    try {
+      final TOutput result = outputCodec.decode(serializedResult);
+
+      this.userResult = Optional.ofNullable(result);
+      if (callbackHandler != null) {
+        executor.execute(new Runnable() {
+          @Override
+          public void run() {
+            callbackHandler.onSuccess(userResult.get());
+          }
+        });
+      }
+      this.countDownLatch.countDown();
+
+    } catch (final IOException e) {
+      threwException(pTaskletId, e);
     }
-    this.countDownLatch.countDown();
   }
 
   /**

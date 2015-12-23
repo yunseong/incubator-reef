@@ -38,6 +38,7 @@ import org.apache.reef.wake.EventHandler;
 
 import javax.inject.Inject;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -146,6 +147,8 @@ public class BroadcastReceiver<T> implements Broadcast.Receiver<T>, EventHandler
       topology.sendToChildren(data, ReefNetworkGroupCommProtos.GroupCommMessage.Type.Broadcast);
     } catch (final ParentDeadException e) {
       throw new RuntimeException("ParentDeadException", e);
+    } catch (final IOException e) {
+      throw new RuntimeException("SerializationException", e);
     }
     LOG.exiting("BroadcastReceiver", "receive", this);
     return retVal;

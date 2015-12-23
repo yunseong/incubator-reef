@@ -37,8 +37,8 @@ final class CodecFileAccumulator<T> implements Accumulator<T> {
 
   @Override
   public void add(final T datum) throws ServiceException {
-    final byte[] buf = codec.encode(datum);
     try {
+      final byte[] buf = codec.encode(datum);
       this.out.writeInt(buf.length);
       this.out.write(buf);
     } catch (final IOException e) {

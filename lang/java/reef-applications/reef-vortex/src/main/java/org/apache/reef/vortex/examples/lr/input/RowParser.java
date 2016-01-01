@@ -41,7 +41,7 @@ public final class RowParser
       for (final Pair<LongWritable, Text> keyValue : dataSet) {
         final String[] split = keyValue.getSecond().toString().split(" ");
 
-        final int output = Integer.parseInt(split[0]);
+        final int output = Integer.parseInt(split[0]) == 1 ? 1 : -1;
         final int[] indices = new int[split.length - 1];
         final float[] values = new float[split.length - 1];
 

@@ -22,9 +22,15 @@ package org.apache.reef.vortex.examples.als;
 import org.apache.reef.io.Tuple;
 import org.apache.reef.vortex.api.VortexFunction;
 
+import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class SumFunction implements VortexFunction<SumFunctionInput, double[]> {
+
+  private final static Logger LOG = Logger.getLogger(SumFunction.class.getName());
 
   private int numItems;
 
@@ -35,19 +41,50 @@ public final class SumFunction implements VortexFunction<SumFunctionInput, doubl
     this.numItems = numItems;
   }
 
-  private double[] getAverageVector(final List<IndexedVector> indexedVectors) {
-    final double averageVector[] = new double[numItems];
+  private double[] getSumVector(final List<IndexedVector> indexedVectors) {
+    final double sumVector[] = new double[numItems];
     for (final IndexedVector indexedVector : indexedVectors) {
       for (final Tuple<Integer, Double> rating : indexedVector.getVector()) {
-        averageVector[rating.getKey()] += rating.getValue();
+        sumVector[rating.getKey()] += rating.getValue();
       }
     }
 
-    return averageVector;
+    return sumVector;
   }
 
   @Override
   public double[] call(final SumFunctionInput input) throws Exception {
-    return getAverageVector(input.getUserVectors());
+    final Runtime r = Runtime.getRuntime();
+    final long startTime = System.currentTimeMillis();
+    final long startMemory = (r.totalMemory() - r.freeMemory())/1048576;
+
+    final long modelLoadedTime = System.currentTimeMillis();
+    final long modelLoadedMemory = (r.totalMemory() - r.freeMemory())/1048576;
+
+    final List<IndexedVector> trainingData = input.getUserVectors();
+    final long trainingLoadedTime = System.currentTimeMillis();
+    final long trainingLoadedMemory = (r.totalMemory() - r.freeMemory())/1048576;
+
+    LOG.log(Level.INFO, "!SUM!Init\t{0}\tUsed\t{1}->{2}->{3}\tMax\t{4}\tTotal\t{5}",
+        new Object[] {InetAddress.getLocalHost().getHostName(),
+            startMemory, modelLoadedMemory, trainingLoadedMemory, r.maxMemory(), r.totalMemory()});
+
+    final double[] sum = getSumVector(trainingData);
+
+    final long finishTime = System.currentTimeMillis();
+    final long executionTime = finishTime - trainingLoadedTime;
+    final long modelOverhead = modelLoadedTime - startTime;
+    final long trainingOverhead = trainingLoadedTime - modelLoadedTime;
+
+    LOG.log(Level.INFO, "!SUM!\t{0}\tUsed\t{1}->{2}\tMax\t{3}\tTotal\t{4}" +
+            "\tExecution\t{5}\tModel\t{6}\tTraining\t{7}\tRowNum\t{8}\tkey\t{9}",
+        new Object[]{
+            InetAddress.getLocalHost().getHostName(), startMemory, (r.totalMemory() - r.freeMemory())/1048576,
+            r.maxMemory()/1048576, r.totalMemory()/1048576,
+            executionTime, modelOverhead, trainingOverhead, trainingData.size(),
+            Arrays.toString(input.getCachedKeys().toArray())});
+
+
+    return sum;
   }
 }

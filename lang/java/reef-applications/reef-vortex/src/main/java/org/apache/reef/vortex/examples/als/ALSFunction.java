@@ -18,10 +18,11 @@
  */
 package org.apache.reef.vortex.examples.als;
 
+import com.github.fommil.netlib.LAPACK;
 import org.apache.commons.math3.linear.*;
-import org.apache.commons.math3.linear.CholeskyDecomposition;
 import org.apache.reef.io.Tuple;
 import org.apache.reef.vortex.api.VortexFunction;
+import org.netlib.util.intW;
 
 import java.io.Serializable;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.logging.Logger;
 public final class ALSFunction implements Serializable, VortexFunction<ALSFunctionInput, ResultVector[]> {
 
   private final static Logger LOG = Logger.getLogger(ALSFunction.class.getName());
+  private final static LAPACK NETLIB_LAPACK = LAPACK.getInstance();
 
   private double lambda;
   private int numFeatures;
@@ -44,8 +46,6 @@ public final class ALSFunction implements Serializable, VortexFunction<ALSFuncti
 
   private ResultVector getResultVector(final RealMatrix fixedMatrix,
       final int index, final List<Tuple<Integer, Double>> sparseRatingVector) {
-
-    final double[] vector = new double[numFeatures];
 
     final int numRatings = sparseRatingVector.size();
     final int[] ratingIndexArr = new int[numRatings];
@@ -88,22 +88,48 @@ public final class ALSFunction implements Serializable, VortexFunction<ALSFuncti
     // M * R(i)
     final RealVector rightSideVector = userItemMatrix.operate(ratingVector);
 
-    final DecompositionSolver solver = new CholeskyDecomposition(leftSideMatrix).getSolver();
-
     // (M * M' + lambda * numRatings * E)^(-1) * M * R(i)
-    final RealVector newVec = solver.solve(rightSideVector);
-
-    for (i = 0; i < numFeatures; i++) {
-      vector[i] = newVec.getEntry(i);
-    }
+    final double[] newVector = solve(leftSideMatrix, rightSideVector, numFeatures);
 
     double error = 0.0;
     for (final Tuple<Integer, Double> tuple : sparseRatingVector) {
-      double diff = newVec.dotProduct(fixedMatrix.getColumnVector(tuple.getKey())) - tuple.getValue();
+      double diff = dot((fixedMatrix.getColumnVector(tuple.getKey())), newVector) - tuple.getValue();
       error += diff * diff;
     }
 
-    return new ResultVector(index, sparseRatingVector.size(), error, vector);
+    return new ResultVector(index, sparseRatingVector.size(), error, newVector);
+  }
+
+  private double dot(final RealVector v1, final double[] v2) {
+    double acc = 0.0;
+    for (int i = 0; i < v2.length; i++) {
+      acc += v1.getEntry(i) * v2[i];
+    }
+
+    return acc;
+  }
+
+  private double[] solve(final RealMatrix leftSideMatrix, final RealVector rightSideVector, final int numFeatures) {
+    final double[] upperTriangularLeftMatrix = new double[numFeatures * (numFeatures + 1) / 2];
+    int index = 0;
+    for (int c = 0; c < numFeatures; c++) {
+      for (int r = 0; r <= c; r++) {
+        upperTriangularLeftMatrix[index++] = leftSideMatrix.getEntry(r, c);
+      }
+    }
+
+    final double[] rightDoubleVector = new double[numFeatures];
+    for (int i = 0; i < numFeatures; i++) {
+      rightDoubleVector[i] = rightSideVector.getEntry(i);
+    }
+
+    final intW info = new intW(0);
+    NETLIB_LAPACK.dppsv("U", numFeatures, 1, upperTriangularLeftMatrix, rightDoubleVector, numFeatures, info);
+    if (info.val != 0) {
+      throw new RuntimeException("returned info value : " + info.val);
+    }
+
+    return rightDoubleVector;
   }
 
   @Override

@@ -67,7 +67,7 @@ public final class SumFunction implements VortexFunction<SumFunctionInput, doubl
 
     LOG.log(Level.INFO, "!SUM!Init\t{0}\tUsed\t{1}->{2}->{3}\tMax\t{4}\tTotal\t{5}",
         new Object[] {InetAddress.getLocalHost().getHostName(),
-            startMemory, modelLoadedMemory, trainingLoadedMemory, r.maxMemory(), r.totalMemory()});
+            startMemory, modelLoadedMemory, trainingLoadedMemory, r.maxMemory()/1048576, r.totalMemory()/1048576});
 
     final double[] sum = getSumVector(trainingData);
 

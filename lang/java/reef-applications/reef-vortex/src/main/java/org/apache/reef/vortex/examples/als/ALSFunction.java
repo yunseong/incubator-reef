@@ -151,7 +151,7 @@ public final class ALSFunction implements Serializable, VortexFunction<ALSFuncti
 
     LOG.log(Level.INFO, "!V!Init\t{0}\tUsed\t{1}->{2}->{3}\tMax\t{4}\tTotal\t{5}",
         new Object[] {InetAddress.getLocalHost().getHostName(),
-            startMemory, modelLoadedMemory, trainingLoadedMemory, r.maxMemory(), r.totalMemory()});
+            startMemory, modelLoadedMemory, trainingLoadedMemory, r.maxMemory()/1048576, r.totalMemory()/1048576});
 
     final int size = indexedVectors.size();
     final ResultVector[] ret = new ResultVector[size];

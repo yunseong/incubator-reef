@@ -19,6 +19,7 @@
 
 package org.apache.reef.vortex.examples.als;
 
+import org.apache.reef.driver.parameters.DriverMemory;
 import org.apache.reef.tang.Injector;
 import org.apache.reef.tang.JavaConfigurationBuilder;
 import org.apache.reef.tang.Tang;
@@ -61,6 +62,7 @@ public final class AlternatingLeastSquares {
           .registerShortNameOfClass(NumItems.class)
           .registerShortNameOfClass(NumFeatures.class)
           .registerShortNameOfClass(SaveModel.class)
+          .registerShortNameOfClass(DriverMemory.class)
           .processCommandLine(args);
 
       final Injector injector = tang.newInjector(cb.build());
@@ -70,10 +72,13 @@ public final class AlternatingLeastSquares {
       final int workerCores = injector.getNamedInstance(WorkerCores.class);
       final int workerCapacity = injector.getNamedInstance(WorkerCapacity.class);
       final int workerMemory = injector.getNamedInstance(WorkerMemMb.class);
+      final int driverMemory = injector.getNamedInstance(DriverMemory.class);
+
+      cb.bindNamedParameter(org.apache.reef.driver.parameters.DriverMemory.class, driverMemory + "");
 
       Logger.getLogger(AlternatingLeastSquares.class.getName())
-          .log(Level.INFO, "Config: [worker] {0} / [mem] {1} / [cores] {2} / [capacity] {3}",
-              new Object[]{numOfWorkers, workerMemory, workerCores, workerCapacity});
+          .log(Level.INFO, "Config: [worker] {0} / [mem] {1} / [cores] {2} / [capacity] {3} / [driver mem] {4}",
+              new Object[]{numOfWorkers, workerMemory, workerCores, workerCapacity, driverMemory});
 
       final Class startClass = ALSVortexStart.class;
       if (isLocal) {
@@ -148,5 +153,9 @@ public final class AlternatingLeastSquares {
 
   @NamedParameter(short_name = "save_model", default_value = "false")
   public static final class SaveModel implements Name<Boolean> {
+  }
+
+  @NamedParameter(short_name = "driver_memory", default_value = "7168")
+  public static final class DriverMemory implements Name<Integer> {
   }
 }

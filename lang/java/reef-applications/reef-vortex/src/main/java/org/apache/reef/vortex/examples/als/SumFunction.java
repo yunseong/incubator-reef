@@ -19,7 +19,6 @@
 
 package org.apache.reef.vortex.examples.als;
 
-import org.apache.reef.io.Tuple;
 import org.apache.reef.vortex.api.VortexFunction;
 
 import java.net.InetAddress;
@@ -28,7 +27,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public final class SumFunction implements VortexFunction<SumFunctionInput, double[]> {
+public final class SumFunction implements VortexFunction<SumFunctionInput, float[]> {
 
   private final static Logger LOG = Logger.getLogger(SumFunction.class.getName());
 
@@ -41,11 +40,11 @@ public final class SumFunction implements VortexFunction<SumFunctionInput, doubl
     this.numItems = numItems;
   }
 
-  private double[] getSumVector(final List<IndexedVector> indexedVectors) {
-    final double sumVector[] = new double[numItems];
+  private float[] getSumVector(final List<IndexedVector> indexedVectors) {
+    final float sumVector[] = new float[numItems];
     for (final IndexedVector indexedVector : indexedVectors) {
-      for (final Tuple<Integer, Double> rating : indexedVector.getVector()) {
-        sumVector[rating.getKey()] += rating.getValue();
+      for (int i = 0; i < indexedVector.size(); i++) {
+        sumVector[indexedVector.getRatingIndex(i)] += indexedVector.getRating(i);
       }
     }
 
@@ -53,7 +52,7 @@ public final class SumFunction implements VortexFunction<SumFunctionInput, doubl
   }
 
   @Override
-  public double[] call(final SumFunctionInput input) throws Exception {
+  public float[] call(final SumFunctionInput input) throws Exception {
     final Runtime r = Runtime.getRuntime();
     final long startTime = System.currentTimeMillis();
     final long startMemory = (r.totalMemory() - r.freeMemory())/1048576;
@@ -69,7 +68,7 @@ public final class SumFunction implements VortexFunction<SumFunctionInput, doubl
         new Object[] {InetAddress.getLocalHost().getHostName(),
             startMemory, modelLoadedMemory, trainingLoadedMemory, r.maxMemory()/1048576, r.totalMemory()/1048576});
 
-    final double[] sum = getSumVector(trainingData);
+    final float[] sum = getSumVector(trainingData);
 
     final long finishTime = System.currentTimeMillis();
     final long executionTime = finishTime - trainingLoadedTime;

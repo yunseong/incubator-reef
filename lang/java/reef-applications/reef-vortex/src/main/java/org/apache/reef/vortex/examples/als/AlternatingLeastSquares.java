@@ -19,7 +19,6 @@
 
 package org.apache.reef.vortex.examples.als;
 
-import org.apache.reef.driver.parameters.DriverMemory;
 import org.apache.reef.tang.Injector;
 import org.apache.reef.tang.JavaConfigurationBuilder;
 import org.apache.reef.tang.Tang;

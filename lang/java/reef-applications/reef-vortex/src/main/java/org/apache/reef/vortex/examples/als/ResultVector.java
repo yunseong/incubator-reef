@@ -26,10 +26,10 @@ import java.io.Serializable;
 public class ResultVector implements Serializable {
   private final int index;
   private final int numRatings;
-  private final double sumSquaredError;
-  private final double[] vector;
+  private final float sumSquaredError;
+  private final float[] vector;
 
-  public ResultVector(final int index, final int numRatings, final double sumSquaredError, final double[] vector) {
+  public ResultVector(final int index, final int numRatings, final float sumSquaredError, final float[] vector) {
     this.index = index;
     this.numRatings = numRatings;
     this.sumSquaredError = sumSquaredError;
@@ -44,11 +44,11 @@ public class ResultVector implements Serializable {
     return numRatings;
   }
 
-  public double getSumSquaredError() {
+  public float getSumSquaredError() {
     return sumSquaredError;
   }
 
-  public double[] getVector() {
+  public float[] getVector() {
     return vector;
   }
 }

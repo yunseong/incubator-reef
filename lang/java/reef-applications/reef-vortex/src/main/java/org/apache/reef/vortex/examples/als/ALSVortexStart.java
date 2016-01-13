@@ -56,8 +56,8 @@ public final class ALSVortexStart implements VortexStart {
   // For printing purpose actually.
   private final int delay;
 
-  private final double[][] userMatrix;
-  private final double[][] itemMatrix;
+  private final float[][] userMatrix;
+  private final float[][] itemMatrix;
 
   private final boolean isSaveModel;
 
@@ -84,8 +84,8 @@ public final class ALSVortexStart implements VortexStart {
     this.delay = delay;
     this.isSaveModel = isSaveModel;
 
-    this.userMatrix = new double[numFeatures][numUsers];
-    this.itemMatrix = new double[numFeatures][numItems];
+    this.userMatrix = new float[numUsers][numFeatures];
+    this.itemMatrix = new float[numItems][numFeatures];
   }
 
   @Override
@@ -109,13 +109,16 @@ public final class ALSVortexStart implements VortexStart {
 
       final List<VortexFuture<ResultVector[]>> futures = new ArrayList<>();
       for (int iter = 0; iter < 2 * numIter; iter++) {
+        if (isSaveModel) {
+          saveModels("" + iter);
+        }
 
         final double memoryIterationStarted = getRemainingMemory();
 
         final boolean isUpdateUserMatrix = iter % 2 == 0;
 
-        final double[][] updatedMatrix;
-        final MasterCacheKey<double[][]> fixedMatrixKey;
+        final float[][] updatedMatrix;
+        final MasterCacheKey<float[][]> fixedMatrixKey;
         final HDFSBackedCacheKey[] dataMatrixPartition;
 
         if (isUpdateUserMatrix) { // Fix ItemMatrix, solve UserMatrix
@@ -138,7 +141,7 @@ public final class ALSVortexStart implements VortexStart {
               new ALSFunctionInput(dataMatrixPartition[i], fixedMatrixKey)));
         }
 
-        double sumSquareErrors = 0.0;
+        float sumSquareErrors = 0.0f;
         int numRatings = 0;
 
         for (final VortexFuture<ResultVector[]> future : futures) {
@@ -147,9 +150,9 @@ public final class ALSVortexStart implements VortexStart {
             final int index = updatedVector.getIndex();
             numRatings += updatedVector.getNumRatings();
             sumSquareErrors += updatedVector.getSumSquaredError();
-            final double[] vector = updatedVector.getVector();
+            final float[] vector = updatedVector.getVector();
             for (int i = 0; i < vector.length; i++) {
-              updatedMatrix[i][index] = vector[i];
+              updatedMatrix[index][i] = vector[i];
             }
           }
         }
@@ -161,7 +164,7 @@ public final class ALSVortexStart implements VortexStart {
           matrixType = "Item Matrix";
         }
 
-        final double mse = sumSquareErrors / numRatings;
+        final float mse = sumSquareErrors / numRatings;
         final double memoryIterationEnded = getRemainingMemory();
 
         LOG.log(Level.INFO, "@V@iteration:{0} (update {1})\t# ratings\t{2}\tmse\t{3}\tHost\t{4}\tUsed" +
@@ -229,9 +232,9 @@ public final class ALSVortexStart implements VortexStart {
       final HDFSBackedCacheKey[] userDataMatriPartition) throws Exception {
     final int taskletSize = userDataMatriPartition.length;
     LOG.log(Level.INFO, "{0}", taskletSize);
-    final List<VortexFuture<double[]>> futures = new ArrayList<>();
+    final List<VortexFuture<float[]>> futures = new ArrayList<>();
 
-    final double[] itemRatingSum = new double[numItems];
+    final float[] itemRatingSum = new float[numItems];
 
     for (int i = 0; i < taskletSize; i++) {
       futures.add(vortexThreadPool.submit(
@@ -239,26 +242,26 @@ public final class ALSVortexStart implements VortexStart {
           new SumFunctionInput(userDataMatriPartition[i])));
     }
 
-    for (final VortexFuture<double[]> future : futures) {
-      final double[] result = future.get();
+    for (final VortexFuture<float[]> future : futures) {
+      final float[] result = future.get();
 
       for (int i = 0; i < numItems; i++) {
         itemRatingSum[i] += result[i];
       }
     }
 
-    double totalAverage = 0.0;
+    float totalAverage = 0.0f;
 
     for (int i = 0; i < numItems; i++) {
-      itemMatrix[0][i] = itemRatingSum[i] / numUsers;
-      totalAverage += itemMatrix[0][i];
+      itemMatrix[i][0] = itemRatingSum[i] / numUsers;
+      totalAverage += itemMatrix[i][0];
     }
 
     totalAverage /= numItems;
-    final double maxRandomValue = totalAverage / 1000;
-    for (int i = 1; i < numFeatures; i++) {
-      for (int j = 0; j < numItems; j++) {
-        itemMatrix[i][j] = maxRandomValue * Math.random();
+    final float maxRandomValue = totalAverage / 1000;
+    for (int i = 0; i < numItems; i++) {
+      for (int j = 1; j < numFeatures; j++) {
+        itemMatrix[i][j] = maxRandomValue * (float)Math.random();
       }
     }
   }

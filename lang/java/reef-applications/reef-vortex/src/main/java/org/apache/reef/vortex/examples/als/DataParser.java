@@ -21,6 +21,7 @@ package org.apache.reef.vortex.examples.als;
 
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.jute.Index;
 import org.apache.reef.io.Tuple;
 import org.apache.reef.io.data.loading.api.DataSet;
 import org.apache.reef.io.network.util.Pair;
@@ -45,16 +46,17 @@ public final class DataParser implements VortexParser<DataSet<LongWritable, Text
       numLines++;
       final String[] tokens = keyValue.getSecond().toString().trim().split(" ");
       final int vectorIndex = Integer.parseInt(tokens[0]);
-      final List<Tuple<Integer, Double>> ratings = new LinkedList<>();
+      final List<Integer> ratingIndexList = new LinkedList<>();
+      final List<Float> ratingList = new LinkedList<>();
       for (int i = 1; i < tokens.length; i++) {
         final String[] indexAndRating = tokens[i].split(":");
-        final int index = Integer.parseInt(indexAndRating[0]);
-        final double rating = Double.parseDouble(indexAndRating[1]);
-        ratings.add(new Tuple<>(index, rating));
+        ratingIndexList.add(Integer.parseInt(indexAndRating[0]));
+        ratingList.add(Float.parseFloat(indexAndRating[1]));
       }
 
-      numRatings += ratings.size();
-      vectors.add(new IndexedVector(vectorIndex, ratings));
+      numRatings += ratingList.size();
+      final IndexedVector indexedVector = new IndexedVector(vectorIndex, ratingIndexList, ratingList);
+      vectors.add(indexedVector);
     }
 
     LOG.log(Level.INFO, "# lines : {0}, # ratings : {1}", new Object[]{numLines, numRatings});

@@ -18,8 +18,6 @@
  */
 package org.apache.reef.vortex.examples.als;
 
-import org.apache.commons.math3.linear.Array2DRowRealMatrix;
-import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.HDFSBackedCacheKey;
@@ -33,7 +31,7 @@ import java.util.List;
 public final class ALSFunctionInput implements Serializable, VortexCacheable {
 
   private HDFSBackedCacheKey<List<IndexedVector>> vectorDataKey;
-  private MasterCacheKey<double[][]> fixedMatrixKey;
+  private MasterCacheKey<float[][]> fixedMatrixKey;
   private List<CacheKey> keys;
 
   private ALSFunctionInput() {
@@ -41,7 +39,7 @@ public final class ALSFunctionInput implements Serializable, VortexCacheable {
 
   public ALSFunctionInput(
       final HDFSBackedCacheKey<List<IndexedVector>> vectorDataKey,
-      final MasterCacheKey<double[][]> fixedMatrixKey) {
+      final MasterCacheKey<float[][]> fixedMatrixKey) {
     this.vectorDataKey = vectorDataKey;
     this.fixedMatrixKey = fixedMatrixKey;
 
@@ -50,13 +48,12 @@ public final class ALSFunctionInput implements Serializable, VortexCacheable {
     this.keys.add(fixedMatrixKey);
   }
 
-  public List<IndexedVector> getIndexedVectors() throws Exception {
+  public synchronized List<IndexedVector> getIndexedVectors() throws Exception {
     return VortexCache.getData(vectorDataKey);
   }
 
-  public RealMatrix getFixedMatrix() throws Exception {
-    final double[][] fixedMatrix = VortexCache.getData(fixedMatrixKey);
-    return new Array2DRowRealMatrix(fixedMatrix);
+  public synchronized float[][] getFixedMatrix() throws Exception {
+    return VortexCache.getData(fixedMatrixKey);
   }
 
   @Override

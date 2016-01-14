@@ -60,6 +60,7 @@ public final class ALSVortexStart implements VortexStart {
   private final float[][] itemMatrix;
 
   private final boolean isSaveModel;
+  private final boolean printMSE;
 
   @Inject
   private ALSVortexStart(
@@ -72,6 +73,7 @@ public final class ALSVortexStart implements VortexStart {
       @Parameter(AlternatingLeastSquares.NumItems.class) final int numItems,
       @Parameter(AlternatingLeastSquares.NumFeatures.class) final int numFeatures,
       @Parameter(AlternatingLeastSquares.SaveModel.class) final boolean isSaveModel,
+      @Parameter(AlternatingLeastSquares.PrintMSE.class) final boolean printMSE,
       @Parameter(Delay.class) final int delay) {
     this.divideFactor = divideFactor;
     this.numIter = numIter;
@@ -83,6 +85,7 @@ public final class ALSVortexStart implements VortexStart {
     this.numFeatures = numFeatures;
     this.delay = delay;
     this.isSaveModel = isSaveModel;
+    this.printMSE = printMSE;
 
     this.userMatrix = new float[numUsers][numFeatures];
     this.itemMatrix = new float[numItems][numFeatures];
@@ -137,7 +140,7 @@ public final class ALSVortexStart implements VortexStart {
 
         for (int i = 0; i < dataMatrixPartition.length; i++) {
           futures.add(vortexThreadPool.submit(
-              new ALSFunction(numFeatures, lambda),
+              new ALSFunction(numFeatures, lambda, printMSE),
               new ALSFunctionInput(dataMatrixPartition[i], fixedMatrixKey)));
         }
 

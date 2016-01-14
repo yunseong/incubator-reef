@@ -38,10 +38,12 @@ public final class ALSFunction implements Serializable, VortexFunction<ALSFuncti
 
   private double lambda;
   private int numFeatures;
+  private boolean printMSE;
 
-  public ALSFunction(final int numFeatures, final double lambda) {
+  public ALSFunction(final int numFeatures, final double lambda, final boolean printMSE) {
     this.lambda = lambda;
     this.numFeatures = numFeatures;
+    this.printMSE = printMSE;
   }
 
   private ALSFunction() {
@@ -86,15 +88,17 @@ public final class ALSFunction implements Serializable, VortexFunction<ALSFuncti
       vector[i] = (float)rightSideVector[i];
     }
 
-    for (int i = 0; i < input.size(); i++) {
-      final int ratingIndex = input.getRatingIndex(i);
-      float predicted = 0.0f;
-      for (int j = 0; j < numFeatures; j++) {
-        predicted += fixedMatrix[ratingIndex][j] * vector[j];
-      }
+    if (printMSE) {
+      for (int i = 0; i < input.size(); i++) {
+        final int ratingIndex = input.getRatingIndex(i);
+        float predicted = 0.0f;
+        for (int j = 0; j < numFeatures; j++) {
+          predicted += fixedMatrix[ratingIndex][j] * vector[j];
+        }
 
-      final float diff = predicted - input.getRating(i);
-      sumSquaredError += diff * diff;
+        final float diff = predicted - input.getRating(i);
+        sumSquaredError += diff * diff;
+      }
     }
 
     return new ResultVector(input.getIndex(), input.size(), sumSquaredError, vector);

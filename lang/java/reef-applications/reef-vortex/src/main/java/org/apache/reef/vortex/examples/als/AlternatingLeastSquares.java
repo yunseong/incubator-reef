@@ -62,6 +62,7 @@ public final class AlternatingLeastSquares {
           .registerShortNameOfClass(NumFeatures.class)
           .registerShortNameOfClass(SaveModel.class)
           .registerShortNameOfClass(DriverMemory.class)
+          .registerShortNameOfClass(PrintMSE.class)
           .processCommandLine(args);
 
       final Injector injector = tang.newInjector(cb.build());
@@ -152,6 +153,10 @@ public final class AlternatingLeastSquares {
 
   @NamedParameter(short_name = "save_model", default_value = "false")
   public static final class SaveModel implements Name<Boolean> {
+  }
+
+  @NamedParameter(short_name = "print_mse", default_value = "false")
+  public static final class PrintMSE implements Name<Boolean> {
   }
 
   @NamedParameter(short_name = "driver_memory", default_value = "7168")

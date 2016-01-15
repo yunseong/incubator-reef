@@ -19,7 +19,10 @@
 package org.apache.reef.vortex.api;
 
 import org.apache.reef.annotations.Unstable;
+import org.apache.reef.io.serialization.Codec;
 import org.apache.reef.util.Optional;
+import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.driver.VortexMaster;
 
 import javax.inject.Inject;
@@ -60,5 +63,18 @@ public final class VortexThreadPool {
       submit(final VortexFunction<TInput, TOutput> function, final TInput input,
              final FutureCallback<TOutput> callback) {
     return vortexMaster.enqueueTasklet(function, input, Optional.of(callback));
+  }
+
+  /**
+   * Put the data in cache by calling {@link VortexMaster#cache(String, Object, Codec)}.
+   * @param name Name to distinguish the data, which should be unique.
+   * @param data Data to cache.
+   * @param <T> Type of the data.
+   * @return Key that is used to access the data in Workers {@link org.apache.reef.vortex.evaluator.VortexCache}.
+   * @throws VortexCacheException If the keyName is registered already in the cache.
+   */
+  public <T> CacheKey<T> cache(final String name, final T data, final Codec<T> codec)
+      throws VortexCacheException {
+    return vortexMaster.cache(name, data, codec);
   }
 }

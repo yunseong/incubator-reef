@@ -21,6 +21,7 @@ package org.apache.reef.vortex.driver;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.task.RunningTask;
+import org.apache.reef.vortex.common.CachedDataResponse;
 import org.apache.reef.vortex.common.TaskletCancellationRequest;
 import org.apache.reef.vortex.common.TaskletExecutionRequest;
 
@@ -52,6 +53,10 @@ class VortexWorkerManager {
   void cancelTasklet(final int taskletId) {
     final TaskletCancellationRequest cancellationRequest = new TaskletCancellationRequest(taskletId);
     vortexRequestor.send(reefTask, cancellationRequest);
+  }
+
+  void sendCacheData(final CachedDataResponse cachedDataResponse) {
+    vortexRequestor.send(reefTask, cachedDataResponse);
   }
 
   List<Tasklet> taskletsDone(final List<Integer> taskletIds) {

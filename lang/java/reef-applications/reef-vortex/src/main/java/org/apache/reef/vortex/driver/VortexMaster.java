@@ -20,12 +20,15 @@ package org.apache.reef.vortex.driver;
 
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.annotations.audience.DriverSide;
+import org.apache.reef.io.serialization.Codec;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.FutureCallback;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
+import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.WorkerReport;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 /**
  * The heart of Vortex.
@@ -64,6 +67,27 @@ public interface VortexMaster {
    * Call this when a worker has reported back.
    */
   void workerReported(final String workerId, final WorkerReport workerReport);
+
+  /**
+   * Call this when user caches the data.
+   * @param keyId Unique identifier of the data in the cache
+   * @param data Data to cache
+   * @param <T> Type of the data
+   * @return The key with which the data is accessible in the Worker
+   * @throws VortexCacheException If the keyName is registered already in the cache.
+   */
+  <T> MasterCacheKey<T> cache(final String keyId, final T data, final Codec<T> codec)
+      throws VortexCacheException;
+
+  /**
+   * Call this when a worker requests the cached data.
+   * Retrieve the data from the Cache, and send it to the Worker who requested.
+   * @param workerId Worker id to send the data
+   * @param keyId key id of the cache key assigned to the data
+   * @throws VortexCacheException If the data is not found in the cache.
+   */
+  void dataRequested(final String workerId, final String keyId)
+      throws VortexCacheException;
 
   /**
    * Release all resources and shut down.

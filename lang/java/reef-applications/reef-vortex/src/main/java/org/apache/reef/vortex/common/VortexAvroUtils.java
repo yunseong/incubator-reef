@@ -76,6 +76,17 @@ public final class VortexAvroUtils {
                   .build())
           .build();
       break;
+    case CachedDataResponse:
+      final CachedDataResponse cachedDataResponse = (CachedDataResponse) vortexRequest;
+      avroVortexRequest = AvroVortexRequest.newBuilder()
+          .setRequestType(AvroRequestType.CachedDataResponse)
+          .setCachedDataResponse(
+              AvroCachedDataResponse.newBuilder()
+              .setKeyId(cachedDataResponse.getKeyId())
+              .setSerializedData(ByteBuffer.wrap(cachedDataResponse.getSerializedData()))
+              .build())
+          .build();
+      break;
     default:
       throw new RuntimeException("Undefined message type");
     }
@@ -161,9 +172,16 @@ public final class VortexAvroUtils {
       workerTaskletReports.add(avroTaskletReport);
     }
 
+    final AvroCachedDataRequest cachedDataRequest =
+        workerReport.getCachedDataRequest() == null ? null :
+            AvroCachedDataRequest.newBuilder()
+                .setKeyId(workerReport.getCachedDataRequest().getKeyId())
+                .build();
+
     // Convert WorkerReport message to Avro message.
     final AvroWorkerReport avroWorkerReport = AvroWorkerReport.newBuilder()
         .setTaskletReports(workerTaskletReports)
+        .setCachedDataRequest(cachedDataRequest)
         .build();
 
     // Serialize the Avro message to byte array.
@@ -194,6 +212,11 @@ public final class VortexAvroUtils {
       final AvroTaskletCancellationRequest taskletCancellationRequest =
           (AvroTaskletCancellationRequest)avroVortexRequest.getTaskletRequest();
       vortexRequest = new TaskletCancellationRequest(taskletCancellationRequest.getTaskletId());
+      break;
+    case CachedDataResponse:
+      final AvroCachedDataResponse cachedDataResponse = avroVortexRequest.getCachedDataResponse();
+      vortexRequest = new CachedDataResponse(cachedDataResponse.getKeyId().toString(),
+          cachedDataResponse.getSerializedData().array());
       break;
     default:
       throw new RuntimeException("Undefined VortexRequest type");
@@ -253,6 +276,12 @@ public final class VortexAvroUtils {
       }
 
       workerTaskletReports.add(taskletReport);
+    }
+
+    if (avroWorkerReport.getCachedDataRequest() != null) {
+      assert workerTaskletReports.isEmpty();
+      return new WorkerReport(
+          new CachedDataRequest(avroWorkerReport.getCachedDataRequest().getKeyId().toString()));
     }
 
     return new WorkerReport(workerTaskletReports);

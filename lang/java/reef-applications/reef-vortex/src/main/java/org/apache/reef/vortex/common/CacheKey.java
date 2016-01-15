@@ -18,29 +18,24 @@
  */
 package org.apache.reef.vortex.common;
 
-import org.apache.reef.annotations.Unstable;
-
 /**
- * Master-to-Worker protocol.
+ * CacheKey is issued in Master's user code. Tasklets use this key to access
+ * the data from Worker cache. Each data is distinguished by cache key's identifier.
  */
-@Unstable
-public interface VortexRequest {
-  /**
-   * Type of Request.
-   */
-  enum RequestType {
-    ExecuteTasklet,
-    CancelTasklet,
-    CachedDataResponse
+public interface CacheKey<T> {
+  enum CacheKeyType {
+    MASTER
   }
 
   /**
-   * @return the ID of the VortexTasklet associated with this VortexRequest.
+   * Get identifier assigned to this cache key.
+   * @return Identifier of the cache key
    */
-  int getTaskletId();
+  String getId();
 
   /**
-   * @return the type of this VortexRequest.
+   * Type of the cache key. Caching in the Vortex Master's memory is only supported.
+   * @return Type of the cache key
    */
-  RequestType getType();
+  CacheKeyType getType();
 }

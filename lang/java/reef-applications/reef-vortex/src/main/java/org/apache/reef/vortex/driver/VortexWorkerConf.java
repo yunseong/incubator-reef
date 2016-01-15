@@ -24,6 +24,7 @@ import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.tang.annotations.NamedParameter;
 import org.apache.reef.tang.formats.ConfigurationModule;
 import org.apache.reef.tang.formats.ConfigurationModuleBuilder;
+import org.apache.reef.tang.formats.OptionalParameter;
 import org.apache.reef.tang.formats.RequiredParameter;
 
 /**
@@ -40,14 +41,27 @@ public final class VortexWorkerConf extends ConfigurationModuleBuilder {
   }
 
   /**
+   * Slack Threads for handling messages when all threads are blocked due to the cache miss.
+   */
+  @NamedParameter(doc = "Number of slack Threads", default_value = "2")
+  public final class NumOfSlackThreads implements Name<Integer> {
+  }
+
+  /**
    * Worker Threads.
    */
   public static final RequiredParameter<Integer> NUM_OF_THREADS = new RequiredParameter<>();
+
+  /**
+   * Slack Threads.
+   */
+  public static final OptionalParameter<Integer> NUM_OF_SLACK_THREADS = new OptionalParameter<>();
 
   /**
    * Vortex Worker configuration.
    */
   public static final ConfigurationModule CONF = new VortexWorkerConf()
       .bindNamedParameter(NumOfThreads.class, NUM_OF_THREADS)
+      .bindNamedParameter(NumOfSlackThreads.class, NUM_OF_SLACK_THREADS)
       .build();
 }

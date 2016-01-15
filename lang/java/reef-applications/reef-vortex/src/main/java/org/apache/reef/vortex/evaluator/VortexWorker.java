@@ -56,13 +56,20 @@ public final class VortexWorker implements Task, TaskMessageSource {
 
   private final HeartBeatTriggerManager heartBeatTriggerManager;
   private final int numOfThreads;
+  private final int numOfSlackThreads;
   private final CountDownLatch terminated = new CountDownLatch(1);
+
+  private final VortexCache cache;
 
   @Inject
   private VortexWorker(final HeartBeatTriggerManager heartBeatTriggerManager,
-                       @Parameter(VortexWorkerConf.NumOfThreads.class) final int numOfThreads) {
+                       final VortexCache cache,
+                       @Parameter(VortexWorkerConf.NumOfThreads.class) final int numOfThreads,
+                       @Parameter(VortexWorkerConf.NumOfSlackThreads.class) final int numOfSlackThreads) {
     this.heartBeatTriggerManager = heartBeatTriggerManager;
     this.numOfThreads = numOfThreads;
+    this.numOfSlackThreads = numOfSlackThreads;
+    this.cache = cache;
   }
 
   /**
@@ -71,7 +78,7 @@ public final class VortexWorker implements Task, TaskMessageSource {
   @Override
   public byte[] call(final byte[] memento) throws Exception {
     final ExecutorService schedulerThread = Executors.newSingleThreadExecutor();
-    final ExecutorService commandExecutor = Executors.newFixedThreadPool(numOfThreads);
+    final ExecutorService commandExecutor = Executors.newFixedThreadPool(numOfThreads + numOfSlackThreads);
     final ConcurrentMap<Integer, Future> futures = new ConcurrentHashMap<>();
 
     // Scheduling thread starts
@@ -154,6 +161,10 @@ public final class VortexWorker implements Task, TaskMessageSource {
                 future.cancel(true);
               }
               break;
+            case CachedDataResponse:
+              final CachedDataResponse cachedDataResponse = (CachedDataResponse) vortexRequest;
+              cache.notifyOnArrival(cachedDataResponse.getKeyId(), cachedDataResponse.getSerializedData());
+              break;
             default:
               throw new RuntimeException("Unknown Command");
           }
@@ -176,6 +187,16 @@ public final class VortexWorker implements Task, TaskMessageSource {
     } else {
       return Optional.empty();
     }
+  }
+
+  /**
+   * Send the request for the cached data to Master.
+   * @param key Key of the data.
+   */
+  void sendDataRequest(final MasterCacheKey key) throws InterruptedException {
+    final WorkerReport report = new WorkerReport(new CachedDataRequest(key.getId()));
+    workerReports.addLast(VortexAvroUtils.toBytes(report));
+    heartBeatTriggerManager.triggerHeartBeat();
   }
 
   /**

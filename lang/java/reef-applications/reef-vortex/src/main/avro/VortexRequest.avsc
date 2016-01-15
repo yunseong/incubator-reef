@@ -36,16 +36,30 @@
   {
     "namespace": "org.apache.reef.vortex.common.avro",
     "type": "record",
+    "name": "AvroCachedDataResponse",
+    "fields": [
+      {"name": "keyId", "type": "string"},
+      {"name": "serializedData", "type": "bytes"}
+    ]
+  },
+  {
+    "namespace": "org.apache.reef.vortex.common.avro",
+    "type": "record",
     "name": "AvroVortexRequest",
     "fields": [
       {
         "name": "requestType",
         "type": {"type": "enum", "name": "AvroRequestType",
-        "symbols": ["ExecuteTasklet", "CancelTasklet"]}
+        "symbols": ["ExecuteTasklet", "CancelTasklet", "CachedDataResponse"]}
       },
       {
         "name": "taskletRequest",
         "type": ["null", "AvroTaskletExecutionRequest", "AvroTaskletCancellationRequest"],
+        "default": null
+      },
+      {
+        "name": "cachedDataResponse",
+        "type": ["null", "AvroCachedDataResponse"],
         "default": null
       }
     ]

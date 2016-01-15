@@ -18,6 +18,8 @@
  */
 package org.apache.reef.vortex.driver;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import net.jcip.annotations.ThreadSafe;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.io.serialization.Codec;
@@ -27,6 +29,7 @@ import org.apache.reef.vortex.api.FutureCallback;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.common.*;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -46,6 +49,8 @@ final class DefaultVortexMaster implements VortexMaster {
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
   private final Executor executor;
+  private final Cache<String, byte[]> cacheMap = CacheBuilder.newBuilder().build();
+
 
   /**
    * @param runningWorkers for managing all running workers.
@@ -164,6 +169,14 @@ final class DefaultVortexMaster implements VortexMaster {
         throw new RuntimeException("Unknown Report");
       }
     }
+
+    if (workerReport.getCachedDataRequest() != null) {
+      try {
+        dataRequested(workerId, workerReport.getCachedDataRequest().getKeyId());
+      } catch (final VortexCacheException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   /**
@@ -210,4 +223,27 @@ final class DefaultVortexMaster implements VortexMaster {
     return delegate;
   }
 
+  @Override
+  public <T> MasterCacheKey<T> cache(final String keyId, final T data, final Codec<T> codec)
+      throws VortexCacheException {
+    final MasterCacheKey<T> key = new MasterCacheKey<>(keyId, codec);
+
+    if (cacheMap.getIfPresent(keyId) != null) {
+      throw new VortexCacheException(keyId + "is already used as a key id for other entity.");
+    }
+
+    // TODO[REEF-1113]: Handle serialization failure separately in Vortex
+    cacheMap.put(keyId, codec.encode(data)); // Store the serialized bytes to reduce the serialization cost.
+    return key;
+  }
+
+  @Override
+  public void dataRequested(final String workerId, final String keyId) throws VortexCacheException {
+    final byte[] serializedData = cacheMap.getIfPresent(keyId);
+    if (serializedData == null) {
+      throw new VortexCacheException("The entity does not exists for the key with id: " + keyId);
+    }
+
+    runningWorkers.sendCacheData(workerId, keyId, serializedData);
+  }
 }

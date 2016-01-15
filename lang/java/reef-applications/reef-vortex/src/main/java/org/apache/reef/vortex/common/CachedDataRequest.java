@@ -18,29 +18,26 @@
  */
 package org.apache.reef.vortex.common;
 
-import org.apache.reef.annotations.Unstable;
-
 /**
- * Master-to-Worker protocol.
+ * Request for cached data from Worker.
+ * Note that the term Request is opposed to the Master-Worker protocol.
  */
-@Unstable
-public interface VortexRequest {
+public final class CachedDataRequest {
+  private String keyId;
+
   /**
-   * Type of Request.
+   * Create a report that requests the cached data.
+   * @param keyId Key identifier to access the cache
    */
-  enum RequestType {
-    ExecuteTasklet,
-    CancelTasklet,
-    CachedDataResponse
+  public CachedDataRequest(final String keyId) {
+    this.keyId = keyId;
   }
 
   /**
-   * @return the ID of the VortexTasklet associated with this VortexRequest.
+   * Get the key identifier assigned to the cache key.
+   * @return The key identifier of the cache key to request to Master.
    */
-  int getTaskletId();
-
-  /**
-   * @return the type of this VortexRequest.
-   */
-  RequestType getType();
+  public String getKeyId() {
+    return keyId;
+  }
 }

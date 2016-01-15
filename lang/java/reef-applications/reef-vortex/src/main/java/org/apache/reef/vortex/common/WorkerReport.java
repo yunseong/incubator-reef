@@ -36,10 +36,18 @@ import java.util.List;
 @Unstable
 @DriverSide
 public final class WorkerReport {
-  private ArrayList<TaskletReport> taskletReports;
+  private final ArrayList<TaskletReport> taskletReports;
+  // TODO[REEF-1100] Message for cache request should be pulled out as a separate report type.
+  private final CachedDataRequest cachedDataRequest;
 
   public WorkerReport(final Collection<TaskletReport> taskletReports) {
     this.taskletReports = new ArrayList<>(taskletReports);
+    this.cachedDataRequest = null;
+  }
+
+  public WorkerReport(final CachedDataRequest cacheDataRequest) {
+    this.taskletReports = new ArrayList<>(0);
+    this.cachedDataRequest = cacheDataRequest;
   }
 
   /**
@@ -47,5 +55,12 @@ public final class WorkerReport {
    */
   public List<TaskletReport> getTaskletReports() {
     return Collections.unmodifiableList(taskletReports);
+  }
+
+  /**
+   * @return the data request. Null if this report is not for cache request.
+   */
+  public CachedDataRequest getCachedDataRequest() {
+    return cachedDataRequest;
   }
 }

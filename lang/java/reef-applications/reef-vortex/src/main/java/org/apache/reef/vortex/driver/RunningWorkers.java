@@ -22,6 +22,7 @@ import net.jcip.annotations.ThreadSafe;
 
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.util.Optional;
+import org.apache.reef.vortex.common.CachedDataResponse;
 
 import javax.inject.Inject;
 
@@ -198,6 +199,14 @@ final class RunningWorkers {
       }
     } finally {
       lock.unlock();
+    }
+  }
+
+  void sendCacheData(final String workerId, final String keyId, final byte[] serializedData) {
+    if (isWorkerRunning(workerId)) {
+      this.runningWorkers.get(workerId).sendCacheData(new CachedDataResponse(keyId, serializedData));
+    } else {
+      throw new RuntimeException("Worker " + workerId + " is not running!");
     }
   }
 

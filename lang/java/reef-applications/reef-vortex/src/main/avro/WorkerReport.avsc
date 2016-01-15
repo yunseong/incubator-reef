@@ -110,6 +110,17 @@
   {
     "namespace": "org.apache.reef.vortex.common.avro",
     "type": "record",
+    "name": "AvroCachedDataRequest",
+    "fields": [
+      {
+        "name": "keyId",
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "namespace": "org.apache.reef.vortex.common.avro",
+    "type": "record",
     "name": "AvroWorkerReport",
     "fields": [
       {
@@ -119,6 +130,11 @@
           "type": "array",
           "items": "AvroTaskletReport"
         }
+      },
+      {
+        "name": "cachedDataRequest",
+        "type": ["null", "AvroCachedDataRequest"],
+        "default": null
       }
     ]
   }

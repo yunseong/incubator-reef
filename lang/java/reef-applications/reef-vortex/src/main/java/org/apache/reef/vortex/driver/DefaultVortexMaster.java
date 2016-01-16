@@ -170,7 +170,12 @@ final class DefaultVortexMaster implements VortexMaster {
    * Terminate the job.
    */
   @Override
-  public void terminate() {
+  public synchronized void terminate() {
+    try {
+      this.wait(1000);
+    } catch (Exception e) {
+      throw new RuntimeException("sleep interrupted");
+    }
     runningWorkers.terminate();
   }
 

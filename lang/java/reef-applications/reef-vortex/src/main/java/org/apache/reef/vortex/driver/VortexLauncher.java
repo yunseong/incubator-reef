@@ -45,7 +45,7 @@ public final class VortexLauncher {
     return launch(runtimeConf, vortexConf.getConfiguration());
   }
 
-  private static LauncherStatus launch(final Configuration runtimeConf, final Configuration vortexConf) {
+  public static LauncherStatus launch(final Configuration runtimeConf, final Configuration vortexConf) {
     try {
       return DriverLauncher.getLauncher(runtimeConf).run(vortexConf);
     } catch (InjectionException e) {

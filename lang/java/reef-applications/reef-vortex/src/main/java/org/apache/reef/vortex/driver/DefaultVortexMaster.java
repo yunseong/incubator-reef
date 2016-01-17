@@ -21,8 +21,15 @@ package org.apache.reef.vortex.driver;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import net.jcip.annotations.ThreadSafe;
+import org.apache.hadoop.mapred.InputFormat;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.reef.annotations.audience.DriverSide;
+import org.apache.reef.io.data.loading.impl.JobConfExternalConstructor;
+import org.apache.reef.io.data.loading.impl.WritableSerializer;
 import org.apache.reef.io.serialization.Codec;
+import org.apache.reef.tang.ExternalConstructor;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.FutureCallback;
@@ -32,6 +39,7 @@ import org.apache.reef.vortex.common.*;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 import javax.inject.Inject;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -235,6 +243,27 @@ final class DefaultVortexMaster implements VortexMaster {
     // TODO[REEF-1113]: Handle serialization failure separately in Vortex
     cacheMap.put(keyId, codec.encode(data)); // Store the serialized bytes to reduce the serialization cost.
     return key;
+  }
+
+  @Override
+  public <T> HdfsCacheKey<T>[] cache(final String path, final int numSplit, final VortexParser<?, T> parser) {
+    try {
+      // TODO Other type of input formats could be used?
+      final ExternalConstructor<JobConf> jobConfConstructor =
+          new JobConfExternalConstructor(TextInputFormat.class.getName(), path);
+      final JobConf jobConf = jobConfConstructor.newInstance();
+      final InputFormat inputFormat = jobConf.getInputFormat();
+      final InputSplit[] splits = inputFormat.getSplits(jobConf, numSplit);
+
+      final HdfsCacheKey[] keys = new HdfsCacheKey[numSplit];
+      for (int i = 0; i < numSplit; i++) {
+        final String serializedSplit = WritableSerializer.serialize(splits[i]);
+        keys[i] = new HdfsCacheKey<>(path, i, serializedSplit, parser);
+      }
+      return keys;
+    } catch (final IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

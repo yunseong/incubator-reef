@@ -22,6 +22,8 @@ import org.apache.reef.annotations.Unstable;
 import org.apache.reef.io.serialization.Codec;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.HdfsCacheKey;
+import org.apache.reef.vortex.common.VortexParser;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.driver.VortexMaster;
 
@@ -76,5 +78,18 @@ public final class VortexThreadPool {
   public <T> CacheKey<T> cache(final String name, final T data, final Codec<T> codec)
       throws VortexCacheException {
     return vortexMaster.cache(name, data, codec);
+  }
+
+  /**
+   * Let the data from HDFS cached in Workers. Instead of caching the actual data in Master's heap space,
+   * just metadata for loading the data is stored.
+   * @param path Path of the file in HDFS to cache in workers.
+   * @param numSplit Number of splits (Partial data is loaded if the requested number is smaller than the num of blocks)
+   * @param parser Parser that transforms the loaded data into the real data to use
+   * @param <T> Data type to be used in the user code
+   * @return Array of the Cache key for accessing the data in Worker.
+   */
+  public <T> HdfsCacheKey<T>[] cache(final String path, final int numSplit, final VortexParser<?, T> parser) {
+    return vortexMaster.cache(path, numSplit, parser);
   }
 }

@@ -21,8 +21,20 @@ package org.apache.reef.vortex.evaluator;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.TextInputFormat;
+import org.apache.reef.io.data.loading.api.DataSet;
+import org.apache.reef.io.data.loading.impl.InMemoryInputFormatDataSet;
+import org.apache.reef.io.data.loading.impl.InputSplitExternalConstructor;
+import org.apache.reef.io.data.loading.impl.JobConfExternalConstructor;
+import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.InjectionFuture;
+import org.apache.reef.tang.Tang;
 import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.HdfsCacheKey;
 import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
@@ -69,6 +81,11 @@ public final class VortexCache {
         final MasterCacheKey<T> masterCacheKey = (MasterCacheKey<T>)key;
         callback = new MasterCallback<>(masterCacheKey);
         break;
+      case HDFS:
+        final HdfsCacheKey<T> hdfsCacheKey = (HdfsCacheKey<T>)key;
+        callback = new HdfsCallback<>(hdfsCacheKey);
+        break;
+
       default:
         throw new RuntimeException("Undefined type" + key.getType());
       }
@@ -126,5 +143,29 @@ public final class VortexCache {
       }
     }
   }
-}
 
+  class HdfsCallback<T> implements Callable<T> {
+    private final HdfsCacheKey<T> hdfsBackedCacheKey;
+
+    HdfsCallback(final HdfsCacheKey<T> cacheKey) {
+      this.hdfsBackedCacheKey= cacheKey;
+    }
+
+    @Override
+    public T call() throws Exception {
+      final Configuration conf = Tang.Factory.getTang().newConfigurationBuilder()
+          .bindImplementation(DataSet.class, InMemoryInputFormatDataSet.class)
+          .bindConstructor(InputSplit.class, InputSplitExternalConstructor.class)
+          .bindConstructor(JobConf.class, JobConfExternalConstructor.class)
+          .bindNamedParameter(InputSplitExternalConstructor.SerializedInputSplit.class,
+              hdfsBackedCacheKey.getSerializedInputSplit())
+          .bindNamedParameter(JobConfExternalConstructor.InputFormatClass.class, TextInputFormat.class.getName())
+          .bindNamedParameter(JobConfExternalConstructor.InputPath.class, hdfsBackedCacheKey.getPath())
+          .build();
+      final DataSet<LongWritable, Text> dataSet =
+          Tang.Factory.getTang().newInjector(conf).getInstance(DataSet.class);
+
+      return (T) hdfsBackedCacheKey.getParser().parse(dataSet);
+    }
+  }
+}

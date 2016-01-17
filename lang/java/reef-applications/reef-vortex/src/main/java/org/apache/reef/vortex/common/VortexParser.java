@@ -19,24 +19,10 @@
 package org.apache.reef.vortex.common;
 
 /**
- * CacheKey is issued in Master's user code. Tasklets use this key to access
- * the data from Worker cache. Each data is distinguished by cache key's identifier.
+ * Parses data from one format to another. Users can specify how to parse the input.
+ * @param <INPUT> Type of input.
+ * @param <OUTPUT> Type of output.
  */
-public interface CacheKey<T> {
-  enum CacheKeyType {
-    MASTER,
-    HDFS
-  }
-
-  /**
-   * Get identifier assigned to this cache key.
-   * @return Identifier of the cache key
-   */
-  String getId();
-
-  /**
-   * Type of the cache key. Caching in the Vortex Master's memory is only supported.
-   * @return Type of the cache key
-   */
-  CacheKeyType getType();
+public interface VortexParser<INPUT, OUTPUT> {
+  OUTPUT parse(INPUT input);
 }

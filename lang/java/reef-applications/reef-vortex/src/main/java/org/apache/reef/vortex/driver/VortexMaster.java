@@ -26,7 +26,9 @@ import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.FutureCallback;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
+import org.apache.reef.vortex.common.HdfsCacheKey;
 import org.apache.reef.vortex.common.MasterCacheKey;
+import org.apache.reef.vortex.common.VortexParser;
 import org.apache.reef.vortex.common.WorkerReport;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
@@ -78,6 +80,16 @@ public interface VortexMaster {
    */
   <T> MasterCacheKey<T> cache(final String keyId, final T data, final Codec<T> codec)
       throws VortexCacheException;
+
+  /**
+   * Call this when user wants to cache the data in the HDFS.
+   * @param path Path of the file to cache
+   * @param numSplit Number of splits (Partial data is loaded if the requested number is smaller than the num of blocks)
+   * @param parser Parser that transforms the loaded data into the real data to use
+   * @param <T> Data type to be used in the user code
+   * @return Array of the Cache key for accessing the data in Worker.
+   */
+  <T> HdfsCacheKey<T>[] cache(final String path, final int numSplit, final VortexParser<?, T> parser);
 
   /**
    * Call this when a worker requests the cached data.

@@ -19,8 +19,13 @@
 package org.apache.reef.vortex.driver;
 
 import org.apache.reef.annotations.audience.DriverSide;
+import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.api.VortexFunction;
+import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.VortexFutureDelegate;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Representation of user task in Driver.
@@ -76,5 +81,16 @@ class Tasklet<TInput, TOutput> {
   @Override
   public String toString() {
     return "Tasklet: " + taskletId;
+  }
+
+  /**
+   * @return keys that the tasklet caches sorted by the priority.
+   */
+  public List<CacheKey> getCachedKeys() {
+    if (input instanceof VortexCacheable) {
+      return ((VortexCacheable) input).getCachedKeys();
+    } else {
+      return new ArrayList<>();
+    }
   }
 }

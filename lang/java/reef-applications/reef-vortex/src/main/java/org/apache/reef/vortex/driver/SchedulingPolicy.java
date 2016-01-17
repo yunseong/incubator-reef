@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * For choosing which worker to schedule the tasklet onto.
  */
-@DefaultImplementation(FirstFitSchedulingPolicy.class)
+@DefaultImplementation(LocalityAwareSchedulingPolicy.class)
 interface SchedulingPolicy {
   /**
    * Implementation of this method is expected to be fast.

@@ -21,6 +21,7 @@ package org.apache.reef.vortex.driver;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.io.serialization.Codec;
 import org.apache.reef.io.serialization.SerializableCodec;
+import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.util.VoidCodec;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
@@ -29,10 +30,7 @@ import org.apache.reef.vortex.common.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -91,6 +89,20 @@ public final class TestUtil {
   public Tasklet newTasklet() {
     final int id = taskletId.getAndIncrement();
     return new Tasklet(id, null, null, new VortexFuture(executor, vortexMaster, id, VOID_CODEC));
+  }
+
+  /**
+   * @return a new dummy tasklet that caches the data.
+   */
+  public Tasklet newTaskletWithCache(final String ... keys) {
+    final List<CacheKey> keyList = new ArrayList<>(keys.length);
+    for (final String key : keys) {
+      keyList.add(new MasterCacheKey(key, VOID_CODEC));
+    }
+    final VortexCacheable cacheableInput = mock(VortexCacheable.class);
+    when(cacheableInput.getCachedKeys()).thenReturn(keyList);
+    final int id = taskletId.getAndIncrement();
+    return new Tasklet(id, null, cacheableInput, new VortexFuture(executor, vortexMaster, id, VOID_CODEC));
   }
 
   /**

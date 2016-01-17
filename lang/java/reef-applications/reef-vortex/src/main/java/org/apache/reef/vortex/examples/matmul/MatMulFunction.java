@@ -24,7 +24,7 @@ import org.apache.reef.vortex.api.VortexFunction;
 /**
  * Computes multiplication of two matrices.
  */
-final class MatMulFunction implements VortexFunction<MatMulInput, MatMulOutput> {
+public final class MatMulFunction implements VortexFunction<MatMulInput, MatMulOutput> {
   private static final Codec<MatMulInput> INPUT_CODEC = new MatMulInputCodec();
   private static final Codec<MatMulOutput> OUTPUT_CODEC = new MatMulOutputCodec();
 

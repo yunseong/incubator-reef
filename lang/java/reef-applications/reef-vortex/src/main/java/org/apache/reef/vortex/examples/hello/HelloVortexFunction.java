@@ -25,7 +25,7 @@ import org.apache.reef.vortex.util.VoidCodec;
 /**
  * Prints to stdout.
  */
-final class HelloVortexFunction implements VortexFunction<Void, Void> {
+public final class HelloVortexFunction implements VortexFunction<Void, Void> {
   private static final Codec<Void> CODEC =  new VoidCodec();
   /**
    * Prints to stdout.

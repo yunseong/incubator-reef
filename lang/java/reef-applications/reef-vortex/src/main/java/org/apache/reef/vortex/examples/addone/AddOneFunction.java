@@ -25,7 +25,7 @@ import org.apache.reef.vortex.api.VortexFunction;
 /**
  * Outputs input + 1.
  */
-final class AddOneFunction implements VortexFunction<Integer, Integer> {
+public final class AddOneFunction implements VortexFunction<Integer, Integer> {
   private static final Codec<Integer> CODEC = new SerializableCodec<>();
   /**
    * Outputs input + 1.

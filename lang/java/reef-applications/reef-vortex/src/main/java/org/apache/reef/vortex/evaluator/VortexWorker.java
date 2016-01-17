@@ -88,7 +88,12 @@ public final class VortexWorker implements Task, TaskMessageSource {
           }
 
           // Command Executor: Deserialize the command
-          final VortexRequest vortexRequest = VortexAvroUtils.toVortexRequest(message);
+          final VortexRequest vortexRequest;
+          try {
+            vortexRequest = VortexAvroUtils.toVortexRequest(message);
+          } catch (final ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+            throw new RuntimeException(e);
+          }
 
           switch (vortexRequest.getType()) {
             case ExecuteTasklet:

@@ -52,21 +52,17 @@ public final class VortexAvroUtils {
     switch (vortexRequest.getType()) {
     case ExecuteTasklet:
       final TaskletExecutionRequest taskletExecutionRequest = (TaskletExecutionRequest) vortexRequest;
-      // The following TODOs are sub-issues of cleaning up Serializable in Vortex (REEF-504).
-      // The purpose is to reduce serialization cost, which leads to bottleneck in Master.
-      // Temporarily those are left as TODOs, but will be addressed in separate PRs.
       final VortexFunction vortexFunction = taskletExecutionRequest.getFunction();
       // TODO[REEF-1113]: Handle serialization failure separately in Vortex
       final byte[] serializedInput = vortexFunction.getInputCodec().encode(taskletExecutionRequest.getInput());
-      // TODO[REEF-1003]: Use reflection instead of serialization when launching VortexFunction
-      final byte[] serializedFunction = SerializationUtils.serialize(vortexFunction);
+      final String userFunctionName = vortexFunction.getClass().getName();
       avroVortexRequest = AvroVortexRequest.newBuilder()
           .setRequestType(AvroRequestType.ExecuteTasklet)
           .setTaskletRequest(
               AvroTaskletExecutionRequest.newBuilder()
                   .setTaskletId(taskletExecutionRequest.getTaskletId())
                   .setSerializedInput(ByteBuffer.wrap(serializedInput))
-                  .setSerializedUserFunction(ByteBuffer.wrap(serializedFunction))
+                  .setUserFunctionName(userFunctionName)
                   .build())
           .build();
       break;
@@ -179,7 +175,8 @@ public final class VortexAvroUtils {
    * @param bytes Byte array to deserialize.
    * @return De-serialized VortexRequest.
    */
-  public static VortexRequest toVortexRequest(final byte[] bytes) {
+  public static VortexRequest toVortexRequest(final byte[] bytes)
+      throws ClassNotFoundException, IllegalAccessException, InstantiationException {
     final AvroVortexRequest avroVortexRequest = toAvroObject(bytes, AvroVortexRequest.class);
 
     final VortexRequest vortexRequest;
@@ -187,10 +184,8 @@ public final class VortexAvroUtils {
     case ExecuteTasklet:
       final AvroTaskletExecutionRequest taskletExecutionRequest =
           (AvroTaskletExecutionRequest)avroVortexRequest.getTaskletRequest();
-      // TODO[REEF-1003]: Use reflection instead of serialization when launching VortexFunction
       final VortexFunction function =
-          (VortexFunction) SerializationUtils.deserialize(
-              taskletExecutionRequest.getSerializedUserFunction().array());
+          (VortexFunction) Class.forName(taskletExecutionRequest.getUserFunctionName().toString()).newInstance();
       // TODO[REEF-1113]: Handle serialization failure separately in Vortex
       vortexRequest = new TaskletExecutionRequest(taskletExecutionRequest.getTaskletId(), function,
          function.getInputCodec().decode(taskletExecutionRequest.getSerializedInput().array()));

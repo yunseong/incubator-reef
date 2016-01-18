@@ -24,9 +24,12 @@ import org.apache.reef.vortex.examples.lr.vector.DenseVector;
  * Representation of partial result of the Logistic Regression in each iteration.
  */
 public final class GradientFunctionOutput {
-  private final DenseVector partialGradient;
+  private DenseVector partialGradient;
   private int countPositive;
   private int countTotal;
+
+  private GradientFunctionOutput() {
+  }
 
   public GradientFunctionOutput(final DenseVector partialGradient, final int countPositive, final int countTotal) {
     this.partialGradient = partialGradient;

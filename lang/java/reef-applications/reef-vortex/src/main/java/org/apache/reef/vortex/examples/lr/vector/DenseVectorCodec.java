@@ -18,31 +18,29 @@
  */
 package org.apache.reef.vortex.examples.lr.vector;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.reef.io.serialization.Codec;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Codec to serialize/deserialize DenseVector.
  */
 public final class DenseVectorCodec implements Codec<DenseVector> {
+  private static final Logger LOG = Logger.getLogger(DenseVectorCodec.class.getName());
 
   @Override
   public byte[] encode(final DenseVector obj) {
+    final Kryo kryo = new Kryo();
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-      try (DataOutputStream dos = new DataOutputStream(baos)) {
-        final float[] data = obj.getData();
-        final int length = data.length;
-        dos.writeInt(length);
-        for (int i = 0; i < length; i++) {
-          dos.writeFloat(data[i]);
-        }
-        return baos.toByteArray();
+      try (final Output output = new Output(baos)) {
+        kryo.writeObject(output, obj);
       }
+      return baos.toByteArray();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -50,17 +48,9 @@ public final class DenseVectorCodec implements Codec<DenseVector> {
 
   @Override
   public DenseVector decode(final byte[] buf) {
-    try (ByteArrayInputStream bais = new ByteArrayInputStream(buf)) {
-      try (DataInputStream dais = new DataInputStream(bais)) {
-        final int length = dais.readInt();
-        final float[] data = new float[length];
-        for (int i = 0; i < length; i++) {
-          data[i] = dais.readFloat();
-        }
-        return new DenseVector(data);
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    final Kryo kryo = new Kryo();
+    try (final Input input = new Input(buf)) {
+      return kryo.readObject(input, DenseVector.class);
     }
   }
 }

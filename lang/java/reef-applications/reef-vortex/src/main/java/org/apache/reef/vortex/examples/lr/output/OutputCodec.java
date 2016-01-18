@@ -18,9 +18,11 @@
  */
 package org.apache.reef.vortex.examples.lr.output;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import org.apache.reef.io.serialization.Codec;
 import org.apache.reef.vortex.examples.lr.vector.DenseVector;
-import org.apache.reef.vortex.examples.lr.vector.DenseVectorCodec;
 
 import java.io.*;
 
@@ -28,20 +30,15 @@ import java.io.*;
  * Codec to serialize/deserialize DenseVector.
  */
 public class OutputCodec implements Codec<GradientFunctionOutput> {
-  private static final DenseVectorCodec DENSE_VECTOR_CODEC = new DenseVectorCodec();
   @Override
   public byte[] encode(final GradientFunctionOutput obj) {
+    final Kryo kryo = new Kryo();
+    kryo.register(DenseVector.class);
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-      try (DataOutputStream dos = new DataOutputStream(baos)) {
-        dos.writeInt(obj.getCountTotal());
-        dos.writeInt(obj.getCountPositive());
-
-        final byte[] serializedPartialGradient = DENSE_VECTOR_CODEC.encode(obj.getPartialGradient());
-        dos.writeInt(serializedPartialGradient.length);
-        dos.write(serializedPartialGradient);
+      try (final Output output = new Output(baos)) {
+        kryo.writeObject(output, obj);
       }
       return baos.toByteArray();
-
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -49,22 +46,10 @@ public class OutputCodec implements Codec<GradientFunctionOutput> {
 
   @Override
   public GradientFunctionOutput decode(final byte[] buf) {
-    try (ByteArrayInputStream bais = new ByteArrayInputStream(buf)) {
-      try (DataInputStream dais = new DataInputStream(bais)) {
-        final int count = dais.readInt();
-        final int positiveCount = dais.readInt();
-
-        final int length = dais.readInt();
-        final byte[] serializedPartialGradient = new byte[length];
-        final int numRead = dais.read(serializedPartialGradient, 0, length);
-        assert numRead == length;
-        final DenseVector partialGradient = DENSE_VECTOR_CODEC.decode(serializedPartialGradient);
-
-        return new GradientFunctionOutput(partialGradient, positiveCount, count);
-
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    final Kryo kryo = new Kryo();
+    kryo.register(DenseVector.class);
+    try (final Input input = new Input(buf)) {
+      return kryo.readObject(input, GradientFunctionOutput.class);
     }
   }
 }

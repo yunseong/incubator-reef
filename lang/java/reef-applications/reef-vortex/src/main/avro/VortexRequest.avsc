@@ -23,7 +23,7 @@
     "name": "AvroTaskletExecutionRequest",
     "fields": [
       {"name": "taskletId", "type": "int"},
-      {"name": "userFunctionName", "type": "string"},
+      {"name": "serializedFunction", "type": "bytes"},
       {"name": "serializedInput", "type": "bytes"}
     ]
   },

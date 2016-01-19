@@ -55,14 +55,14 @@ public final class VortexAvroUtils {
       final VortexFunction vortexFunction = taskletExecutionRequest.getFunction();
       // TODO[REEF-1113]: Handle serialization failure separately in Vortex
       final byte[] serializedInput = vortexFunction.getInputCodec().encode(taskletExecutionRequest.getInput());
-      final String userFunctionName = vortexFunction.getClass().getName();
+      final byte[] serializedFunction = SerializationUtils.serialize(vortexFunction);
       avroVortexRequest = AvroVortexRequest.newBuilder()
           .setRequestType(AvroRequestType.ExecuteTasklet)
           .setTaskletRequest(
               AvroTaskletExecutionRequest.newBuilder()
                   .setTaskletId(taskletExecutionRequest.getTaskletId())
                   .setSerializedInput(ByteBuffer.wrap(serializedInput))
-                  .setUserFunctionName(userFunctionName)
+                  .setSerializedFunction(ByteBuffer.wrap(serializedFunction))
                   .build())
           .build();
       break;
@@ -203,7 +203,7 @@ public final class VortexAvroUtils {
       final AvroTaskletExecutionRequest taskletExecutionRequest =
           (AvroTaskletExecutionRequest)avroVortexRequest.getTaskletRequest();
       final VortexFunction function =
-          (VortexFunction) Class.forName(taskletExecutionRequest.getUserFunctionName().toString()).newInstance();
+          (VortexFunction) SerializationUtils.deserialize(taskletExecutionRequest.getSerializedFunction().array());
       // TODO[REEF-1113]: Handle serialization failure separately in Vortex
       vortexRequest = new TaskletExecutionRequest(taskletExecutionRequest.getTaskletId(), function,
          function.getInputCodec().decode(taskletExecutionRequest.getSerializedInput().array()));

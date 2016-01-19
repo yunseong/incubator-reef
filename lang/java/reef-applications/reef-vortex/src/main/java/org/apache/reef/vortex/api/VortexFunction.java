@@ -21,13 +21,15 @@ package org.apache.reef.vortex.api;
 import org.apache.reef.annotations.Unstable;
 import org.apache.reef.io.serialization.Codec;
 
+import java.io.Serializable;
+
 /**
  * Typed user function. Implement your functions using this interface.
  * @param <TInput> input type
  * @param <TOutput> output type
  */
 @Unstable
-public interface VortexFunction<TInput, TOutput> {
+public interface VortexFunction<TInput, TOutput> extends Serializable {
   /**
    * @param input of the function
    * @return output of the function

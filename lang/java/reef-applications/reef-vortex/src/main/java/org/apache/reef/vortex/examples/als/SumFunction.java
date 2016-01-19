@@ -95,6 +95,6 @@ public final class SumFunction implements VortexFunction<SumFunctionInput, float
 
   @Override
   public Codec<float[]> getOutputCodec() {
-    return new KryoSerializableCodec<>();
+    return new SumFunctionOutputCodec();
   }
 }

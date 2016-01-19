@@ -1,3 +1,4 @@
+package org.apache.reef.vortex.examples.als;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,7 +17,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.vortex.examples.als;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
@@ -27,15 +27,12 @@ import org.apache.reef.io.serialization.Codec;
 import java.io.IOException;
 
 /**
- * Codec to serialize/deserialize the simple objects consisting of float[], float[][], etc.
- * Kryo is used for better performance, and no class registration is needed if the objects are easy to (de)serialize.
+ * Created by v-yunlee on 1/19/2016.
  */
-public final class KryoSerializableCodec<T> implements Codec<T> {
-
+public class MatrixCodec implements Codec<float[][]> {
   @Override
-  public byte[] encode(final Object obj) {
+  public byte[] encode(float[][] obj) {
     final Kryo kryo = new Kryo();
-
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
       try (final Output output = new Output(baos)) {
         kryo.writeObject(output, obj);
@@ -47,10 +44,10 @@ public final class KryoSerializableCodec<T> implements Codec<T> {
   }
 
   @Override
-  public T decode(final byte[] buf) {
+  public float[][] decode(byte[] buf) {
     final Kryo kryo = new Kryo();
     try (final Input input = new Input(buf)) {
-      final T decoded = (T) kryo.readObject(input, Object.class);
+      final float[][] decoded = kryo.readObject(input, float[][].class);
       return decoded;
     }
   }

@@ -119,12 +119,12 @@ public final class ALSVortexStart implements VortexStart {
         if (isUpdateUserMatrix) { // Fix ItemMatrix, solve UserMatrix
           updatedMatrix = userMatrix;
           fixedMatrixKey = vortexThreadPool.cache("item_matrix_" + iter, itemMatrix,
-              new KryoSerializableCodec<float[][]>());
+              new MatrixCodec());
           dataMatrixPartition = userDataMatrixPartition;
         } else { // Fix UserMatrix, solve ItemMatrix
           updatedMatrix = itemMatrix;
           fixedMatrixKey = vortexThreadPool.cache("user_matrix_" + iter, userMatrix,
-              new KryoSerializableCodec<float[][]>());
+              new MatrixCodec());
           dataMatrixPartition = itemDataMatrixPartition;
         }
 

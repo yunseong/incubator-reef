@@ -24,9 +24,8 @@ import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.api.VortexThreadPool;
-import org.apache.reef.vortex.common.HDFSBackedCacheKey;
-import org.apache.reef.vortex.common.MasterCacheKey;
-import org.apache.reef.vortex.failure.parameters.Delay;
+import org.apache.reef.vortex.common.CacheKey;
+import org.apache.reef.vortex.common.HdfsCacheKey;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -53,9 +52,6 @@ public final class ALSVortexStart implements VortexStart {
   private final int numItems;
   private final int numFeatures;
 
-  // For printing purpose actually.
-  private final int delay;
-
   private final float[][] userMatrix;
   private final float[][] itemMatrix;
 
@@ -73,8 +69,7 @@ public final class ALSVortexStart implements VortexStart {
       @Parameter(AlternatingLeastSquares.NumItems.class) final int numItems,
       @Parameter(AlternatingLeastSquares.NumFeatures.class) final int numFeatures,
       @Parameter(AlternatingLeastSquares.SaveModel.class) final boolean isSaveModel,
-      @Parameter(AlternatingLeastSquares.PrintMSE.class) final boolean printMSE,
-      @Parameter(Delay.class) final int delay) {
+      @Parameter(AlternatingLeastSquares.PrintMSE.class) final boolean printMSE) {
     this.divideFactor = divideFactor;
     this.numIter = numIter;
     this.lambda = lambda;
@@ -83,7 +78,6 @@ public final class ALSVortexStart implements VortexStart {
     this.numUsers = numUsers;
     this.numItems = numItems;
     this.numFeatures = numFeatures;
-    this.delay = delay;
     this.isSaveModel = isSaveModel;
     this.printMSE = printMSE;
 
@@ -97,16 +91,14 @@ public final class ALSVortexStart implements VortexStart {
     final long start = System.currentTimeMillis();
 
     try {
-      final HDFSBackedCacheKey[] userDataMatrixPartition = vortexThreadPool.cache(userDataMatrixPath, divideFactor,
+      final HdfsCacheKey[] userDataMatrixPartition = vortexThreadPool.cache(userDataMatrixPath, divideFactor,
           new DataParser());
-      final HDFSBackedCacheKey[] itemDataMatrixPartition = vortexThreadPool.cache(itemDataMatrixPath, divideFactor,
+      final HdfsCacheKey[] itemDataMatrixPartition = vortexThreadPool.cache(itemDataMatrixPath, divideFactor,
           new DataParser());
 
       LOG.log(Level.INFO,
-          "#V#startCached\tDIVIDE_FACTOR\t{0}\tDELAY\t{1}\tNUM_ITER\t{2}\tUM_SPLITS\t{3}\tIM_SPLITS\t{4}",
-          new Object[]{divideFactor, delay, numIter, userDataMatrixPartition.length, itemDataMatrixPartition.length});
-
-      final double memoryStarted = getRemainingMemory();
+          "#V#startCached\tDIVIDE_FACTOR\t{0}\t\tNUM_ITER\t{1}\tUM_SPLITS\t{2}\tIM_SPLITS\t{3}",
+          new Object[]{divideFactor, numIter, userDataMatrixPartition.length, itemDataMatrixPartition.length});
 
       initializeItemMatrix(vortexThreadPool, userDataMatrixPartition);
 
@@ -121,16 +113,18 @@ public final class ALSVortexStart implements VortexStart {
         final boolean isUpdateUserMatrix = iter % 2 == 0;
 
         final float[][] updatedMatrix;
-        final MasterCacheKey<float[][]> fixedMatrixKey;
-        final HDFSBackedCacheKey[] dataMatrixPartition;
+        final CacheKey<float[][]> fixedMatrixKey;
+        final CacheKey[] dataMatrixPartition;
 
         if (isUpdateUserMatrix) { // Fix ItemMatrix, solve UserMatrix
           updatedMatrix = userMatrix;
-          fixedMatrixKey = vortexThreadPool.cache("item_matrix_" + iter, itemMatrix);
+          fixedMatrixKey = vortexThreadPool.cache("item_matrix_" + iter, itemMatrix,
+              new KryoSerializableCodec<float[][]>());
           dataMatrixPartition = userDataMatrixPartition;
         } else { // Fix UserMatrix, solve ItemMatrix
           updatedMatrix = itemMatrix;
-          fixedMatrixKey = vortexThreadPool.cache("user_matrix_" + iter, userMatrix);
+          fixedMatrixKey = vortexThreadPool.cache("user_matrix_" + iter, userMatrix,
+              new KryoSerializableCodec<float[][]>());
           dataMatrixPartition = itemDataMatrixPartition;
         }
 
@@ -216,23 +210,23 @@ public final class ALSVortexStart implements VortexStart {
   }
 
   private static final int ONE_MEGABYTE = 1024 * 1024;
-  private static Runtime RUNTIME = Runtime.getRuntime();
+  private static final Runtime RUNTIME = Runtime.getRuntime();
 
   private double getRemainingMemory() {
-    return (RUNTIME.totalMemory() - RUNTIME.freeMemory()) / ONE_MEGABYTE;
+    return (RUNTIME.totalMemory() - RUNTIME.freeMemory()) / (double)ONE_MEGABYTE;
   }
 
   private double getMaxMemory() {
-    return RUNTIME.maxMemory() / ONE_MEGABYTE;
+    return RUNTIME.maxMemory() / (double)ONE_MEGABYTE;
   }
 
   private double getTotalMemory() {
-    return RUNTIME.totalMemory() / ONE_MEGABYTE;
+    return RUNTIME.totalMemory() / (double)ONE_MEGABYTE;
   }
 
   private void initializeItemMatrix(
       final VortexThreadPool vortexThreadPool,
-      final HDFSBackedCacheKey[] userDataMatriPartition) throws Exception {
+      final HdfsCacheKey[] userDataMatriPartition) throws Exception {
     final int taskletSize = userDataMatriPartition.length;
     LOG.log(Level.INFO, "{0}", taskletSize);
     final List<VortexFuture<float[]>> futures = new ArrayList<>();

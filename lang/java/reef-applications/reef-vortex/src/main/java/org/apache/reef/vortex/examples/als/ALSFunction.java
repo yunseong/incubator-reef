@@ -20,21 +20,21 @@ package org.apache.reef.vortex.examples.als;
 
 import com.github.fommil.netlib.BLAS;
 import com.github.fommil.netlib.LAPACK;
+import org.apache.reef.io.serialization.Codec;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.netlib.util.intW;
 
-import java.io.Serializable;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public final class ALSFunction implements Serializable, VortexFunction<ALSFunctionInput, ResultVector[]> {
+public final class ALSFunction implements VortexFunction<ALSFunctionInput, ResultVector[]> {
 
-  private final static Logger LOG = Logger.getLogger(ALSFunction.class.getName());
-  private final static LAPACK NETLIB_LAPACK = LAPACK.getInstance();
-  private final static BLAS NETLIB_BLAS = BLAS.getInstance();
+  private static final Logger LOG = Logger.getLogger(ALSFunction.class.getName());
+  private static final LAPACK NETLIB_LAPACK = LAPACK.getInstance();
+  private static final BLAS NETLIB_BLAS = BLAS.getInstance();
 
   private double lambda;
   private int numFeatures;
@@ -152,5 +152,15 @@ public final class ALSFunction implements Serializable, VortexFunction<ALSFuncti
             Arrays.toString(alsFunctionInput.getCachedKeys().toArray())});
 
     return ret;
+  }
+
+  @Override
+  public Codec<ALSFunctionInput> getInputCodec() {
+    return new ALSFunctionInputCodec();
+  }
+
+  @Override
+  public Codec<ResultVector[]> getOutputCodec() {
+    return new KryoSerializableCodec<>();
   }
 }

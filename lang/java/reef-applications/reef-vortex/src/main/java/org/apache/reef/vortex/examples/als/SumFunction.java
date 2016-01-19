@@ -19,6 +19,7 @@
 
 package org.apache.reef.vortex.examples.als;
 
+import org.apache.reef.io.serialization.Codec;
 import org.apache.reef.vortex.api.VortexFunction;
 
 import java.net.InetAddress;
@@ -29,7 +30,7 @@ import java.util.logging.Logger;
 
 public final class SumFunction implements VortexFunction<SumFunctionInput, float[]> {
 
-  private final static Logger LOG = Logger.getLogger(SumFunction.class.getName());
+  private static final Logger LOG = Logger.getLogger(SumFunction.class.getName());
 
   private int numItems;
 
@@ -41,7 +42,7 @@ public final class SumFunction implements VortexFunction<SumFunctionInput, float
   }
 
   private float[] getSumVector(final List<IndexedVector> indexedVectors) {
-    final float sumVector[] = new float[numItems];
+    final float[] sumVector = new float[numItems];
     for (final IndexedVector indexedVector : indexedVectors) {
       for (int i = 0; i < indexedVector.size(); i++) {
         sumVector[indexedVector.getRatingIndex(i)] += indexedVector.getRating(i);
@@ -85,5 +86,15 @@ public final class SumFunction implements VortexFunction<SumFunctionInput, float
 
 
     return sum;
+  }
+
+  @Override
+  public Codec<SumFunctionInput> getInputCodec() {
+    return new SumFunctionInputCodec();
+  }
+
+  @Override
+  public Codec<float[]> getOutputCodec() {
+    return new KryoSerializableCodec<>();
   }
 }

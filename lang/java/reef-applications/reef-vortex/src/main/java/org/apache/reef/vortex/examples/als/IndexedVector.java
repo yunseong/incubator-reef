@@ -25,6 +25,10 @@ import java.util.List;
  * Created by kgw on 2016. 1. 7..
  */
 public final class IndexedVector {
+
+  private IndexedVector() {
+  }
+
   private int[] ratingIndexes;
   private float[] ratings;
   private int index;

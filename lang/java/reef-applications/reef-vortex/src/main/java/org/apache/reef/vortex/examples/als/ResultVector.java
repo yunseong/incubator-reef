@@ -24,10 +24,13 @@ import java.io.Serializable;
  * Created by kgw on 2016. 1. 11..
  */
 public class ResultVector implements Serializable {
-  private final int index;
-  private final int numRatings;
-  private final float sumSquaredError;
-  private final float[] vector;
+  private int index;
+  private int numRatings;
+  private float sumSquaredError;
+  private float[] vector;
+
+  private ResultVector() {
+  }
 
   public ResultVector(final int index, final int numRatings, final float sumSquaredError, final float[] vector) {
     this.index = index;

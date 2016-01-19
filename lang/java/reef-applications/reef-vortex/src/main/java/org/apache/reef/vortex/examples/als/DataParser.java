@@ -21,12 +21,9 @@ package org.apache.reef.vortex.examples.als;
 
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.jute.Index;
-import org.apache.reef.io.Tuple;
 import org.apache.reef.io.data.loading.api.DataSet;
 import org.apache.reef.io.network.util.Pair;
 import org.apache.reef.vortex.common.VortexParser;
-import org.apache.reef.vortex.examples.lr.input.ParseException;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -38,7 +35,7 @@ public final class DataParser implements VortexParser<DataSet<LongWritable, Text
   private static final Logger LOG = Logger.getLogger(DataParser.class.getName());
 
   @Override
-  public List<IndexedVector> parse(final DataSet<LongWritable, Text> pairs) throws ParseException {
+  public List<IndexedVector> parse(final DataSet<LongWritable, Text> pairs) {
     int numRatings = 0;
     int numLines = 0;
     final List<IndexedVector> vectors = new LinkedList<>();

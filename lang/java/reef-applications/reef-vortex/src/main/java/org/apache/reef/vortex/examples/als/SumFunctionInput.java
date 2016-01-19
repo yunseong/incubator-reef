@@ -21,23 +21,22 @@ package org.apache.reef.vortex.examples.als;
 
 import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.common.CacheKey;
-import org.apache.reef.vortex.common.HDFSBackedCacheKey;
+import org.apache.reef.vortex.common.HdfsCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.evaluator.VortexCache;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class SumFunctionInput implements Serializable, VortexCacheable {
+public final class SumFunctionInput implements VortexCacheable {
 
-  private HDFSBackedCacheKey<List<IndexedVector>> userVectorDataKey;
+  private HdfsCacheKey<List<IndexedVector>> userVectorDataKey;
   private List<CacheKey> keys;
 
   private SumFunctionInput() {
   }
 
-  public SumFunctionInput(final HDFSBackedCacheKey<List<IndexedVector>> userVectorDataKey) {
+  public SumFunctionInput(final HdfsCacheKey<List<IndexedVector>> userVectorDataKey) {
     this.userVectorDataKey = userVectorDataKey;
     this.keys = new ArrayList<>();
     this.keys.add(userVectorDataKey);

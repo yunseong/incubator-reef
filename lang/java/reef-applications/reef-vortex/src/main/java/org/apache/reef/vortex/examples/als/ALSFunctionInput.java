@@ -20,26 +20,23 @@ package org.apache.reef.vortex.examples.als;
 
 import org.apache.reef.vortex.api.VortexCacheable;
 import org.apache.reef.vortex.common.CacheKey;
-import org.apache.reef.vortex.common.HDFSBackedCacheKey;
-import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.evaluator.VortexCache;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class ALSFunctionInput implements Serializable, VortexCacheable {
+public final class ALSFunctionInput implements VortexCacheable {
 
-  private HDFSBackedCacheKey<List<IndexedVector>> vectorDataKey;
-  private MasterCacheKey<float[][]> fixedMatrixKey;
+  private CacheKey<List<IndexedVector>> vectorDataKey;
+  private CacheKey<float[][]> fixedMatrixKey;
   private List<CacheKey> keys;
 
   private ALSFunctionInput() {
   }
 
   public ALSFunctionInput(
-      final HDFSBackedCacheKey<List<IndexedVector>> vectorDataKey,
-      final MasterCacheKey<float[][]> fixedMatrixKey) {
+      final CacheKey<List<IndexedVector>> vectorDataKey,
+      final CacheKey<float[][]> fixedMatrixKey) {
     this.vectorDataKey = vectorDataKey;
     this.fixedMatrixKey = fixedMatrixKey;
 

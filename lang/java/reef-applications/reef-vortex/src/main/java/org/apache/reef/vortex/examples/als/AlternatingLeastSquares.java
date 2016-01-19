@@ -19,6 +19,9 @@
 
 package org.apache.reef.vortex.examples.als;
 
+import org.apache.reef.runtime.local.client.LocalRuntimeConfiguration;
+import org.apache.reef.runtime.yarn.client.YarnClientConfiguration;
+import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Injector;
 import org.apache.reef.tang.JavaConfigurationBuilder;
 import org.apache.reef.tang.Tang;
@@ -26,9 +29,10 @@ import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.tang.annotations.NamedParameter;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.tang.formats.CommandLine;
+import org.apache.reef.vortex.api.VortexStart;
+import org.apache.reef.vortex.driver.VortexJobConf;
 import org.apache.reef.vortex.driver.VortexLauncher;
-import org.apache.reef.vortex.failure.FailureParameters;
-import org.apache.reef.vortex.trace.HTraceParameters;
+import org.apache.reef.vortex.driver.VortexMasterConf;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -46,8 +50,6 @@ public final class AlternatingLeastSquares {
 
     try {
       final CommandLine cl = new CommandLine(cb);
-      HTraceParameters.registerShortNames(cl);
-      FailureParameters.registerShortNames(cl);
       cl.registerShortNameOfClass(Local.class)
           .registerShortNameOfClass(NumWorkers.class)
           .registerShortNameOfClass(WorkerCores.class)
@@ -81,18 +83,47 @@ public final class AlternatingLeastSquares {
               new Object[]{numOfWorkers, workerMemory, workerCores, workerCapacity, driverMemory});
 
       final Class startClass = ALSVortexStart.class;
-      if (isLocal) {
-        VortexLauncher.launchLocal("Vortex_ALS", startClass,
-            numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());
-      } else {
-        VortexLauncher.launchYarn("Vortex_ALS", startClass,
-            numOfWorkers, workerMemory, workerCores, workerCapacity, cb.build());
-      }
+      final Configuration runtimeConf = getRuntimeConf(isLocal);
+      final Configuration vortexMasterConf =
+          getVortexMasterConfig(startClass, workerCores, workerCapacity, workerMemory, numOfWorkers);
+
+      final VortexJobConf vortexConf = VortexJobConf.newBuilder()
+          .setJobName("Vortex_ALS")
+          .setVortexMasterConf(vortexMasterConf)
+          .setUserConf(cb.build())
+          .build();
+
+      VortexLauncher.launch(runtimeConf, vortexConf.getConfiguration());
 
     } catch (final IOException | InjectionException e) {
       throw new RuntimeException(e);
     }
   }
+
+  private static Configuration getVortexMasterConfig(final Class<? extends VortexStart> startClass,
+                                                     final int workerCores,
+                                                     final int workerCapacity,
+                                                     final int workerMemory,
+                                                     final int numOfWorkers) {
+    return VortexMasterConf.CONF
+        .set(VortexMasterConf.VORTEX_START, startClass)
+        .set(VortexMasterConf.WORKER_CORES, workerCores)
+        .set(VortexMasterConf.WORKER_CAPACITY, workerCapacity)
+        .set(VortexMasterConf.WORKER_MEM, workerMemory)
+        .set(VortexMasterConf.WORKER_NUM, numOfWorkers)
+        .build();
+  }
+
+  private static Configuration getRuntimeConf(final boolean isLocal) {
+    final Configuration runtimeConf;
+    if (isLocal) {
+      runtimeConf = LocalRuntimeConfiguration.CONF.build();
+    } else {
+      runtimeConf = YarnClientConfiguration.CONF.build();
+    }
+    return runtimeConf;
+  }
+
 
   @NamedParameter(doc = "Whether or not to run on the local runtime",
       short_name = "local", default_value = "true")

@@ -27,13 +27,11 @@ import org.apache.reef.io.serialization.Codec;
 import java.io.IOException;
 
 /**
- * Codec to serialize/deserialize the simple objects consisting of float[], float[][], etc.
- * Kryo is used for better performance, and no class registration is needed if the objects are easy to (de)serialize.
+ * Created by v-yunlee on 1/19/2016.
  */
-public final class KryoSerializableCodec<T> implements Codec<T> {
-
+public class SumFunctionOutputCodec implements Codec<float[]> {
   @Override
-  public byte[] encode(final Object obj) {
+  public byte[] encode(final float[] obj) {
     final Kryo kryo = new Kryo();
 
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
@@ -47,11 +45,10 @@ public final class KryoSerializableCodec<T> implements Codec<T> {
   }
 
   @Override
-  public T decode(final byte[] buf) {
+  public float[] decode(final byte[] buf) {
     final Kryo kryo = new Kryo();
     try (final Input input = new Input(buf)) {
-      final T decoded = (T) kryo.readObject(input, Object.class);
-      return decoded;
+      return kryo.readObject(input, float[].class);
     }
   }
 }

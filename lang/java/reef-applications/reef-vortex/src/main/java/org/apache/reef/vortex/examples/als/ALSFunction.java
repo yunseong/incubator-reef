@@ -161,6 +161,6 @@ public final class ALSFunction implements VortexFunction<ALSFunctionInput, Resul
 
   @Override
   public Codec<ResultVector[]> getOutputCodec() {
-    return new KryoSerializableCodec<>();
+    return new ALSFunctionOutputCodec();
   }
 }

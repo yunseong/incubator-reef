@@ -48,7 +48,7 @@ import java.util.logging.Logger;
 @DriverSide
 final class VortexDriver {
   private static final Logger LOG = Logger.getLogger(VortexDriver.class.getName());
-  private static final int MAX_NUM_OF_FAILURES = 5;
+  private static final int MAX_NUM_OF_FAILURES = 100000000;
   private static final int SCHEDULER_EVENT = 0; // Dummy number to comply with onNext() interface
 
   private final AtomicInteger numberOfFailures = new AtomicInteger(0);
@@ -174,6 +174,12 @@ final class VortexDriver {
       if (numberOfFailures.incrementAndGet() >= MAX_NUM_OF_FAILURES) {
         throw new RuntimeException("Exceeded max number of failures");
       } else {
+        if (failedEvaluator.getFailedTask().isPresent()) {
+          vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
+        } else {
+          LOG.log(Level.WARNING, "Worker preempted, but not recoverable. Should not happen");
+        }
+
         // We request a new evaluator to take the place of the preempted one
         evaluatorRequestor.submit(EvaluatorRequest.newBuilder()
             .setNumber(1)
@@ -181,7 +187,6 @@ final class VortexDriver {
             .setNumberOfCores(evalCores)
             .build());
 
-        vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
       }
     }
   }

@@ -47,4 +47,14 @@ class VortexRequestor {
       }
     });
   }
+
+  void send(final RunningTask reefTask, final byte[] serializedVortexRequest) {
+    executorService.execute(new Runnable() {
+      @Override
+      public void run() {
+        //  Possible race condition with VortexWorkerManager#terminate is addressed by the global lock in VortexMaster
+        reefTask.send(serializedVortexRequest);
+      }
+    });
+  }
 }

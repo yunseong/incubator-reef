@@ -59,6 +59,10 @@ class VortexWorkerManager {
     vortexRequestor.send(reefTask, cachedDataResponse);
   }
 
+  void sendCacheData(final byte[] serizliedCachedDataResponse) {
+    vortexRequestor.send(reefTask, serizliedCachedDataResponse);
+  }
+
   List<Tasklet> taskletsDone(final List<Integer> taskletIds) {
     final List<Tasklet> taskletList = new ArrayList<>();
     for (final int taskletId : taskletIds) {

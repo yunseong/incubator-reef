@@ -32,7 +32,7 @@ import java.util.concurrent.Executors;
  */
 @DriverSide
 class VortexRequestor {
-  private final ExecutorService executorService = Executors.newCachedThreadPool();
+  private final ExecutorService executorService = Executors.newFixedThreadPool(6);
 
   @Inject
   VortexRequestor() {

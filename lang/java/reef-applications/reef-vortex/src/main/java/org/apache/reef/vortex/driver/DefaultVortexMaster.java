@@ -57,7 +57,7 @@ final class DefaultVortexMaster implements VortexMaster {
   private final RunningWorkers runningWorkers;
   private final PendingTasklets pendingTasklets;
   private final Executor executor;
-  private final Cache<String, byte[]> cacheMap = CacheBuilder.newBuilder().build();
+  private final Cache<String, byte[]> cacheMap = CacheBuilder.newBuilder().softValues().build();
 
 
   /**

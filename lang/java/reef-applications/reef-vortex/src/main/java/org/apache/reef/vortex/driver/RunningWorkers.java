@@ -210,6 +210,14 @@ final class RunningWorkers {
     }
   }
 
+  void sendCacheData(final String workerId, final byte[] serializedData) {
+    if (isWorkerRunning(workerId)) {
+      this.runningWorkers.get(workerId).sendCacheData(serializedData);
+    } else {
+      throw new RuntimeException("Worker " + workerId + " is not running!");
+    }
+  }
+
   void terminate() {
     lock.lock();
     try {

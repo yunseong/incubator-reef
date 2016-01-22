@@ -241,7 +241,8 @@ final class DefaultVortexMaster implements VortexMaster {
     }
 
     // TODO[REEF-1113]: Handle serialization failure separately in Vortex
-    cacheMap.put(keyId, codec.encode(data)); // Store the serialized bytes to reduce the serialization cost.
+    cacheMap.put(keyId, VortexAvroUtils.toBytes(new CachedDataResponse(keyId, codec.encode(data))));
+    // Store the serialized bytes to reduce the serialization cost.
     return key;
   }
 
@@ -273,6 +274,7 @@ final class DefaultVortexMaster implements VortexMaster {
       throw new VortexCacheException("The entity does not exists for the key with id: " + keyId);
     }
 
-    runningWorkers.sendCacheData(workerId, keyId, serializedData);
+//    runningWorkers.sendCacheData(workerId, keyId, serializedData);
+    runningWorkers.sendCacheData(workerId, serializedData);
   }
 }

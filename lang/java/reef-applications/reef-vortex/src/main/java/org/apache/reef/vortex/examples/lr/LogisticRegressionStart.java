@@ -24,6 +24,7 @@ import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.api.VortexThreadPool;
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.HdfsCacheKey;
+import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.examples.lr.input.GradientFunctionInput;
 import org.apache.reef.vortex.examples.lr.output.GradientFunctionOutput;
 import org.apache.reef.vortex.examples.lr.vector.DenseVector;
@@ -84,8 +85,10 @@ final class LogisticRegressionStart implements VortexStart {
         // Launch tasklets, each operating on a partition
         final CountDownLatch latch = new CountDownLatch(partitions.length);
         final AccuracyMeasurer measurer = new AccuracyMeasurer();
-        for (final CacheKey partition : partitions) {
+        for (int i = 0; i < partitions.length; i++) {
+          final CacheKey partition = partitions[i];
           final int tIteration = iteration;
+          final int finalI = i;
           vortexThreadPool.submit(new GradientFunction(),
               new GradientFunctionInput(parameterKey, partition),
               new FutureCallback<GradientFunctionOutput>() {
@@ -93,10 +96,13 @@ final class LogisticRegressionStart implements VortexStart {
                 public void onSuccess(final GradientFunctionOutput result) {
                   processResult(model, result, tIteration, measurer);
                   latch.countDown();
+                  LOG.log(Level.INFO, "Tasklet {0} is complete (remaining: {1})",
+                      new Object[] {finalI, latch.getCount()});
                 }
 
                 @Override
                 public void onFailure(final Throwable t) {
+                  LOG.log(Level.WARNING, "Tasklet {1} has failed", finalI);
                   throw new RuntimeException(t);
                 }
               });
@@ -106,9 +112,10 @@ final class LogisticRegressionStart implements VortexStart {
       }
       final long duration = System.currentTimeMillis() - start;
       LOG.log(Level.INFO, "#V#finish\t{0}", duration);
-    } catch (final Exception e) {
+    } catch (final InterruptedException | VortexCacheException e) {
       final long duration = System.currentTimeMillis() - start;
       LOG.log(Level.WARNING, "#V#failed after " + duration, e);
+      throw new RuntimeException("Job failed", e);
     }
   }
 

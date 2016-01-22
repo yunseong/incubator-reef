@@ -116,6 +116,8 @@ public final class ALSVortexStart implements VortexStart {
         final CacheKey<float[][]> fixedMatrixKey;
         final CacheKey[] dataMatrixPartition;
 
+        vortexThreadPool.cleanCache();
+
         if (isUpdateUserMatrix) { // Fix ItemMatrix, solve UserMatrix
           updatedMatrix = userMatrix;
           fixedMatrixKey = vortexThreadPool.cache("item_matrix_" + iter, itemMatrix,

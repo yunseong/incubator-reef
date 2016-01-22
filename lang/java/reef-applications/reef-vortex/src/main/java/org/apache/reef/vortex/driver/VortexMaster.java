@@ -81,6 +81,8 @@ public interface VortexMaster {
   <T> MasterCacheKey<T> cache(final String keyId, final T data, final Codec<T> codec)
       throws VortexCacheException;
 
+  void cleanCache();
+
   /**
    * Call this when user wants to cache the data in the HDFS.
    * @param path Path of the file to cache

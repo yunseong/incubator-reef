@@ -247,6 +247,12 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
+  public void cleanCache() {
+    cacheMap.cleanUp();
+    cacheMap.invalidateAll();
+  }
+
+  @Override
   public <T> HdfsCacheKey<T>[] cache(final String path, final int numSplit, final VortexParser<?, T> parser) {
     try {
       // TODO Other type of input formats could be used?

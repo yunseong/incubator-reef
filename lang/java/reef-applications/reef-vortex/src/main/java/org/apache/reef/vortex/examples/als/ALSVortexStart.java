@@ -154,6 +154,8 @@ public final class ALSVortexStart implements VortexStart {
           }
         }
 
+        vortexThreadPool.invalidate(fixedMatrixKey);
+
         final String matrixType;
         if (isUpdateUserMatrix) {
           matrixType = "User Matrix";

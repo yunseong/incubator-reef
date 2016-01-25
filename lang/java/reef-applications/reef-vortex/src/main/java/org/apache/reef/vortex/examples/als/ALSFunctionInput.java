@@ -27,6 +27,9 @@ import java.util.List;
 
 public final class ALSFunctionInput implements VortexCacheable {
 
+  private static final Object LOCK = new Object();
+  private static CacheKey PREV_FIXED_MATRIX_CACHE_KEY;
+
   private CacheKey<List<IndexedVector>> vectorDataKey;
   private CacheKey<float[][]> fixedMatrixKey;
   private List<CacheKey> keys;
@@ -50,6 +53,13 @@ public final class ALSFunctionInput implements VortexCacheable {
   }
 
   public synchronized float[][] getFixedMatrix() throws Exception {
+    synchronized (LOCK) {
+      if (PREV_FIXED_MATRIX_CACHE_KEY != null &&
+          !PREV_FIXED_MATRIX_CACHE_KEY.getId().equals(fixedMatrixKey.getId())) {
+        VortexCache.invalidate(PREV_FIXED_MATRIX_CACHE_KEY);
+        PREV_FIXED_MATRIX_CACHE_KEY = fixedMatrixKey;
+      }
+    }
     return VortexCache.getData(fixedMatrixKey);
   }
 

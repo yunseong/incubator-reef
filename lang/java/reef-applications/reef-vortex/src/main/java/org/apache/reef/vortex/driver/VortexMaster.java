@@ -26,10 +26,7 @@ import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.FutureCallback;
 import org.apache.reef.vortex.api.VortexFunction;
 import org.apache.reef.vortex.api.VortexFuture;
-import org.apache.reef.vortex.common.HdfsCacheKey;
-import org.apache.reef.vortex.common.MasterCacheKey;
-import org.apache.reef.vortex.common.VortexParser;
-import org.apache.reef.vortex.common.WorkerReport;
+import org.apache.reef.vortex.common.*;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 /**
@@ -90,6 +87,12 @@ public interface VortexMaster {
    * @return Array of the Cache key for accessing the data in Worker.
    */
   <T> HdfsCacheKey<T>[] cache(final String path, final int numSplit, final VortexParser<?, T> parser);
+
+  /**
+   * Invalidate a data associated with the cache key.
+   * @param key
+   */
+  void invalidate(final CacheKey key);
 
   /**
    * Call this when a worker requests the cached data.

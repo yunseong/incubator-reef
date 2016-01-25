@@ -268,6 +268,11 @@ final class DefaultVortexMaster implements VortexMaster {
   }
 
   @Override
+  public void invalidate(final CacheKey key) {
+    cacheMap.invalidate(key.getId());
+  }
+
+  @Override
   public void dataRequested(final String workerId, final String keyId) throws VortexCacheException {
     final byte[] serializedData = cacheMap.getIfPresent(keyId);
     if (serializedData == null) {

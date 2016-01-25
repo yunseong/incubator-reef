@@ -92,4 +92,8 @@ public final class VortexThreadPool {
   public <T> HdfsCacheKey<T>[] cache(final String path, final int numSplit, final VortexParser<?, T> parser) {
     return vortexMaster.cache(path, numSplit, parser);
   }
+
+  public void invalidate(final CacheKey key) {
+    vortexMaster.invalidate(key);
+  }
 }

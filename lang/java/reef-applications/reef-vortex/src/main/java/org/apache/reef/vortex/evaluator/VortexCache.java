@@ -39,6 +39,8 @@ import org.apache.reef.vortex.common.MasterCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 
 import javax.inject.Inject;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -71,6 +73,26 @@ public final class VortexCache {
    */
   public static <T> T getData(final CacheKey<T> key) throws VortexCacheException {
     return cacheRef.load(key);
+  }
+
+  /**
+   * Invalidate the data associated with the key.
+   * @param key
+   */
+  public static void invalidate(final CacheKey key) {
+    cacheRef.invalidateInternal(key);
+  }
+
+  private void invalidateInternal(final CacheKey key) {
+    cache.invalidate(key);
+  }
+
+  public static Set<CacheKey> getCachedKeys() {
+    return cacheRef.getCachedKeysInternal();
+  }
+
+  private Set<CacheKey> getCachedKeysInternal() {
+    return Collections.unmodifiableSet(cache.asMap().keySet());
   }
 
   private <T> T load(final CacheKey<T> key) throws VortexCacheException {

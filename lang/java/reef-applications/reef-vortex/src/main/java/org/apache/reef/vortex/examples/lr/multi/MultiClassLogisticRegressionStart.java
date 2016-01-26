@@ -113,6 +113,7 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
         }
         latch.await();
         LOG.log(Level.INFO, "@V@iteration\t{0}\taccuracy\t{1}", new Object[]{iteration, measurer.getAccuracy()});
+        vortexThreadPool.invalidate(parameterKey);
       }
       final long duration = System.currentTimeMillis() - start;
       LOG.log(Level.INFO, "#V#finish\t{0}", duration);

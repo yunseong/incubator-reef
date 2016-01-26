@@ -32,6 +32,9 @@ import java.util.List;
  * Input used in Logistic Regression which caches the training data only.
  */
 public final class MultiClassGradientFunctionInput implements VortexCacheable {
+  private static final Object LOCK = new Object();
+  private static CacheKey PREV_PARAMETER_VECTOR_KEY;
+
   private CacheKey<ArrayList<Row>> trainingDataKey;
   private CacheKey<DenseVector[]> parameterVectorKey;
 
@@ -45,7 +48,14 @@ public final class MultiClassGradientFunctionInput implements VortexCacheable {
   }
 
   public DenseVector[] getParameterVector() throws VortexCacheException {
-    return VortexCache.getData(parameterVectorKey);
+    synchronized (LOCK) {
+      if (PREV_PARAMETER_VECTOR_KEY != null &&
+          !PREV_PARAMETER_VECTOR_KEY.getId().equals(parameterVectorKey.getId())) {
+        VortexCache.invalidate(PREV_PARAMETER_VECTOR_KEY);
+        PREV_PARAMETER_VECTOR_KEY = parameterVectorKey;
+      }
+      return VortexCache.getData(parameterVectorKey);
+    }
   }
 
   public ArrayList<Row> getTrainingData() throws VortexCacheException {

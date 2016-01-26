@@ -52,7 +52,7 @@ public final class VortexCache {
   private static final Logger LOG = Logger.getLogger(VortexCache.class.getName());
 
   private static VortexCache cacheRef;
-  private final Cache<CacheKey, Object> cache = CacheBuilder.newBuilder().build();
+  private final Cache<CacheKey, Object> cache = CacheBuilder.newBuilder().softValues().build();
   private final ConcurrentHashMap<String, MasterCallback> waitingCallbacks = new ConcurrentHashMap<>();
 
   private final InjectionFuture<VortexWorker> worker;

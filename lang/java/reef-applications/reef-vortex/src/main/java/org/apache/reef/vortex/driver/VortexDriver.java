@@ -64,8 +64,7 @@ final class VortexDriver {
   private final EStage<VortexStart> vortexStartEStage;
   private final VortexStart vortexStart;
   private final EStage<Integer> pendingTaskletSchedulerEStage;
-
-  private final AtomicInteger barrier;
+  private final AtomicInteger numRunningWorkers = new AtomicInteger(0);
 
   @Inject
   private VortexDriver(final EvaluatorRequestor evaluatorRequestor,
@@ -87,7 +86,6 @@ final class VortexDriver {
     this.evalMem = workerMem;
     this.evalNum = workerNum;
     this.evalCores = workerCores;
-    this.barrier = new AtomicInteger(workerNum);
   }
 
   /**
@@ -102,6 +100,12 @@ final class VortexDriver {
           .setMemory(evalMem)
           .setNumberOfCores(evalCores)
           .build());
+
+      // Run Vortex Start
+      vortexStartEStage.onNext(vortexStart);
+
+      // Run Scheduler
+      pendingTaskletSchedulerEStage.onNext(SCHEDULER_EVENT);
     }
   }
 
@@ -136,18 +140,8 @@ final class VortexDriver {
   final class RunningTaskHandler implements EventHandler<RunningTask> {
     @Override
     public void onNext(final RunningTask reefTask) {
-      LOG.log(Level.INFO, "Worker up and running");
+      LOG.log(Level.INFO, "Worker up: {0} workers are running", numRunningWorkers.incrementAndGet());
       vortexMaster.workerAllocated(new VortexWorkerManager(vortexRequestor, reefTask));
-
-      final int numRemainingWorkers = barrier.decrementAndGet();
-      if (numRemainingWorkers == 0) {
-        // Run Vortex Start
-        vortexStartEStage.onNext(vortexStart);
-
-        // Run Scheduler
-        pendingTaskletSchedulerEStage.onNext(SCHEDULER_EVENT);
-      }
-      LOG.log(Level.INFO, "Number of remaining workers: " + numRemainingWorkers);
     }
   }
 
@@ -170,14 +164,15 @@ final class VortexDriver {
   final class FailedEvaluatorHandler implements EventHandler<FailedEvaluator> {
     @Override
     public void onNext(final FailedEvaluator failedEvaluator) {
-      LOG.log(Level.INFO, "Evaluator preempted");
       if (numberOfFailures.incrementAndGet() >= MAX_NUM_OF_FAILURES) {
         throw new RuntimeException("Exceeded max number of failures");
       } else {
         if (failedEvaluator.getFailedTask().isPresent()) {
+          LOG.log(Level.INFO, "Evaluator preempted: {0} Workers are running",
+              numRunningWorkers.decrementAndGet());
           vortexMaster.workerPreempted(failedEvaluator.getFailedTask().get().getId());
         } else {
-          LOG.log(Level.WARNING, "Worker preempted, but not recoverable. Should not happen");
+          LOG.log(Level.WARNING, "not recoverable. Should not happen");
         }
 
         // We request a new evaluator to take the place of the preempted one

@@ -44,6 +44,8 @@ import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Default implementation of VortexMaster.
@@ -52,6 +54,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ThreadSafe
 @DriverSide
 final class DefaultVortexMaster implements VortexMaster {
+  private static final Logger LOG = Logger.getLogger(DefaultVortexMaster.class.getName());
   private final Map<Integer, VortexFutureDelegate> taskletFutureMap = new HashMap<>();
   private final AtomicInteger taskletIdCounter = new AtomicInteger();
   private final RunningWorkers runningWorkers;
@@ -119,7 +122,9 @@ final class DefaultVortexMaster implements VortexMaster {
   public void workerPreempted(final String id) {
     final Optional<Collection<Tasklet>> preemptedTasklets = runningWorkers.removeWorker(id);
     if (preemptedTasklets.isPresent()) {
+      LOG.log(Level.INFO, "#Re# {0}", preemptedTasklets.get().size());
       for (final Tasklet tasklet : preemptedTasklets.get()) {
+        LOG.log(Level.INFO, "#Re_id# {0}", tasklet.getId());
         pendingTasklets.addFirst(tasklet);
       }
     }

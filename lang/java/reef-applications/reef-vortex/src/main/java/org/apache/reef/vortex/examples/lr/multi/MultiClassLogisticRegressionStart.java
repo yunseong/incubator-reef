@@ -101,7 +101,7 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
                 @Override
                 public void onSuccess(final MultiClassGradientFunctionOutput result) {
                   processResult(model, result, tIteration, measurer);
-                  LOG.log(Level.INFO, "{0} Tasklets are remaining in this round", latch.getCount());
+//                  LOG.log(Level.INFO, "{0} Tasklets are remaining in this round", latch.getCount());
                   latch.countDown();
                 }
 

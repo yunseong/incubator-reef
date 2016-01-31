@@ -206,6 +206,9 @@ public final class VortexWorker implements Task, TaskMessageSource {
             heartBeatTriggerManager.triggerHeartBeat();
         }
       }));
+
+      // Signal that future is put.
+      latch.countDown();
     }
 
   /**

@@ -1,21 +1,19 @@
-﻿/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+﻿// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 using System;
 using System.Collections.Generic;
@@ -23,6 +21,7 @@ using System.Linq;
 using System.Threading;
 using Org.Apache.REEF.Tang.Annotations;
 using Org.Apache.REEF.Tang.Implementations.InjectionPlan;
+using Org.Apache.REEF.Utilities.Collections;
 using Org.Apache.REEF.Utilities.Diagnostics;
 using Org.Apache.REEF.Utilities.Logging;
 using Org.Apache.REEF.Wake.RX.Impl;
@@ -31,13 +30,13 @@ using Org.Apache.REEF.Wake.Time.Runtime.Event;
 
 namespace Org.Apache.REEF.Wake.Time.Runtime
 {
-    public class RuntimeClock : IClock
+    public sealed class RuntimeClock : IClock
     {
         private static readonly Logger LOGGER = Logger.GetLogger(typeof(RuntimeClock));
 
         private readonly ITimer _timer;
         private readonly PubSubSubject<Time> _handlers;
-        private readonly ISet<Time> _schedule;
+        private readonly PriorityQueue<Time> _schedule;
 
         private readonly IInjectionFuture<ISet<IObserver<StartTime>>> _startHandler;
         private readonly IInjectionFuture<ISet<IObserver<StopTime>>> _stopHandler;
@@ -57,7 +56,7 @@ namespace Org.Apache.REEF.Wake.Time.Runtime
         /// <param name="runtimeStopHandler">The runtime stop handler</param>
         /// <param name="idleHandler">The idle handler</param>
         [Inject]
-        internal RuntimeClock(
+        private RuntimeClock(
             ITimer timer,
             [Parameter(typeof(StartHandler))] IInjectionFuture<ISet<IObserver<StartTime>>> startHandler, 
             [Parameter(typeof(StopHandler))] IInjectionFuture<ISet<IObserver<StopTime>>> stopHandler,
@@ -66,7 +65,7 @@ namespace Org.Apache.REEF.Wake.Time.Runtime
             [Parameter(typeof(IdleHandler))] IInjectionFuture<ISet<IObserver<IdleClock>>> idleHandler)
         {
             _timer = timer;
-            _schedule = new SortedSet<Time>();
+            _schedule = new PriorityQueue<Time>();
             _handlers = new PubSubSubject<Time>();
 
             _startHandler = startHandler;
@@ -229,9 +228,7 @@ namespace Org.Apache.REEF.Wake.Time.Runtime
                 Monitor.Wait(_schedule, TimeSpan.FromMilliseconds(duration));
             }
 
-            Time time = _schedule.First();
-            _schedule.Remove(time);
-            return time;
+            return _schedule.Dequeue();
         }
 
         /// <summary>

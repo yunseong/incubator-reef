@@ -149,7 +149,7 @@ public class ClassHierarchyImpl implements JavaClassHierarchy {
       iface = (ClassNode<T>) getNode(np.getFullArgName());
     } catch (final NameResolutionException e) {
       throw new IllegalStateException("Could not parse validated named parameter argument type.  NamedParameter is " +
-          np.getFullName() + " argument type is " + np.getFullArgName());
+          np.getFullName() + " argument type is " + np.getFullArgName(), e);
     }
     Class<?> clazz;
     String fullName;
@@ -176,7 +176,7 @@ public class ClassHierarchyImpl implements JavaClassHierarchy {
             " cannot take non-subclass " + impl.getFullName(), e);
       } catch (final NameResolutionException e2) {
         throw new ParseException("Name<" + iface.getFullName() + "> " + np.getFullName() +
-            " cannot take non-class " + value, e);
+            " cannot take non-class " + value, e2);
       }
     }
   }
@@ -298,7 +298,7 @@ public class ClassHierarchyImpl implements JavaClassHierarchy {
     try {
       final Node n = getAlreadyBoundNode(c);
       return n;
-    } catch (final NameResolutionException e) {
+    } catch (final NameResolutionException ignored) {
       // node not bound yet
     }
     // First, walk up the class hierarchy, registering all out parents. This
@@ -380,7 +380,7 @@ public class ClassHierarchyImpl implements JavaClassHierarchy {
     }
     try {
       return getAlreadyBoundNode(c);
-    } catch (final NameResolutionException e) {
+    } catch (final NameResolutionException ignored) {
       // node not bound yet
     }
 

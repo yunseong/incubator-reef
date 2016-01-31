@@ -48,11 +48,11 @@ public final class TaskletCancellationTestStart implements VortexStart {
       // Hacky way to increase probability that the task has been launched.
       // TODO[JIRA REEF-1051]: Query the VortexMaster for the Tasklet status.
       future.get(10, TimeUnit.SECONDS);
-    } catch (final TimeoutException e) {
+    } catch (final TimeoutException ignored) {
       // Harmless.
     } catch (final Exception e) {
       e.printStackTrace();
-      throw new RuntimeException("Unexpected exception.");
+      throw new RuntimeException("Unexpected exception.", e);
     }
 
     Assert.assertTrue(future.cancel(true));
@@ -60,8 +60,8 @@ public final class TaskletCancellationTestStart implements VortexStart {
     try {
       future.get();
       Assert.fail();
-    } catch (final CancellationException e) {
-      // Expected.
+    } catch (final CancellationException expected) {
+      // This is expected.
     } catch (final ExecutionException|InterruptedException e) {
       e.printStackTrace();
       Assert.fail();

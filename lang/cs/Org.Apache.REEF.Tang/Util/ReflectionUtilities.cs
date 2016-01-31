@@ -1,21 +1,19 @@
-﻿/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+﻿// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 using System;
 using System.Collections.Generic;
@@ -30,7 +28,7 @@ using Org.Apache.REEF.Utilities.Logging;
 namespace Org.Apache.REEF.Tang.Util
 {
     // TODO[REEF-842] Act on the obsoletes
-    public class ReflectionUtilities
+    public static class ReflectionUtilities
     {
         private static readonly Logger LOGGER = Logger.GetLogger(typeof(ReflectionUtilities));
 
@@ -47,7 +45,7 @@ namespace Org.Apache.REEF.Tang.Util
         {
             if (name == null)
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(new ArgumentException("null is passed in FullName() in ReflectionUtilities"), LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(new ArgumentException("null is passed in FullName() in ReflectionUtilities"), LOGGER);
             }
 
             Type t = EnsureInterfaceType(name);
@@ -135,7 +133,7 @@ namespace Org.Apache.REEF.Tang.Util
                 var ex = new ApplicationException(string.Format(CultureInfo.CurrentCulture,
                                                              "The type passed in IsGenericTypeof is null: iface : {0} type: {1}. ",
                                                              iface, type));
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
             }
             if (type.IsGenericType)
             {
@@ -246,7 +244,7 @@ namespace Org.Apache.REEF.Tang.Util
                 }
                 else
                 {
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(new NotSupportedException(
+                    Utilities.Diagnostics.Exceptions.Throw(new NotSupportedException(
                         "Encountered unknown primitive type!"), LOGGER);
                     return c;
                 }
@@ -374,7 +372,7 @@ namespace Org.Apache.REEF.Tang.Util
             }
             if (t == null)
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(
+                Utilities.Diagnostics.Exceptions.Throw(
                     new ApplicationException("Not able to get Type from the name provided: " + name), LOGGER);
             }
 
@@ -409,7 +407,7 @@ namespace Org.Apache.REEF.Tang.Util
         {
             if (t == null)
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(new ApplicationException("The Type passed to GetEnclosingClassShortNames is null"), LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(new ApplicationException("The Type passed to GetEnclosingClassShortNames is null"), LOGGER);
             }
             Type[] ts = GetEnclosingClasses(t);
             string[] result = new string[ts.Length];
@@ -431,7 +429,7 @@ namespace Org.Apache.REEF.Tang.Util
         {
             if (fullName == null)
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(new ApplicationException("The name passed to GetEnclosingClassShortNames is null"), LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(new ApplicationException("The name passed to GetEnclosingClassShortNames is null"), LOGGER);
             }
             Type t = ReflectionUtilities.GetTypeByName(fullName);
             return GetEnclosingClassNames(t);
@@ -454,33 +452,33 @@ namespace Org.Apache.REEF.Tang.Util
                 {
                     var ex = new ClassHierarchyException("Named parameter " + GetName(type) + " implements "
                                   + "multiple interfaces.  It is only allowed to implement Name<T>");
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                    Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
                 }
                 else if (intfs.Length == 0 || !IsName(intfs[0]))
                 {
                     var ex = new ClassHierarchyException("Found illegal [NamedParameter " + GetName(type)
                                   + " does not implement Name<T>");
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                    Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
                 }
                 Type[] args = intfs[0].GetGenericArguments();
                 if (args.Length > 1)
                 {
                     var ex = new ClassHierarchyException("Found illegal [NamedParameter " + GetName(type)
                         + " that has more than one arguments");
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                    Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
                 }
                 if (args.Length == 0)
                 {
                     var ex = new ClassHierarchyException("Found illegal [NamedParameter " + GetName(type)
                         + " that has no argument");
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                    Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
                 }
                 if (HasConstructor(type) || HasInjectableConstructor(type))
                 {
                     var ex = new ClassHierarchyException("Named parameter " + GetName(type) + " has "
                                   + (HasInjectableConstructor(type) ? "an injectable" : "a") + " constructor. "
                                   + " Named parameters must not declare any constructors.");
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                    Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
                 }
 
                 return args[0];
@@ -491,7 +489,7 @@ namespace Org.Apache.REEF.Tang.Util
                 // Implement Name<> but no  [NamedParameter] attribute
                 var ex = new ClassHierarchyException("Named parameter " + GetName(type)
                                   + " is missing its [NamedParameter] attribute.");
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
             }
             return null;
         }

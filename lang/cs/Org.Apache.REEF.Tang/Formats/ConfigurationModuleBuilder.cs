@@ -1,21 +1,19 @@
-﻿/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+﻿// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 using System;
 using System.Collections.Generic;
@@ -58,25 +56,25 @@ namespace Org.Apache.REEF.Tang.Formats
                 {
                     var e = new ClassHierarchyException(
                     "Found a field of type " + t + " which should be a Required/Optional Parameter/Implementation instead");
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                    Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
                 } 
                 if (ParamTypes.Contains(t.Name)) 
                 {
                     if (!f.IsPublic) 
                     {
                         var e = new ClassHierarchyException("Found a non-public configuration option in " + GetType() + ": " + f);
-                        Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                        Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
                     }
                 
                     if (!f.IsStatic) 
                     {
                         var e = new ClassHierarchyException("Found a non-static configuration option in " + GetType() + ": " + f);
-                        Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                        Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
                     }
                     if (!f.IsInitOnly)
                     {
                         var e = new ClassHierarchyException("Found a non-readonly configuration option in " + GetType() + ": " + f);
-                        Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                        Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
                     }
                     object o = null;
                     try 
@@ -85,15 +83,15 @@ namespace Org.Apache.REEF.Tang.Formats
                     } 
                     catch (ArgumentException e)  
                     {
-                        Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
+                        Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
                         var ex = new ClassHierarchyException("Could not look up field instance in " + GetType() + " field: " + f, e);
-                        Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                        Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
                     }
                     catch (FieldAccessException e) 
                     {
-                        Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
+                        Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
                         var ex = new ClassHierarchyException("Could not look up field instance in " + GetType() + " field: " + f, e);
-                        Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                        Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
                     }
 
                     if (Map.ContainsKey(o)) 
@@ -101,7 +99,7 @@ namespace Org.Apache.REEF.Tang.Formats
                         FieldInfo fi;
                         Map.TryGetValue(o, out fi);
                         var e = new ClassHierarchyException("Detected aliased instances in class " + GetType() + " for fields " + fi + " and " + f);
-                        Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                        Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
                     }
                     if (ReflectionUtilities.IsGenericTypeof(typeof(RequiredImpl<>), t) || ReflectionUtilities.IsGenericTypeof(typeof(RequiredParameter<>), t))  
                     {
@@ -124,9 +122,9 @@ namespace Org.Apache.REEF.Tang.Formats
             }
             catch (BindException e)
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
                 var ex = new ClassHierarchyException("Build error in ConfigurationModuleBuilder: " + e);
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
             }
             ReqDecl.UnionWith(c.ReqDecl);
             OptDecl.UnionWith(c.OptDecl);
@@ -144,7 +142,7 @@ namespace Org.Apache.REEF.Tang.Formats
             if (d == null) 
             {
                 var e = new NullReferenceException("If merge() was passed a static final field that is initialized to non-null, then this is almost certainly caused by a circular class dependency.");
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
             }
             try 
             {
@@ -152,9 +150,9 @@ namespace Org.Apache.REEF.Tang.Formats
             } 
             catch (ClassHierarchyException ex) 
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(ex, Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.Caught(ex, Level.Error, LOGGER);
                 var e = new ClassHierarchyException(ReflectionUtilities.GetAssemblyQualifiedName(GetType()) + ": detected attempt to merge with ConfigurationModule that has had set() called on it", ex);
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
             }
             ConfigurationModuleBuilder c = DeepCopy();
             try 
@@ -163,9 +161,9 @@ namespace Org.Apache.REEF.Tang.Formats
             } 
             catch (BindException ex) 
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(ex, Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.Caught(ex, Level.Error, LOGGER);
                 var e = new ClassHierarchyException("Error in AddConfiguration in Merge: " + ex);
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
             }
             c.ReqDecl.AddAll(d.Builder.ReqDecl);
             c.OptDecl.AddAll(d.Builder.OptDecl);
@@ -192,9 +190,9 @@ namespace Org.Apache.REEF.Tang.Formats
             } 
             catch (BindException ex) 
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(ex, Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.Caught(ex, Level.Error, LOGGER);
                 var e = new ClassHierarchyException("Error in BindSetEntry: " + ex);
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
             }
             return c;
         }
@@ -210,9 +208,9 @@ namespace Org.Apache.REEF.Tang.Formats
             } 
             catch (BindException ex) 
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(ex, Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.Caught(ex, Level.Error, LOGGER);
                 var e = new ClassHierarchyException("Error in BindSetEntry: " + ex);
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
             }
             return c;
         }
@@ -259,7 +257,7 @@ namespace Org.Apache.REEF.Tang.Formats
             }
             catch (BindException ex)
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.CaughtAndThrow(new ClassHierarchyException("Error in BindList: " + ex), Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.CaughtAndThrow(new ClassHierarchyException("Error in BindList: " + ex), Level.Error, LOGGER);
             }
             return c;
         }
@@ -296,8 +294,8 @@ namespace Org.Apache.REEF.Tang.Formats
             } 
             catch (BindException e) 
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
-                 Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(new ClassHierarchyException("Error in BindImplementation: ", e), LOGGER);
+                Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(new ClassHierarchyException("Error in BindImplementation: ", e), LOGGER);
             }
             return c;
         }
@@ -330,8 +328,8 @@ namespace Org.Apache.REEF.Tang.Formats
             } 
             catch (BindException e) 
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(new ClassHierarchyException("Error in BindNamedParameter: ", e), LOGGER);
+                Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(new ClassHierarchyException("Error in BindNamedParameter: ", e), LOGGER);
             }
             return c;
         }
@@ -359,8 +357,8 @@ namespace Org.Apache.REEF.Tang.Formats
             }
             catch (BindException e)
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(new ClassHierarchyException("Error in BindNamedParameter: ", e), LOGGER);
+                Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(new ClassHierarchyException("Error in BindNamedParameter: ", e), LOGGER);
             }
             return c;
         }
@@ -375,8 +373,8 @@ namespace Org.Apache.REEF.Tang.Formats
             }
             catch (BindException e)
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(new ClassHierarchyException("Error in BindNamedParameter: ", e), LOGGER);
+                Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(new ClassHierarchyException("Error in BindNamedParameter: ", e), LOGGER);
             }
             return c;
         }
@@ -414,8 +412,8 @@ namespace Org.Apache.REEF.Tang.Formats
             }
             catch (BindException e)
             {
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(new ClassHierarchyException("Error in BindConstructor: ", e), LOGGER);
+                Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(new ClassHierarchyException("Error in BindConstructor: ", e), LOGGER);
             }
             return c;
         }
@@ -455,7 +453,7 @@ namespace Org.Apache.REEF.Tang.Formats
                 var e = new ClassHierarchyException(
                     "Found declared options that were not used in binds: "
                     + ToString(fset));
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
             }
             foreach (Type clz in c.lateBindClazz.Keys) 
             {
@@ -465,15 +463,15 @@ namespace Org.Apache.REEF.Tang.Formats
                 } 
                 catch (NameResolutionException e) 
                 {
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
+                    Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
                     var ex = new ClassHierarchyException("ConfigurationModule refers to unknown class: " + c.lateBindClazz.Get(clz), e);
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                    Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
                 } 
                 catch (BindException e) 
                 {
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
+                    Utilities.Diagnostics.Exceptions.Caught(e, Level.Error, LOGGER);
                     var ex = new ClassHierarchyException("bind failed while initializing ConfigurationModuleBuilder", e);
-                    Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
+                    Utilities.Diagnostics.Exceptions.Throw(ex, LOGGER);
                 }
             }
             return new ConfigurationModule(c);
@@ -504,7 +502,7 @@ namespace Org.Apache.REEF.Tang.Formats
             if (f == null)
             {
                 var e = new ClassHierarchyException("Unknown Impl/Param when binding " + impl.GetType().Name + ".  Did you pass in a field from some other module?");
-                Org.Apache.REEF.Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
+                Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
             }
             if (!reqUsed.Contains(f))
             {

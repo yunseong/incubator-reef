@@ -58,11 +58,6 @@ public class CachedDataResponse implements VortexRequest {
   }
 
   @Override
-  public int getTaskletId() {
-    return -1; // This is meaningless for this request.
-  }
-
-  @Override
   public RequestType getType() {
     return RequestType.CachedDataResponse;
   }

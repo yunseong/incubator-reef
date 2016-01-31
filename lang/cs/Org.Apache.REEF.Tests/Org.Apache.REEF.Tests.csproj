@@ -95,6 +95,7 @@ under the License.
     <Compile Include="Functional\Bridge\TestBridgeClient.cs" />
     <Compile Include="Functional\Bridge\TestFailedEvaluatorEventHandler.cs" />
     <Compile Include="Functional\Bridge\TestFailedTaskEventHandler.cs" />
+    <Compile Include="Functional\Bridge\TestSimpleContext.cs" />
     <Compile Include="Functional\Bridge\TestSimpleEventHandlers.cs" />
     <Compile Include="Functional\Driver\DriverTestStartHandler.cs" />
     <Compile Include="Functional\RuntimeName\EvaluatorRequestingDriver.cs" />
@@ -112,6 +113,7 @@ under the License.
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utility\TestDriverConfigGenerator.cs" />
     <Compile Include="Utility\TestExceptions.cs" />
+    <Compile Include="Utility\TestPriorityQueue.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(SolutionDir)\Org.Apache.REEF.Client\run.cmd">

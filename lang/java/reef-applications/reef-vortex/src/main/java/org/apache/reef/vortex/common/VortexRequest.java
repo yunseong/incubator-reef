@@ -29,15 +29,12 @@ public interface VortexRequest {
    * Type of Request.
    */
   enum RequestType {
+    AggregateTasklets,
     ExecuteTasklet,
     CancelTasklet,
-    CachedDataResponse
+    CachedDataResponse,
+    ExecuteAggregateTasklet
   }
-
-  /**
-   * @return the ID of the VortexTasklet associated with this VortexRequest.
-   */
-  int getTaskletId();
 
   /**
    * @return the type of this VortexRequest.

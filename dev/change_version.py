@@ -48,7 +48,7 @@ import argparse
 Get list of path for every file in a directory
 """
 def get_filepaths(directory):
-    file_paths = []  
+    file_paths = []
 
     for root, directories, files in os.walk(directory):
         for filename in files:
@@ -85,6 +85,7 @@ def change_pom(file, new_version):
         if not line: 
             break
         changed_str += line
+    f.close()
 
     f = open(file, 'w')
     f.write(changed_str)
@@ -111,6 +112,7 @@ def change_constants_cs(file, new_version):
             changed_str += line.replace(old_version, new_version)
         else:
             changed_str += line
+    f.close()
 
     f = open(file, 'w')
     f.write(changed_str)
@@ -138,6 +140,7 @@ def change_assembly_info_cs(file, new_version):
             changed_str += line.replace(old_version, new_version)
         else:
             changed_str += line
+    f.close()
 
     f = open(file, 'w')
     f.write(changed_str)
@@ -159,6 +162,7 @@ def read_is_snapshot(file):
                 return True
             else:
                 return False
+    f.close()
 
 """
 Change lang/cs/build.props for the release branch
@@ -182,6 +186,7 @@ def change_build_props(file, is_snapshot):
             changed_str += line.replace(old_snapshot_number, "00")
         else:
             changed_str += line
+    f.close()
 
     f = open(file, 'w')
     f.write(changed_str)
@@ -210,13 +215,40 @@ def change_shaded_jar_name(file, new_version):
             changed_str += line.replace(m2.group(1), new_version)
         else:
             changed_str += line
+    f.close()
 
     f = open(file, 'w')
     f.write(changed_str)
     f.close()
 
 """
-Change version of every pom.xml, every AsssemblyInfo.cs, 
+Change the version in Doxyfile
+"""
+def change_project_number_Doxyfile(file, new_version):
+    changed_str = ""
+
+    f = open(file, 'r')
+    while True:
+        line = f.readline()
+        if not line:
+            break
+
+        if "PROJECT_NUMBER         = " in line:
+            r = re.compile('= (.*?)$')
+            m = r.search(line)
+            old_version = m.group(1)
+            changed_str += line.replace(old_version, new_version)
+        else:
+            changed_str += line
+    f.close()
+
+    f = open(file, 'w')
+    f.write(changed_str)
+    f.close()
+
+
+"""
+Change version of every pom.xml, every AssemblyInfo.cs,
 Constants.cs, AssemblyInfo.cpp, run.cmd and Resources.xml
 """
 def change_version(reef_home, new_version, pom_only):
@@ -253,10 +285,12 @@ def change_version(reef_home, new_version, pom_only):
         change_shaded_jar_name(reef_home + "/lang/cs/Org.Apache.REEF.Client/run.cmd", new_version)
         print reef_home + "/lang/cs/Org.Apache.REEF.Client/run.cmd"
 
+        change_project_number_Doxyfile(reef_home + "/Doxyfile", new_version)
+        print reef_home + "/Doxyfile"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script for changing version of every pom.xml, " \
-        + "every AssemblyInfo.cs, Constants.cs, and AssemblyInfo.cpp")    
+        + "every AssemblyInfo.cs, Constants.cs, and AssemblyInfo.cpp")
     parser.add_argument("reef_home", type=str, help="REEF home")
     parser.add_argument("reef_version", type=str, help="REEF version")
     parser.add_argument("-s", "--isSnapshot", type=str, metavar="<true or false>", help="Change 'IsSnapshot' to true or false", required=True)

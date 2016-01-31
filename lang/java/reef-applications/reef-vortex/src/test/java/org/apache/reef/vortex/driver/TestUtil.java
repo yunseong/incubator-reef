@@ -22,6 +22,8 @@ import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.io.serialization.Codec;
 import org.apache.reef.io.serialization.SerializableCodec;
 import org.apache.reef.vortex.api.VortexCacheable;
+import org.apache.reef.tang.Tang;
+import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.vortex.util.VoidCodec;
 import org.apache.reef.util.Optional;
 import org.apache.reef.vortex.api.VortexFunction;
@@ -31,6 +33,10 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -72,13 +78,14 @@ public final class TestUtil {
       public Object answer(final InvocationOnMock invocation) throws Throwable {
         final VortexRequest request = (VortexRequest)invocation.getArguments()[1];
         if (request instanceof TaskletCancellationRequest) {
-          final TaskletReport cancelReport = new TaskletCancelledReport(request.getTaskletId());
+          final TaskletReport cancelReport = new TaskletCancelledReport(
+              ((TaskletCancellationRequest)request).getTaskletId());
           master.workerReported(workerManager.getId(), new WorkerReport(Collections.singleton(cancelReport)));
         }
 
         return null;
       }
-    }).when(vortexRequestor).send(any(RunningTask.class), any(VortexRequest.class));
+    }).when(vortexRequestor).sendAsync(any(RunningTask.class), any(VortexRequest.class));
 
     return workerManager;
   }
@@ -88,7 +95,14 @@ public final class TestUtil {
    */
   public Tasklet newTasklet() {
     final int id = taskletId.getAndIncrement();
-    return new Tasklet(id, null, null, new VortexFuture(executor, vortexMaster, id, VOID_CODEC));
+    return new Tasklet(id, Optional.empty(), null, null, new VortexFuture(executor, vortexMaster, id, VOID_CODEC));
+  }
+
+  /**
+   * @return a new {@link AggregateFunctionRepository}
+   */
+  public AggregateFunctionRepository newAggregateFunctionRepository() throws InjectionException {
+    return Tang.Factory.getTang().newInjector().getInstance(AggregateFunctionRepository.class);
   }
 
   /**
@@ -102,7 +116,8 @@ public final class TestUtil {
     final VortexCacheable cacheableInput = mock(VortexCacheable.class);
     when(cacheableInput.getCachedKeys()).thenReturn(keyList);
     final int id = taskletId.getAndIncrement();
-    return new Tasklet(id, null, cacheableInput, new VortexFuture(executor, vortexMaster, id, VOID_CODEC));
+    return new Tasklet(id, Optional.<Integer>empty(), null, cacheableInput,
+        new VortexFuture(executor, vortexMaster, id, VOID_CODEC));
   }
 
   /**

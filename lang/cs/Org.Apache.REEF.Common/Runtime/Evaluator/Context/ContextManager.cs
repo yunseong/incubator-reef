@@ -1,21 +1,19 @@
-﻿/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+﻿// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 using System;
 using System.Collections.Generic;
@@ -27,6 +25,8 @@ using Org.Apache.REEF.Common.Runtime.Evaluator.Task;
 using Org.Apache.REEF.Common.Services;
 using Org.Apache.REEF.Common.Tasks;
 using Org.Apache.REEF.Tang.Annotations;
+using Org.Apache.REEF.Tang.Formats;
+using Org.Apache.REEF.Tang.Interface;
 using Org.Apache.REEF.Utilities;
 using Org.Apache.REEF.Utilities.Logging;
 
@@ -38,20 +38,24 @@ namespace Org.Apache.REEF.Common.Runtime.Evaluator.Context
         private readonly HeartBeatManager _heartBeatManager;
         private readonly RootContextLauncher _rootContextLauncher;
         private readonly object _contextLock = new object();
+        private readonly AvroConfigurationSerializer _serializer;
         private ContextRuntime _topContext = null;
 
         [Inject]
         private ContextManager(
             HeartBeatManager heartBeatManager,
-            EvaluatorSettings evaluatorSetting)
+            EvaluatorSettings evaluatorSettings,
+            AvroConfigurationSerializer serializer)
         {
             using (LOGGER.LogFunction("ContextManager::ContextManager"))
             {
                 _heartBeatManager = heartBeatManager;
+                _serializer = serializer;
                 _rootContextLauncher = new RootContextLauncher(
-                    evaluatorSetting.RootContextConfig,
-                    evaluatorSetting.RootServiceConfiguration,
-                    evaluatorSetting.RootTaskConfiguration);
+                    evaluatorSettings.RootContextConfig.Id,
+                    evaluatorSettings.RootContextConfig,
+                    evaluatorSettings.RootServiceConfiguration,
+                    evaluatorSettings.RootTaskConfiguration);
             }
         }
 
@@ -70,7 +74,7 @@ namespace Org.Apache.REEF.Common.Runtime.Evaluator.Context
                     LOGGER.Log(Level.Info, "Launching the initial Task");
                     try
                     {
-                        _topContext.StartTask(_rootContextLauncher.RootTaskConfig.Value, _rootContextLauncher.RootContextConfig.Id, _heartBeatManager);
+                        _topContext.StartTask(_rootContextLauncher.RootTaskConfig.Value, _rootContextLauncher.Id, _heartBeatManager);
                     }
                     catch (TaskClientCodeException e)
                     {
@@ -278,8 +282,18 @@ namespace Org.Apache.REEF.Common.Runtime.Evaluator.Context
                         currentTopContext.Id));
                     Utilities.Diagnostics.Exceptions.Throw(e, LOGGER);
                 }
-                string contextConfigString = addContextProto.context_configuration;
-                var contextConfiguration = new ContextConfiguration(contextConfigString);
+
+                IConfiguration contextConfiguration;
+                try
+                {
+                    contextConfiguration = _serializer.FromString(addContextProto.context_configuration);
+                }
+                catch (Exception)
+                {
+                    // TODO[JIRA REEF-1167]: Remove the catch.
+                    contextConfiguration = new ContextConfiguration(addContextProto.context_configuration);
+                }
+
                 ContextRuntime newTopContext;
                 if (addContextProto.service_configuration != null)
                 {

@@ -1,21 +1,19 @@
-﻿/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+﻿// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 using System;
 using System.Collections.Generic;
@@ -30,13 +28,10 @@ using Org.Apache.REEF.Utilities.Logging;
 
 namespace Org.Apache.REEF.Tang.Implementations.Tang
 {
-    public class TangImpl : ITang
+    internal sealed class TangImpl : ITang
     {
         private static readonly Logger LOGGER = Logger.GetLogger(typeof(TangImpl));
 
-        private static IDictionary<SetValuedKey, ICsClassHierarchy> defaultClassHierarchy = new Dictionary<SetValuedKey, ICsClassHierarchy>();
-
-        private static object classHierarchyLock = new object();
         public IInjector NewInjector()
         {
             try
@@ -130,19 +125,7 @@ namespace Org.Apache.REEF.Tang.Implementations.Tang
 
         public ICsClassHierarchy GetDefaultClassHierarchy(string[] assemblies, Type[] parameterParsers)
         {
-            SetValuedKey key = new SetValuedKey(assemblies, parameterParsers);
-
-            ICsClassHierarchy ret = null;
-            lock (classHierarchyLock)
-            {
-                defaultClassHierarchy.TryGetValue(key, out ret);
-                if (ret == null)
-                {
-                    ret = new ClassHierarchyImpl(assemblies, parameterParsers);
-                    defaultClassHierarchy.Add(key, ret);
-                }
-            }
-            return ret;
+            return new ClassHierarchyImpl(assemblies, parameterParsers);
         }
 
         public ICsConfigurationBuilder NewConfigurationBuilder()
@@ -198,11 +181,6 @@ namespace Org.Apache.REEF.Tang.Implementations.Tang
         public ICsConfigurationBuilder NewConfigurationBuilder(params Type[] parameterParsers) 
         {
             return NewConfigurationBuilder(new string[0], new IConfiguration[0], parameterParsers);
-        }
-
-        public static void Reset() 
-        {
-            defaultClassHierarchy = new Dictionary<SetValuedKey, ICsClassHierarchy>(); 
         }
     }
 }

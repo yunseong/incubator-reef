@@ -19,9 +19,7 @@
 package org.apache.reef.vortex.examples.lr.multi;
 
 import org.apache.reef.tang.annotations.Parameter;
-import org.apache.reef.vortex.api.FutureCallback;
-import org.apache.reef.vortex.api.VortexStart;
-import org.apache.reef.vortex.api.VortexThreadPool;
+import org.apache.reef.vortex.api.*;
 import org.apache.reef.vortex.common.CacheKey;
 import org.apache.reef.vortex.common.HdfsCacheKey;
 import org.apache.reef.vortex.common.exceptions.VortexCacheException;
@@ -31,6 +29,8 @@ import org.apache.reef.vortex.examples.lr.multi.input.MultiClassGradientFunction
 import org.apache.reef.vortex.examples.lr.multi.output.MultiClassGradientFunctionOutput;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -49,6 +49,8 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
   private final int divideFactor;
   private final int modelDim;
   private final int numLabels;
+  private final int flushCount;
+  private final int flushPeriod;
 
   @Inject
   private MultiClassLogisticRegressionStart(
@@ -56,11 +58,15 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
       @Parameter(MultiClassLogisticRegression.NumIter.class) final int numIter,
       @Parameter(MultiClassLogisticRegression.Path.class) final String path,
       @Parameter(MultiClassLogisticRegression.ModelDim.class) final int modelDim,
+      @Parameter(MultiClassLogisticRegression.FlushCount.class) final int flushCount,
+      @Parameter(MultiClassLogisticRegression.FlushPeriod.class) final int flushPeriod,
       @Parameter(MultiClassLogisticRegression.NumLabels.class) final int numLabels) {
     this.divideFactor = divideFactor;
     this.numIter = numIter;
     this.path = path;
     this.modelDim = modelDim;
+    this.flushCount = flushCount;
+    this.flushPeriod = flushPeriod;
     this.numLabels = numLabels;
   }
 
@@ -93,16 +99,33 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
         // Launch tasklets, each operating on a partition
         final CountDownLatch latch = new CountDownLatch(partitions.length);
         final AccuracyMeasurer measurer = new AccuracyMeasurer();
-        for (final CacheKey partition : partitions) {
-          final int tIteration = iteration;
-          vortexThreadPool.submit(new MultiClassGradientFunction(),
-              new MultiClassGradientFunctionInput(parameterKey, partition),
-              new FutureCallback<MultiClassGradientFunctionOutput>() {
+        final VortexAggregatePolicy policy = VortexAggregatePolicy.newBuilder()
+            .setCountTrigger(flushCount).setTimerPeriodTrigger(flushPeriod).build();
+        final List<MultiClassGradientFunctionInput> inputs = new ArrayList<>(partitions.length);
+        for (int i = 0; i < partitions.length; i++) {
+          inputs.add(new MultiClassGradientFunctionInput(parameterKey, partitions[i]));
+        }
+        final int tIteration = iteration;
+                 vortexThreadPool.submit(
+                     new MLRAggregationFunction(),
+                     new MultiClassGradientFunction(),
+                     policy,
+                      inputs,
+              new FutureCallback<AggregateResult<MultiClassGradientFunctionInput, MultiClassGradientFunctionOutput>>() {
                 @Override
-                public void onSuccess(final MultiClassGradientFunctionOutput result) {
-                  processResult(model, result, tIteration, measurer);
-//                  LOG.log(Level.INFO, "{0} Tasklets are remaining in this round", latch.getCount());
-                  latch.countDown();
+                public void onSuccess(final AggregateResult<MultiClassGradientFunctionInput, MultiClassGradientFunctionOutput> result) {
+                  if (result.getException().isPresent()) {
+                    throw new RuntimeException(result.getException().get());
+                  } else {
+                    try {
+                      processResult(model, result.getAggregateResult(), tIteration, measurer);
+                      for (int i = 0; i < result.getAggregatedInputs().size(); i++){
+                        latch.countDown();
+                      }
+                    } catch (final VortexAggregateException e) {
+                      throw new RuntimeException(e);
+                    }
+                  }
                 }
 
                 @Override
@@ -110,7 +133,6 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
                   throw new RuntimeException(t);
                 }
               });
-        }
         latch.await();
         LOG.log(Level.INFO, "@V@iteration\t{0}\taccuracy\t{1}", new Object[]{iteration, measurer.getAccuracy()});
         vortexThreadPool.invalidate(parameterKey);

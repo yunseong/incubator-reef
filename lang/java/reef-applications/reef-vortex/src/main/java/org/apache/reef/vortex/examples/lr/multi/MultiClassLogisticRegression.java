@@ -68,6 +68,8 @@ public final class MultiClassLogisticRegression {
           .registerShortNameOfClass(NumLabels.class)
           .registerShortNameOfClass(DriverMem.class)
           .registerShortNameOfClass(CacheFraction.class)
+          .registerShortNameOfClass(FlushCount.class)
+          .registerShortNameOfClass(FlushPeriod.class)
           .processCommandLine(args);
 
       final Injector injector = tang.newInjector(cb.build());
@@ -191,5 +193,13 @@ public final class MultiClassLogisticRegression {
 
   @NamedParameter(short_name = "cache_fraction", default_value = "0.6")
   public static final class CacheFraction implements Name<Double> {
+  }
+
+  @NamedParameter(short_name = "flush_count", default_value = "4")
+  public static final class FlushCount implements Name<Integer> {
+  }
+
+  @NamedParameter(short_name = "flush_period_ms", default_value = "30000")
+  public static final class FlushPeriod implements Name<Long> {
   }
 }

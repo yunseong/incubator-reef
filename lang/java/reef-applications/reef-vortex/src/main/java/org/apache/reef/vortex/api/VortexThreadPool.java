@@ -101,6 +101,7 @@ public final class VortexThreadPool {
   /**
    * @param aggregateFunction to run on VortexFunction outputs
    * @param function to run on Vortex
+   * @param policy on aggregation
    * @param inputs of the function
    * @param <TInput> input type
    * @param <TOutput> output type
@@ -108,14 +109,18 @@ public final class VortexThreadPool {
    */
   public <TInput, TOutput> VortexAggregateFuture<TInput, TOutput>
       submit(final VortexAggregateFunction<TOutput> aggregateFunction,
-             final VortexFunction<TInput, TOutput> function, final List<TInput> inputs) {
+             final VortexFunction<TInput, TOutput> function,
+             final VortexAggregatePolicy policy,
+             final List<TInput> inputs) {
     return vortexMaster.enqueueTasklets(
-        aggregateFunction, function, inputs, Optional.<FutureCallback<AggregateResult<TInput, TOutput>>>empty());
+        aggregateFunction, function, policy, inputs,
+        Optional.<FutureCallback<AggregateResult<TInput, TOutput>>>empty());
   }
 
   /**
    * @param aggregateFunction to run on VortexFunction outputs
    * @param function to run on Vortex
+   * @param policy on aggregation
    * @param inputs of the function
    * @param callback of the aggregation
    * @param <TInput> input type
@@ -124,8 +129,10 @@ public final class VortexThreadPool {
    */
   public <TInput, TOutput> VortexAggregateFuture<TInput, TOutput>
       submit(final VortexAggregateFunction<TOutput> aggregateFunction,
-             final VortexFunction<TInput, TOutput> function, final List<TInput> inputs,
+             final VortexFunction<TInput, TOutput> function,
+             final VortexAggregatePolicy policy,
+             final List<TInput> inputs,
              final FutureCallback<AggregateResult<TInput, TOutput>> callback) {
-    return vortexMaster.enqueueTasklets(aggregateFunction, function, inputs, Optional.of(callback));
+    return vortexMaster.enqueueTasklets(aggregateFunction, function, policy, inputs, Optional.of(callback));
   }
 }

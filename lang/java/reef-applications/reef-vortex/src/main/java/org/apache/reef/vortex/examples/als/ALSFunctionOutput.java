@@ -29,6 +29,9 @@ public class ALSFunctionOutput {
   public long trainingLoaded;
   public long computeFinished;
 
+  public ALSFunctionOutput() {
+  }
+
   public ALSFunctionOutput(final ResultVector[] resultVectors,
                            final long launched,
                            final long modelLoaded,

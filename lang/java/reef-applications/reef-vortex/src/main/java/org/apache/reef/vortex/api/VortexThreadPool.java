@@ -28,6 +28,9 @@ import org.apache.reef.vortex.common.exceptions.VortexCacheException;
 import org.apache.reef.vortex.driver.VortexMaster;
 
 import javax.inject.Inject;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Distributed thread pool.
@@ -35,6 +38,10 @@ import javax.inject.Inject;
 @Unstable
 public final class VortexThreadPool {
   private final VortexMaster vortexMaster;
+
+  public static final Map<Integer, Long> doneTime = new ConcurrentHashMap<>();
+  public static final Map<Integer, Long> launchedTime = new ConcurrentHashMap<>();
+  public static final Map<Integer, Long> submittedTime = new ConcurrentHashMap<>();
 
   @Inject
   private VortexThreadPool(final VortexMaster vortexMaster) {
@@ -65,6 +72,14 @@ public final class VortexThreadPool {
       submit(final VortexFunction<TInput, TOutput> function, final TInput input,
              final FutureCallback<TOutput> callback) {
     return vortexMaster.enqueueTasklet(function, input, Optional.of(callback));
+  }
+
+  public <TInput, TOutput> int
+  submit(final VortexFunction<TInput, TOutput> function, final TInput input,
+         final FutureCallback<TOutput> callback, final int dummy) {
+    final int taskletId =  vortexMaster.enqueueTasklet(function, input, callback);
+    submittedTime.put(taskletId, System.currentTimeMillis());
+    return taskletId;
   }
 
   /**

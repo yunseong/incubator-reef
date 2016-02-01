@@ -62,7 +62,6 @@ final class DefaultVortexMaster implements VortexMaster {
   private final Executor executor;
   private final Cache<String, byte[]> cacheMap = CacheBuilder.newBuilder().softValues().build();
 
-
   /**
    * @param runningWorkers for managing all running workers.
    */
@@ -97,6 +96,21 @@ final class DefaultVortexMaster implements VortexMaster {
     this.pendingTasklets.addLast(tasklet);
 
     return vortexFuture;
+  }
+
+  @Override
+  public <TInput, TOutput> int enqueueTasklet(VortexFunction<TInput, TOutput> function, TInput input, FutureCallback<TOutput> callback) {
+    // TODO[REEF-500]: Simple duplicate Vortex Tasklet launch.
+    final VortexFuture<TOutput> vortexFuture;
+    final int id = taskletIdCounter.getAndIncrement();
+    final Codec<TOutput> outputCodec = function.getOutputCodec();
+    vortexFuture = new VortexFuture<>(executor, this, id, outputCodec, callback);
+
+    final Tasklet tasklet = new Tasklet<>(id, function, input, vortexFuture);
+    putDelegate(Collections.singletonList(tasklet), vortexFuture);
+    this.pendingTasklets.addLast(tasklet);
+
+    return id;
   }
 
   /**

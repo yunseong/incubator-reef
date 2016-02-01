@@ -21,6 +21,7 @@ package org.apache.reef.vortex.driver;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.reef.annotations.audience.DriverSide;
 import org.apache.reef.driver.task.RunningTask;
+import org.apache.reef.vortex.api.VortexThreadPool;
 import org.apache.reef.vortex.common.CachedDataResponse;
 import org.apache.reef.vortex.common.TaskletCancellationRequest;
 import org.apache.reef.vortex.common.TaskletExecutionRequest;
@@ -44,9 +45,12 @@ class VortexWorkerManager {
 
   <TInput, TOutput> void launchTasklet(final Tasklet<TInput, TOutput> tasklet) {
     assert !runningTasklets.containsKey(tasklet.getId());
+
     runningTasklets.put(tasklet.getId(), tasklet);
     final TaskletExecutionRequest<TInput, TOutput> taskletExecutionRequest
         = new TaskletExecutionRequest<>(tasklet.getId(), tasklet.getUserFunction(), tasklet.getInput());
+
+    VortexThreadPool.launchedTime.put(tasklet.getId(), System.currentTimeMillis());
     vortexRequestor.send(reefTask, taskletExecutionRequest);
   }
 
@@ -66,6 +70,7 @@ class VortexWorkerManager {
   List<Tasklet> taskletsDone(final List<Integer> taskletIds) {
     final List<Tasklet> taskletList = new ArrayList<>();
     for (final int taskletId : taskletIds) {
+      VortexThreadPool.doneTime.put(taskletId, System.currentTimeMillis());
       taskletList.add(runningTasklets.remove(taskletId));
     }
 

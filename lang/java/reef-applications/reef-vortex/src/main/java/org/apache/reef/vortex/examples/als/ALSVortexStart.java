@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.logging.Level;
@@ -97,6 +98,7 @@ public final class ALSVortexStart implements VortexStart {
     final long start = System.currentTimeMillis();
 
     try {
+      final Map<String, Integer> taskletNumberMap = new ConcurrentHashMap<>();
       final HdfsCacheKey[] userDataMatrixPartition = vortexThreadPool.cache(userDataMatrixPath, divideFactor,
           new DataParser());
       final HdfsCacheKey[] itemDataMatrixPartition = vortexThreadPool.cache(itemDataMatrixPath, divideFactor,
@@ -107,7 +109,6 @@ public final class ALSVortexStart implements VortexStart {
           new Object[]{divideFactor, numIter, userDataMatrixPartition.length, itemDataMatrixPartition.length});
 
       initializeItemMatrix(vortexThreadPool, userDataMatrixPartition);
-      final Map<String, Long> submittedTime = new HashMap<>();
 
       for (int iter = 0; iter < 2 * numIter; iter++) {
         if (isSaveModel) {
@@ -139,16 +140,15 @@ public final class ALSVortexStart implements VortexStart {
         final BlockingDeque<ResultVector[]> resultVectors = new LinkedBlockingDeque<>();
         for (int i = 0; i < dataMatrixPartition.length; i++) {
           final String taskletId = "iter_" + iter + "_" + i;
-          submittedTime.put(taskletId, System.currentTimeMillis());
-          vortexThreadPool.submit(
+          final int taskletNumber = vortexThreadPool.submit(
               new ALSFunction(numFeatures, lambda, printMSE),
               new ALSFunctionInput(dataMatrixPartition[i], fixedMatrixKey, taskletId),
               new FutureCallback<ALSFunctionOutput>() {
 
                 @Override
                 public void onSuccess(final ALSFunctionOutput result) {
-                  logTaskletLifeTimes(taskletId, submittedTime.get(taskletId), result.launched, result.modelLoaded,
-                      result.trainingLoaded, result.computeFinished, System.currentTimeMillis());
+                  logTaskletLifeTimes(taskletNumberMap.get(taskletId), result.modelLoaded - result.launched,
+                      result.trainingLoaded - result.modelLoaded, result.computeFinished - result.trainingLoaded);
                   resultVectors.add(result.resultVectors);
                   latch.countDown();
                 }
@@ -158,7 +158,9 @@ public final class ALSVortexStart implements VortexStart {
                   throw new RuntimeException(t);
                 }
               }
-          );
+          , 0);
+
+          taskletNumberMap.put(taskletId, taskletNumber);
         }
 
         latch.await();
@@ -210,16 +212,19 @@ public final class ALSVortexStart implements VortexStart {
     }
   }
 
-  private void logTaskletLifeTimes(final String id,
-                                   final long submitted,
-                                   final long launched,
-                                   final long modelLoaded,
-                                   final long trainingLoaded,
-                                   final long finished,
-                                   final long ended) {
+  private void logTaskletLifeTimes(final int taskletNumber,
+                                   final long modelLoading,
+                                   final long trainingLoading,
+                                   final long computing) {
+
+    final long submittedTime = VortexThreadPool.submittedTime.get(taskletNumber);
+    final long launchedTime = VortexThreadPool.launchedTime.get(taskletNumber);
+    final long doneTime = VortexThreadPool.doneTime.get(taskletNumber);
+    final long timeInWorker = modelLoading + trainingLoading + computing;
+
     LOG.log(Level.INFO, "@@Q@@!{0}!{1}!{2}!{3}!{4}!{5}!", new Object[] {
-        id, launched - submitted, modelLoaded - launched, trainingLoaded - modelLoaded,
-        finished - trainingLoaded, ended - finished});
+        taskletNumber, launchedTime - submittedTime, modelLoading, trainingLoading, computing,
+        doneTime - launchedTime - timeInWorker});
   }
 
   private void saveModels(final String postFix) {

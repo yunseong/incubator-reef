@@ -44,6 +44,10 @@ public interface VortexMaster {
       enqueueTasklet(final VortexFunction<TInput, TOutput> vortexFunction, final TInput input,
                      final Optional<FutureCallback<TOutput>> callback);
 
+  <TInput, TOutput> int
+  enqueueTasklet(final VortexFunction<TInput, TOutput> vortexFunction, final TInput input,
+                 final FutureCallback<TOutput> callback);
+
   /**
    * Call this when a Tasklet is to be cancelled.
    * @param mayInterruptIfRunning if true, will attempt to cancel running Tasklets; otherwise will only

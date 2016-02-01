@@ -33,6 +33,7 @@ import org.apache.reef.vortex.examples.lr.multi.output.MultiClassGradientFunctio
 import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,7 +81,7 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
       for (int i = 0; i < numLabels; i++) {
         model[i] = new DenseVector(modelDim);
       }
-      final Map<String, Long> submittedTime = new HashMap<>();
+      final Map<String, Integer> taskletNumberMap = new ConcurrentHashMap<>();
       final HdfsCacheKey[] partitions = vortexThreadPool.cache(path, divideFactor, new RowParser());
 
       LOG.log(Level.INFO, "#V#start\tDIVIDE_FACTOR\t{0}\tSPLITS\t{1}\tNUM_ITER\t{2}",
@@ -100,15 +101,14 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
           final int tIteration = iteration;
           final String taskletId = "iter_" + tIteration + "_" + i;
           i++;
-          submittedTime.put(taskletId, System.currentTimeMillis());
 
-          vortexThreadPool.submit(new MultiClassGradientFunction(),
+          final int taskletNumber = vortexThreadPool.submit(new MultiClassGradientFunction(),
               new MultiClassGradientFunctionInput(parameterKey, partition),
               new FutureCallback<MultiClassGradientFunctionOutput>() {
                 @Override
                 public void onSuccess(final MultiClassGradientFunctionOutput result) {
-                  logTaskletLifeTimes(taskletId, submittedTime.get(taskletId), result.launched, result.modelLoaded,
-                      result.trainingLoaded, result.computeFinished, System.currentTimeMillis());
+                  logTaskletLifeTimes(taskletNumberMap.get(taskletId), result.modelLoaded - result.launched,
+                      result.trainingLoaded - result.modelLoaded, result.computeFinished - result.trainingLoaded);
                   processResult(model, result, tIteration, measurer);
 //                  LOG.log(Level.INFO, "{0} Tasklets are remaining in this round", latch.getCount());
                   latch.countDown();
@@ -118,7 +118,9 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
                 public void onFailure(final Throwable t) {
                   throw new RuntimeException(t);
                 }
-              });
+              }, 0);
+
+          taskletNumberMap.put(taskletId, taskletNumber);
         }
         latch.await();
         LOG.log(Level.INFO, "@V@iteration\t{0}\taccuracy\t{1}", new Object[]{iteration, measurer.getAccuracy()});
@@ -133,16 +135,21 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
     }
   }
 
-  private void logTaskletLifeTimes(final String id,
-                                   final long submitted,
-                                   final long launched,
-                                   final long modelLoaded,
-                                   final long trainingLoaded,
-                                   final long finished,
-                                   final long ended) {
+  private void logTaskletLifeTimes(final int taskletNumber,
+                                   final long modelLoading,
+                                   final long trainingLoading,
+                                   final long computing) {
+
+    final long submittedTime = VortexThreadPool.submittedTime.get(taskletNumber);
+    final long launchedTime = VortexThreadPool.launchedTime.get(taskletNumber);
+    final long doneTime = VortexThreadPool.doneTime.get(taskletNumber);
+
+    final long timeInWorker = modelLoading + trainingLoading + computing;
+
+
     LOG.log(Level.INFO, "@@Q@@!{0}!{1}!{2}!{3}!{4}!{5}!", new Object[] {
-        id, launched - submitted, modelLoaded - launched, trainingLoaded - modelLoaded,
-        finished - trainingLoaded, ended - finished});
+        taskletNumber, launchedTime - submittedTime, modelLoading, trainingLoading, computing,
+        doneTime - launchedTime - timeInWorker});
   }
 
   private synchronized void processResult(final DenseVector[] previousModel,

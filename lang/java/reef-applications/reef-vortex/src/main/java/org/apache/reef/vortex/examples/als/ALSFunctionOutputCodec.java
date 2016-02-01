@@ -29,9 +29,9 @@ import java.io.IOException;
 /**
  * Created by v-yunlee on 1/19/2016.
  */
-public class ALSFunctionOutputCodec implements Codec<ResultVector[]> {
+public class ALSFunctionOutputCodec implements Codec<ALSFunctionOutput> {
   @Override
-  public byte[] encode(final ResultVector[] obj) {
+  public byte[] encode(final ALSFunctionOutput obj) {
     final Kryo kryo = new Kryo();
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
       try (final Output output = new Output(baos)) {
@@ -44,10 +44,10 @@ public class ALSFunctionOutputCodec implements Codec<ResultVector[]> {
   }
 
   @Override
-  public ResultVector[] decode(final byte[] buf) {
+  public ALSFunctionOutput decode(final byte[] buf) {
     final Kryo kryo = new Kryo();
     try (final Input input = new Input(buf)) {
-      return kryo.readObject(input, ResultVector[].class);
+      return kryo.readObject(input, ALSFunctionOutput.class);
     }
   }
 }

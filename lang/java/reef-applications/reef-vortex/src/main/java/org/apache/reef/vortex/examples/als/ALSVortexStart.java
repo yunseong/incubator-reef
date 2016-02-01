@@ -21,6 +21,7 @@ package org.apache.reef.vortex.examples.als;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.reef.tang.annotations.Parameter;
+import org.apache.reef.vortex.api.FutureCallback;
 import org.apache.reef.vortex.api.VortexFuture;
 import org.apache.reef.vortex.api.VortexStart;
 import org.apache.reef.vortex.api.VortexThreadPool;
@@ -32,7 +33,12 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -101,8 +107,8 @@ public final class ALSVortexStart implements VortexStart {
           new Object[]{divideFactor, numIter, userDataMatrixPartition.length, itemDataMatrixPartition.length});
 
       initializeItemMatrix(vortexThreadPool, userDataMatrixPartition);
+      final Map<String, Long> submittedTime = new HashMap<>();
 
-      final List<VortexFuture<ResultVector[]>> futures = new ArrayList<>();
       for (int iter = 0; iter < 2 * numIter; iter++) {
         if (isSaveModel) {
           saveModels("" + iter);
@@ -129,20 +135,38 @@ public final class ALSVortexStart implements VortexStart {
         }
 
         final double memoryAfterCached = getRemainingMemory();
-
-        futures.clear();
-
+        final CountDownLatch latch = new CountDownLatch(dataMatrixPartition.length);
+        final BlockingDeque<ResultVector[]> resultVectors = new LinkedBlockingDeque<>();
         for (int i = 0; i < dataMatrixPartition.length; i++) {
-          futures.add(vortexThreadPool.submit(
+          final String taskletId = "iter_" + iter + "_" + i;
+          submittedTime.put(taskletId, System.currentTimeMillis());
+          vortexThreadPool.submit(
               new ALSFunction(numFeatures, lambda, printMSE),
-              new ALSFunctionInput(dataMatrixPartition[i], fixedMatrixKey)));
+              new ALSFunctionInput(dataMatrixPartition[i], fixedMatrixKey, taskletId),
+              new FutureCallback<ALSFunctionOutput>() {
+
+                @Override
+                public void onSuccess(final ALSFunctionOutput result) {
+                  logTaskletLifeTimes(taskletId, submittedTime.get(taskletId), result.launched, result.modelLoaded,
+                      result.trainingLoaded, result.computeFinished, System.currentTimeMillis());
+                  resultVectors.add(result.resultVectors);
+                  latch.countDown();
+                }
+
+                @Override
+                public void onFailure(final Throwable t) {
+                  throw new RuntimeException(t);
+                }
+              }
+          );
         }
+
+        latch.await();
 
         float sumSquareErrors = 0.0f;
         int numRatings = 0;
 
-        for (final VortexFuture<ResultVector[]> future : futures) {
-          final ResultVector[] updatedVectors = future.get();
+        for (final ResultVector[] updatedVectors : resultVectors) {
           for (final ResultVector updatedVector : updatedVectors) {
             final int index = updatedVector.getIndex();
             numRatings += updatedVector.getNumRatings();
@@ -184,6 +208,18 @@ public final class ALSVortexStart implements VortexStart {
     if (isSaveModel) {
       saveModels("final");
     }
+  }
+
+  private void logTaskletLifeTimes(final String id,
+                                   final long submitted,
+                                   final long launched,
+                                   final long modelLoaded,
+                                   final long trainingLoaded,
+                                   final long finished,
+                                   final long ended) {
+    LOG.log(Level.INFO, "@@Q@@!{0}!{1}!{2}!{3}!{4}!{5}!{6}!", new Object[] {
+        id, submitted, launched, modelLoaded, trainingLoaded, finished, ended
+    });
   }
 
   private void saveModels(final String postFix) {

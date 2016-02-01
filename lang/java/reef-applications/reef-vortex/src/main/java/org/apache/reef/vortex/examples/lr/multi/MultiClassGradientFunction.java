@@ -102,7 +102,8 @@ public final class MultiClassGradientFunction
         new Object[]{InetAddress.getLocalHost().getHostName(), finishTime - startTime, computeTime, modelOverhead,
             trainingOverhead, trainingData.size(), Arrays.toString(lrInput.getCachedKeys().toArray())});
 
-    return new MultiClassGradientFunctionOutput(cumGradient, numPositive, trainingData.size());
+    return new MultiClassGradientFunctionOutput(cumGradient, numPositive, trainingData.size(),
+        startTime, modelLoadedTime, trainingLoadedTime, finishTime);
   }
 
   @Override

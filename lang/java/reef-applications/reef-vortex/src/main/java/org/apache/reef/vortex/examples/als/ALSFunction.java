@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public final class ALSFunction implements VortexFunction<ALSFunctionInput, ResultVector[]> {
+public final class ALSFunction implements VortexFunction<ALSFunctionInput, ALSFunctionOutput> {
 
   private static final Logger LOG = Logger.getLogger(ALSFunction.class.getName());
   private static final LAPACK NETLIB_LAPACK = LAPACK.getInstance();
@@ -105,7 +105,7 @@ public final class ALSFunction implements VortexFunction<ALSFunctionInput, Resul
   }
 
   @Override
-  public ResultVector[] call(final ALSFunctionInput alsFunctionInput) throws Exception {
+  public ALSFunctionOutput call(final ALSFunctionInput alsFunctionInput) throws Exception {
     final Runtime r = Runtime.getRuntime();
     final long startTime = System.currentTimeMillis();
     final long startMemory = (r.totalMemory() - r.freeMemory())/1048576;
@@ -151,7 +151,7 @@ public final class ALSFunction implements VortexFunction<ALSFunctionInput, Resul
             executionTime, modelOverhead, trainingOverhead, numTotalRating,
             Arrays.toString(alsFunctionInput.getCachedKeys().toArray())});
 
-    return ret;
+    return new ALSFunctionOutput(ret, startTime, modelLoadedTime, trainingLoadedTime, finishTime);
   }
 
   @Override
@@ -160,7 +160,7 @@ public final class ALSFunction implements VortexFunction<ALSFunctionInput, Resul
   }
 
   @Override
-  public Codec<ResultVector[]> getOutputCodec() {
+  public Codec<ALSFunctionOutput> getOutputCodec() {
     return new ALSFunctionOutputCodec();
   }
 }

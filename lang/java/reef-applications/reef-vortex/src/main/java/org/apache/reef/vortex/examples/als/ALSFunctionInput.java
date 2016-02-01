@@ -33,19 +33,23 @@ public final class ALSFunctionInput implements VortexCacheable {
   private CacheKey<List<IndexedVector>> vectorDataKey;
   private CacheKey<float[][]> fixedMatrixKey;
   private List<CacheKey> keys;
+  public String id;
 
   private ALSFunctionInput() {
   }
 
   public ALSFunctionInput(
       final CacheKey<List<IndexedVector>> vectorDataKey,
-      final CacheKey<float[][]> fixedMatrixKey) {
+      final CacheKey<float[][]> fixedMatrixKey,
+      final String id) {
     this.vectorDataKey = vectorDataKey;
     this.fixedMatrixKey = fixedMatrixKey;
 
     this.keys = new ArrayList<>(2);
     this.keys.add(vectorDataKey);
     this.keys.add(fixedMatrixKey);
+
+    this.id = id;
   }
 
   public synchronized List<IndexedVector> getIndexedVectors() throws Exception {

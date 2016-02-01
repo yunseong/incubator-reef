@@ -31,6 +31,8 @@ import org.apache.reef.vortex.examples.lr.multi.input.MultiClassGradientFunction
 import org.apache.reef.vortex.examples.lr.multi.output.MultiClassGradientFunctionOutput;
 
 import javax.inject.Inject;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -78,7 +80,7 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
       for (int i = 0; i < numLabels; i++) {
         model[i] = new DenseVector(modelDim);
       }
-
+      final Map<String, Long> submittedTime = new HashMap<>();
       final HdfsCacheKey[] partitions = vortexThreadPool.cache(path, divideFactor, new RowParser());
 
       LOG.log(Level.INFO, "#V#start\tDIVIDE_FACTOR\t{0}\tSPLITS\t{1}\tNUM_ITER\t{2}",
@@ -93,13 +95,20 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
         // Launch tasklets, each operating on a partition
         final CountDownLatch latch = new CountDownLatch(partitions.length);
         final AccuracyMeasurer measurer = new AccuracyMeasurer();
+        int i = 0;
         for (final CacheKey partition : partitions) {
           final int tIteration = iteration;
+          final String taskletId = "iter_" + tIteration + "_" + i;
+          i++;
+          submittedTime.put(taskletId, System.currentTimeMillis());
+
           vortexThreadPool.submit(new MultiClassGradientFunction(),
               new MultiClassGradientFunctionInput(parameterKey, partition),
               new FutureCallback<MultiClassGradientFunctionOutput>() {
                 @Override
                 public void onSuccess(final MultiClassGradientFunctionOutput result) {
+                  logTaskletLifeTimes(taskletId, submittedTime.get(taskletId), result.launched, result.modelLoaded,
+                      result.trainingLoaded, result.computeFinished, System.currentTimeMillis());
                   processResult(model, result, tIteration, measurer);
 //                  LOG.log(Level.INFO, "{0} Tasklets are remaining in this round", latch.getCount());
                   latch.countDown();
@@ -122,6 +131,18 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
       LOG.log(Level.WARNING, "#V#failed after " + duration, e);
       throw new RuntimeException("System has failed!", e);
     }
+  }
+
+  private void logTaskletLifeTimes(final String id,
+                                   final long submitted,
+                                   final long launched,
+                                   final long modelLoaded,
+                                   final long trainingLoaded,
+                                   final long finished,
+                                   final long ended) {
+    LOG.log(Level.INFO, "@@Q@@!{0}!{1}!{2}!{3}!{4}!{5}!{6}!", new Object[] {
+        id, submitted, launched, modelLoaded, trainingLoaded, finished, ended
+    });
   }
 
   private synchronized void processResult(final DenseVector[] previousModel,

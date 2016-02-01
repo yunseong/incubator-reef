@@ -27,16 +27,28 @@ public final class MultiClassGradientFunctionOutput {
   private DenseVector[] partialGradient;
   private int countPositive;
   private int countTotal;
+  public long launched;
+  public long modelLoaded;
+  public long trainingLoaded;
+  public long computeFinished;
 
   private MultiClassGradientFunctionOutput() {
   }
 
   public MultiClassGradientFunctionOutput(final DenseVector[] partialGradient,
                                           final int countPositive,
-                                          final int countTotal) {
+                                          final int countTotal,
+                                          final long launched,
+                                          final long modelLoaded,
+                                          final long trainingLoaded,
+                                          final long computeFinished) {
     this.partialGradient = partialGradient;
     this.countPositive = countPositive;
     this.countTotal = countTotal;
+    this.launched = launched;
+    this.modelLoaded = modelLoaded;
+    this.trainingLoaded = trainingLoaded;
+    this.computeFinished = computeFinished;
   }
 
   public DenseVector[] getPartialGradient() {

@@ -140,9 +140,9 @@ final class MultiClassLogisticRegressionStart implements VortexStart {
                                    final long trainingLoaded,
                                    final long finished,
                                    final long ended) {
-    LOG.log(Level.INFO, "@@Q@@!{0}!{1}!{2}!{3}!{4}!{5}!{6}!", new Object[] {
-        id, submitted, launched, modelLoaded, trainingLoaded, finished, ended
-    });
+    LOG.log(Level.INFO, "@@Q@@!{0}!{1}!{2}!{3}!{4}!{5}!", new Object[] {
+        id, launched - submitted, modelLoaded - launched, trainingLoaded - modelLoaded,
+        finished - trainingLoaded, ended - finished});
   }
 
   private synchronized void processResult(final DenseVector[] previousModel,
